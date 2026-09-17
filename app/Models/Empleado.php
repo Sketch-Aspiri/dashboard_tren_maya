@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use App\Enums\EmpleadoEstatus;
+use App\Enums\TipoPlaza;
 use Carbon\Carbon;
 use Database\Factories\EmpleadoFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -31,7 +34,9 @@ class Empleado extends Model
         'orden_origen',
         'no_empleado',
         'estatus',
+        'tipo_plaza',
         'estacion_codigo',
+        'estacion_id',
         'plaza_actual',
         'nombre_completo',
         'puesto',
@@ -64,9 +69,43 @@ class Empleado extends Model
         return [
             'orden_origen' => 'integer',
             'estatus' => EmpleadoEstatus::class,
+            'tipo_plaza' => TipoPlaza::class,
             'fecha_ingreso' => 'date',
             'fecha_nacimiento' => 'date',
         ];
+    }
+
+    /**
+     * @return BelongsTo<Estacion, $this>
+     */
+    public function estacion(): BelongsTo
+    {
+        return $this->belongsTo(Estacion::class);
+    }
+
+    /**
+     * Daily attendance history (Fase 1 — Control de Asistencia Diaria).
+     * Callers scope this per-day via a `with(['registrosDiarios' => ...])`
+     * eager-load closure (see AsistenciaCapturaService::rosterFor) rather
+     * than a denormalized column here.
+     *
+     * @return HasMany<RegistroDiario, $this>
+     */
+    public function registrosDiarios(): HasMany
+    {
+        return $this->hasMany(RegistroDiario::class);
+    }
+
+    /**
+     * Commission-out entries (Etapa 2 — Control de Asistencia Diaria).
+     * Independent from registrosDiarios — an empleado may have both a
+     * daily status and a comisión out entry for the same fecha.
+     *
+     * @return HasMany<ComisionadoFuera, $this>
+     */
+    public function comisionadosFuera(): HasMany
+    {
+        return $this->hasMany(ComisionadoFuera::class);
     }
 
     /**

@@ -16,12 +16,32 @@
 
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                        {{ __('Dashboard') }}
-                    </x-nav-link>
-                    <x-nav-link :href="route('agenda.personal.index')" :active="request()->routeIs('agenda.personal.*')">
-                        {{ __('Agenda Zona Oriente') }}
-                    </x-nav-link>
+                    @unlessrole('Estación')
+                        <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+                            {{ __('Dashboard') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('agenda.personal.index')" :active="request()->routeIs('agenda.personal.*')">
+                            {{ __('Agenda Zona Oriente') }}
+                        </x-nav-link>
+                    @endunlessrole
+                    @hasanyrole('Jefe de Zona|Administrador')
+                        <x-nav-link :href="route('asistencia.zona.index')" :active="request()->routeIs('asistencia.zona.*')">
+                            {{ __('Asistencia Zona Oriente') }}
+                        </x-nav-link>
+                    @endhasanyrole
+                    @hasanyrole('Estación|Administrador')
+                        {{-- Administrador can capture/correct any estación
+                             (not just the ones with their own login), so it
+                             needs a nav entry point too, not only Estación. --}}
+                        <x-nav-link :href="route('asistencia.captura.index')" :active="request()->routeIs('asistencia.captura.*')">
+                            {{ __('Captura de asistencia') }}
+                        </x-nav-link>
+                    @endhasanyrole
+                    @hasrole('Administrador')
+                        <x-nav-link :href="route('usuarios.index')" :active="request()->routeIs('usuarios.*')">
+                            {{ __('Usuarios') }}
+                        </x-nav-link>
+                    @endhasrole
                 </div>
             </div>
 
@@ -77,12 +97,29 @@
     <!-- Responsive Navigation Menu -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden border-t border-brand-green/10 sm:hidden">
         <div class="space-y-1 pt-2 pb-3">
-            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                {{ __('Dashboard') }}
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('agenda.personal.index')" :active="request()->routeIs('agenda.personal.*')">
-                {{ __('Agenda Zona Oriente') }}
-            </x-responsive-nav-link>
+            @unlessrole('Estación')
+                <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+                    {{ __('Dashboard') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('agenda.personal.index')" :active="request()->routeIs('agenda.personal.*')">
+                    {{ __('Agenda Zona Oriente') }}
+                </x-responsive-nav-link>
+            @endunlessrole
+            @hasanyrole('Jefe de Zona|Administrador')
+                <x-responsive-nav-link :href="route('asistencia.zona.index')" :active="request()->routeIs('asistencia.zona.*')">
+                    {{ __('Asistencia Zona Oriente') }}
+                </x-responsive-nav-link>
+            @endhasanyrole
+            @hasanyrole('Estación|Administrador')
+                <x-responsive-nav-link :href="route('asistencia.captura.index')" :active="request()->routeIs('asistencia.captura.*')">
+                    {{ __('Captura de asistencia') }}
+                </x-responsive-nav-link>
+            @endhasanyrole
+            @hasrole('Administrador')
+                <x-responsive-nav-link :href="route('usuarios.index')" :active="request()->routeIs('usuarios.*')">
+                    {{ __('Usuarios') }}
+                </x-responsive-nav-link>
+            @endhasrole
         </div>
 
         <!-- Responsive Settings Options -->

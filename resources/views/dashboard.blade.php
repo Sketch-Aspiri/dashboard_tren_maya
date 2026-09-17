@@ -52,6 +52,12 @@
                        class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-md border border-brand-green/20 bg-white px-4 py-2 text-sm font-medium text-brand-green transition duration-150 ease-in-out hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">
                         {{ __('Agenda Zona Oriente') }}
                     </a>
+                    @can('view-asistencia-zona')
+                        <a href="{{ route('asistencia.zona.index') }}"
+                           class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-md border border-brand-green/20 bg-white px-4 py-2 text-sm font-medium text-brand-green transition duration-150 ease-in-out hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">
+                            {{ __('Asistencia Zona Oriente') }}
+                        </a>
+                    @endcan
                 </div>
             </div>
 

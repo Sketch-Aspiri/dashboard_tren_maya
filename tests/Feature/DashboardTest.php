@@ -2,7 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Enums\EmpleadoEstatus;
+use App\Enums\EstatusAsistencia;
+use App\Models\Empleado;
+use App\Models\Estacion;
+use App\Models\RegistroDiario;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\InteractsWithTwoFactor;
@@ -50,6 +56,59 @@ class DashboardTest extends TestCase
     public function test_user_without_a_role_cannot_view_the_dashboard(): void
     {
         $this->actingAsTwoFactorVerified(User::factory()->create());
+
+        $response = $this->get(route('dashboard'));
+
+        $response->assertForbidden();
+    }
+
+    /**
+     * Etapa 3 — Control de Asistencia Diaria: the "Estaciones capturadas
+     * hoy" card is the first real (non-dummy) KPI, per the approved plan.
+     */
+    public function test_zone_chief_sees_the_estaciones_capturadas_hoy_kpi_with_the_right_count(): void
+    {
+        $estacionCompleta = Estacion::factory()->create(['is_operativa' => true]);
+        $estacionPendiente = Estacion::factory()->create(['is_operativa' => true]);
+
+        $empleadoCompleto = Empleado::factory()->create([
+            'estacion_id' => $estacionCompleta->id,
+            'estatus' => EmpleadoEstatus::Activo->value,
+        ]);
+        Empleado::factory()->create([
+            'estacion_id' => $estacionPendiente->id,
+            'estatus' => EmpleadoEstatus::Activo->value,
+        ]);
+
+        RegistroDiario::factory()->create([
+            'empleado_id' => $empleadoCompleto->id,
+            'estacion_id' => $estacionCompleta->id,
+            'fecha' => CarbonImmutable::today(),
+            'estatus' => EstatusAsistencia::Presente->value,
+        ]);
+
+        $this->actingAsTwoFactorVerified(tap(User::factory()->create())->assignRole('Jefe de Zona'));
+
+        $response = $this->get(route('dashboard'));
+
+        $response->assertOk();
+        $response->assertSee('Estaciones capturadas hoy');
+        $response->assertSee('1/2');
+    }
+
+    /**
+     * Estación-role accounts have no Dashboard link in the nav at all
+     * (routes/web.php + navigation.blade.php), but the underlying
+     * `view-dashboard` Gate itself must still deny them if they somehow
+     * reach the route directly — unrelated to Etapa 3, but a quick sanity
+     * check that adding the new KPI/gate didn't loosen that.
+     */
+    public function test_estacion_user_still_cannot_view_the_dashboard(): void
+    {
+        $estacion = Estacion::factory()->create(['is_operativa' => true]);
+        $user = User::factory()->create(['estacion_id' => $estacion->id]);
+        $user->assignRole('Estación');
+        $this->actingAsTwoFactorVerified($user);
 
         $response = $this->get(route('dashboard'));
 

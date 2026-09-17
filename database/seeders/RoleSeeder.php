@@ -19,6 +19,7 @@ class RoleSeeder extends Seeder
     public const ROLES = [
         'Jefe de Zona',
         'Administrador',
+        'Estación',
     ];
 
     public function run(): void

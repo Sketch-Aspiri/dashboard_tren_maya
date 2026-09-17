@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Console\Commands\Concerns\ParsesRosterSpreadsheet;
 use App\Enums\EmpleadoEstatus;
+use App\Enums\TipoPlaza;
 use App\Models\Empleado;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -12,37 +13,53 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Throwable;
 
 /**
- * Imports the "Base de Datos Zona Oriente" sheet of the Jefe de Zona's
- * roster spreadsheet into the `empleados` table (Agenda Zona Oriente ->
- * Personal). Scope is deliberately limited to that single sheet — the
- * "Cuadrillas de Mantenimiento" sheet has its own sibling command
- * (app:import-cuadrillas-mantenimiento); Estado de Fuerza, BAJAS
- * 2025-2026, and metas 2025 remain out of scope, per the confirmed
- * decision recorded in CLAUDE.md.
+ * Imports the "Cuadrillas de Mantenimiento " sheet (note the trailing
+ * space in the real workbook's sheet name — verified against the source
+ * file, not guessed) of the Jefe de Zona's roster spreadsheet into the
+ * `empleados` table, marking every row `tipo_plaza = eventual`. Sibling
+ * command to app:import-agenda-zona-oriente (which imports the
+ * "Base de Datos Zona Oriente" sheet, tipo_plaza permanente/militar) —
+ * both write to the same `empleados` table, matched by the same
+ * `no_empleado` uniqueness, per the Fase 1 plan's confirmed decision to
+ * extend Empleado instead of creating a separate `trabajadores` table.
  *
- * The source file contains real employee PII (CURP, RFC, NSS, domicilio,
- * etc.) — this command never prints row data or PII to the console, only
- * aggregate counts.
+ * The source file contains real employee PII — this command never prints
+ * row data or PII to the console, only aggregate counts.
  */
-class ImportAgendaZonaOrienteCommand extends Command
+class ImportCuadrillasMantenimientoCommand extends Command
 {
     use ParsesRosterSpreadsheet;
 
-    private const SHEET_NAME = 'Base de Datos Zona Oriente';
+    private const SHEET_NAME = 'Cuadrillas de Mantenimiento ';
 
     private const DEFAULT_IMPORT_DIR = 'private/imports/agenda-zona-oriente';
 
     private const EMPLOYEE_ID_COLUMN = 3;
 
-    private const FECHA_INGRESO_COLUMN = 11;
+    private const FECHA_INGRESO_COLUMN = 10;
 
-    private const FECHA_NACIMIENTO_COLUMN = 19;
+    private const FECHA_NACIMIENTO_COLUMN = 16;
 
     /**
-     * 0-based spreadsheet column => `empleados` column mapping. Columns
-     * not listed (e.g. the computed "Meses en activo", "Edad en numero",
-     * "Fecha Calculo", or the future "FOTO" upload column) are
-     * intentionally skipped — see CLAUDE.md YAGNI guidance.
+     * 0-based spreadsheet column => `empleados` column mapping, verified
+     * against the real sheet's header row (row 1, with a second header row
+     * for the merged "Contacto de Emergencia" sub-columns).
+     *
+     * Two deliberate deviations from a generic "same layout" assumption,
+     * both confirmed by directly inspecting the real file rather than
+     * reusing the other sheet's mapping:
+     *
+     * - Column 9 ("Oficio ") maps to `titulo` — no better-fitting field
+     *   exists in this sheet (documented judgment call, per the Fase 1
+     *   plan's decision #7).
+     * - `cedula` and `desempeno` are NOT present in this sheet at all —
+     *   left null for every imported row, nothing is mapped to them.
+     *
+     * Unlike what a prior research pass assumed, "Contacto de Emergencia"
+     * in the real file is NOT a single combined column: it's a merged
+     * header (X1:Y1) over two real sub-columns — X ("Nombre") and Y
+     * ("Contacto (Telefono)") — so both are mapped normally, the same
+     * shape as the sibling sheet's contact columns.
      *
      * @var array<int, string>
      */
@@ -50,27 +67,26 @@ class ImportAgendaZonaOrienteCommand extends Command
         1 => 'estacion_codigo',
         2 => 'plaza_actual',
         // 3 (raw employee id) is handled separately -> no_empleado/estatus.
-        5 => 'nombre_completo',
-        6 => 'puesto',
-        7 => 'nivel_plaza',
+        5 => 'puesto', // "Cargo"
+        6 => 'nivel_plaza', // "Nivel de Plaza Eventual."
+        7 => 'nombre_completo',
         8 => 'ultimo_grado_estudios',
-        9 => 'titulo',
-        10 => 'cedula',
-        // 11 (fecha_ingreso) is a date column, handled separately.
-        14 => 'telefono',
-        15 => 'correo',
-        16 => 'tipo_sangre',
-        17 => 'alergias',
-        // 19 (fecha_nacimiento) is a date column, handled separately.
-        20 => 'lugar_nacimiento',
-        21 => 'estado_civil',
-        22 => 'curp',
-        23 => 'rfc',
-        24 => 'nss',
-        25 => 'domicilio',
-        26 => 'contacto_emergencia_nombre',
-        27 => 'contacto_emergencia_telefono',
-        28 => 'desempeno',
+        9 => 'titulo', // "Oficio " — see class docblock.
+        // 10 (fecha_ingreso) is a date column, handled separately.
+        11 => 'telefono',
+        12 => 'correo',
+        13 => 'tipo_sangre',
+        14 => 'alergias',
+        // 15 ("Edad en número") is computed in the sheet, not imported.
+        // 16 (fecha_nacimiento) is a date column, handled separately.
+        17 => 'lugar_nacimiento',
+        18 => 'estado_civil',
+        19 => 'curp',
+        20 => 'rfc',
+        21 => 'nss',
+        22 => 'domicilio',
+        23 => 'contacto_emergencia_nombre',
+        24 => 'contacto_emergencia_telefono',
     ];
 
     /**
@@ -78,14 +94,14 @@ class ImportAgendaZonaOrienteCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'app:import-agenda-zona-oriente {path? : Ruta al archivo .xlsx (por defecto storage/app/private/imports/agenda-zona-oriente/*.xlsx)}';
+    protected $signature = 'app:import-cuadrillas-mantenimiento {path? : Ruta al archivo .xlsx (por defecto storage/app/private/imports/agenda-zona-oriente/*.xlsx)}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Importa la hoja "Base de Datos Zona Oriente" del roster hacia la tabla empleados (Agenda Zona Oriente -> Personal).';
+    protected $description = 'Importa la hoja "Cuadrillas de Mantenimiento" del roster hacia la tabla empleados como personal eventual.';
 
     /**
      * Execute the console command.
@@ -134,15 +150,13 @@ class ImportAgendaZonaOrienteCommand extends Command
         $summary = ['creadas' => 0, 'actualizadas' => 0, 'omitidas' => 0, 'ocultas' => 0, 'total' => 0];
 
         DB::transaction(function () use ($sheet, &$summary) {
+            // Data starts at row 3: row 1 is the main header, row 2 holds
+            // the "Contacto de Emergencia" sub-headers (Nombre/Telefono).
             $highestRow = $sheet->getHighestDataRow();
 
-            for ($rowNumber = 2; $rowNumber <= $highestRow; $rowNumber++) {
+            for ($rowNumber = 3; $rowNumber <= $highestRow; $rowNumber++) {
                 $summary['total']++;
 
-                // Rows hidden in the source file (e.g. stale/superseded
-                // entries the Jefe de Zona filtered out) are excluded —
-                // only what's actually visible when the file is opened
-                // normally gets imported.
                 if (! $sheet->isRowVisible($rowNumber)) {
                     $summary['ocultas']++;
 
@@ -190,10 +204,9 @@ class ImportAgendaZonaOrienteCommand extends Command
     {
         $attributes = $this->readMappedColumns($sheet, $rowNumber);
 
-        // Preserves the row's position in the source sheet so the Agenda
-        // Zona Oriente listing can default-sort to match the Excel order
-        // the Jefe de Zona expects, instead of an arbitrary default.
         $attributes['orden_origen'] = $rowNumber;
+        $attributes['tipo_plaza'] = TipoPlaza::Eventual->value;
+        $attributes['estatus'] = EmpleadoEstatus::Activo->value;
 
         $attributes['fecha_ingreso'] = $this->readDateCell($sheet, $rowNumber, self::FECHA_INGRESO_COLUMN);
         $attributes['fecha_nacimiento'] = $this->readDateCell($sheet, $rowNumber, self::FECHA_NACIMIENTO_COLUMN);
@@ -222,12 +235,10 @@ class ImportAgendaZonaOrienteCommand extends Command
     }
 
     /**
-     * Matches vacant positions on (estación, puesto, plaza) since the sheet
-     * gives vacant rows no natural unique key. Today every VACANTE row in
-     * the source file has a distinct combination of those three fields, so
-     * re-imports stay idempotent — but if two vacancies ever share the same
-     * estación/puesto/plaza, this would silently collapse them into one row
-     * instead of creating two. Revisit if the source file's shape changes.
+     * Same rationale as ImportAgendaZonaOrienteCommand::upsertVacante() —
+     * see that command's docblock. No VACANTE rows have been observed in
+     * this sheet as of this writing, but the handling is kept for parity
+     * and forward-compatibility with the source file's conventions.
      *
      * @param  array<string, mixed>  $attributes
      */
@@ -247,6 +258,12 @@ class ImportAgendaZonaOrienteCommand extends Command
     }
 
     /**
+     * `no_empleado` is unique across the whole `empleados` table (shared
+     * with the Base de Datos Zona Oriente sheet's rows), so the same
+     * updateOrCreate-by-no_empleado pattern is safe here — `tipo_plaza`
+     * in $attributes correctly marks these rows as eventual regardless of
+     * which command last touched them.
+     *
      * @param  array<string, mixed>  $attributes
      */
     private function upsertActivo(array $attributes, ?string $noEmpleado): string
