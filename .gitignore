@@ -6,6 +6,8 @@
 /public/storage
 /storage/*.key
 /storage/pail
+/storage/app/private/imports
+/public/archivos_temporales
 /vendor
 .env
 .env.backup

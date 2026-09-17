@@ -12,9 +12,9 @@ use Illuminate\Support\ServiceProvider;
 class AppServiceProvider extends ServiceProvider
 {
     /**
-     * Roles allowed to view the Jefe de Zona dashboard. Mirrors
-     * ExamplePolicy::READ_ROLES — the dashboard has no backing Eloquent
-     * model, so this is a plain Gate rather than a model Policy, per
+     * Roles allowed to view the Jefe de Zona dashboard. The dashboard has
+     * no backing Eloquent model, so this is a plain Gate rather than a
+     * model Policy, per
      * .claude/rules/code-style.md ("Gate::authorize(...)" is an accepted
      * alternative to a Policy for non-model actions).
      *
@@ -45,7 +45,7 @@ class AppServiceProvider extends ServiceProvider
      */
     private function configureRateLimiting(): void
     {
-        RateLimiter::for('examples-data', function (Request $request) {
+        RateLimiter::for('agenda-personal-data', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
     }

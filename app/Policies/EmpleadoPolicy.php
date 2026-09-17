@@ -2,16 +2,15 @@
 
 namespace App\Policies;
 
-use App\Models\Example;
+use App\Models\Empleado;
 use App\Models\User;
 
 /**
- * Placeholder authorization for the disposable reference CRUD module (see
- * CLAUDE.md). Both project roles may read; only "Administrador" may
- * mutate. Adjust once the real module/roles for the CRUD data are defined
- * — this is intentionally simple, not the final access model.
+ * Authorization for the "Agenda Zona Oriente" -> Personal directory.
+ * Both project roles may read; only "Administrador" may mutate this
+ * real (PII-bearing) data.
  */
-class ExamplePolicy
+class EmpleadoPolicy
 {
     private const READ_ROLES = ['Jefe de Zona', 'Administrador'];
 
@@ -28,7 +27,7 @@ class ExamplePolicy
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, Example $example): bool
+    public function view(User $user, Empleado $empleado): bool
     {
         return $user->hasAnyRole(self::READ_ROLES);
     }
@@ -44,7 +43,7 @@ class ExamplePolicy
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, Example $example): bool
+    public function update(User $user, Empleado $empleado): bool
     {
         return $user->hasAnyRole(self::WRITE_ROLES);
     }
@@ -52,7 +51,7 @@ class ExamplePolicy
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, Example $example): bool
+    public function delete(User $user, Empleado $empleado): bool
     {
         return $user->hasAnyRole(self::WRITE_ROLES);
     }

@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ExampleController;
+use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -20,17 +20,19 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::prefix('examples')->name('examples.')->group(function () {
-        Route::get('/', [ExampleController::class, 'index'])->name('index');
-        Route::get('/data', [ExampleController::class, 'data'])
-            ->middleware('throttle:examples-data')
+    // Agenda Zona Oriente -> Personal: real data module (see CLAUDE.md and
+    // app/Console/Commands/ImportAgendaZonaOrienteCommand.php).
+    Route::prefix('agenda/personal')->name('agenda.personal.')->group(function () {
+        Route::get('/', [EmpleadoController::class, 'index'])->name('index');
+        Route::get('/data', [EmpleadoController::class, 'data'])
+            ->middleware('throttle:agenda-personal-data')
             ->name('data');
-        Route::get('/create', [ExampleController::class, 'create'])->name('create');
-        Route::post('/', [ExampleController::class, 'store'])->name('store');
-        Route::get('/{example}', [ExampleController::class, 'show'])->name('show');
-        Route::get('/{example}/edit', [ExampleController::class, 'edit'])->name('edit');
-        Route::put('/{example}', [ExampleController::class, 'update'])->name('update');
-        Route::delete('/{example}', [ExampleController::class, 'destroy'])->name('destroy');
+        Route::get('/create', [EmpleadoController::class, 'create'])->name('create');
+        Route::post('/', [EmpleadoController::class, 'store'])->name('store');
+        Route::get('/{empleado}', [EmpleadoController::class, 'show'])->name('show');
+        Route::get('/{empleado}/edit', [EmpleadoController::class, 'edit'])->name('edit');
+        Route::put('/{empleado}', [EmpleadoController::class, 'update'])->name('update');
+        Route::delete('/{empleado}', [EmpleadoController::class, 'destroy'])->name('destroy');
     });
 });
 
