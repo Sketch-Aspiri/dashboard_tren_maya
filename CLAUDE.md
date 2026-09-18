@@ -109,6 +109,15 @@ php artisan app:create-zone-chief
 # storage/app/private/imports/documentos-autogenerados/orden_oficio.json)
 php artisan asistencia:importar-orden-oficio
 
+# Rol de vacaciones (Agenda Zona Oriente > Rol de vacaciones): importa el ANEXO A de
+# vacacionistas desde storage/app/private/imports/rol-vacaciones/*.xlsx (idempotente;
+# el año se infiere del nombre del archivo o con --anio=YYYY)
+php artisan app:import-rol-vacaciones
+
+# Gasto energético (Estadísticas > Gasto energético): importa la hoja "ZONA ORIENTE" del
+# ANEXO B desde storage/app/private/imports/estadisticas/gasto energetico/*.xlsx (idempotente)
+php artisan app:import-gasto-energetico
+
 # Generar recursos
 php artisan make:model NombreModelo -mcr
 php artisan make:request NombreRequest

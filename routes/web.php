@@ -8,7 +8,9 @@ use App\Http\Controllers\ComisionadoVisitanteController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\EstadisticaController;
+use App\Http\Controllers\GastoEnergeticoController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RolVacacionesController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -41,6 +43,10 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
         Route::put('/{empleado}', [EmpleadoController::class, 'update'])->name('update');
         Route::delete('/{empleado}', [EmpleadoController::class, 'destroy'])->name('destroy');
     });
+
+    // Agenda Zona Oriente -> Rol de vacaciones: consulta del rol anual
+    // (solo lectura; se carga con app:import-rol-vacaciones).
+    Route::get('agenda/vacaciones', [RolVacacionesController::class, 'index'])->name('agenda.vacaciones.index');
 
     // Control de Asistencia Diaria -> Fase 1: captura de roster diario
     // (ver el plan aprobado y app/Policies/RegistroDiarioPolicy.php).
@@ -82,6 +88,21 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
                 ->middleware('throttle:asistencia-documentos')
                 ->name('oficio.store');
             Route::get('/{estacion}', [AsistenciaZonaController::class, 'show'])->name('show');
+        });
+    });
+
+    // Estadísticas -> Gasto energético: resumen de la zona, captura/corrección
+    // por estación y baja de un pago (carga inicial con
+    // app:import-gasto-energetico). Declarado ANTES del grupo "estadisticas"
+    // de abajo para que "/estadisticas/gasto-energetico" no lo capture la
+    // ruta "/estadisticas/{estacion}".
+    Route::prefix('estadisticas/gasto-energetico')->name('estadisticas.gasto-energetico.')->group(function () {
+        Route::get('/', [GastoEnergeticoController::class, 'index'])->name('index');
+        Route::get('/{estacion}', [GastoEnergeticoController::class, 'show'])->name('show');
+
+        Route::middleware('throttle:estadisticas-write')->group(function () {
+            Route::put('/{estacion}', [GastoEnergeticoController::class, 'update'])->name('update');
+            Route::delete('/{estacion}/pagos/{pago}', [GastoEnergeticoController::class, 'destroy'])->name('destroy');
         });
     });
 

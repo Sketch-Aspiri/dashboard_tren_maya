@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Console\Commands\Concerns\ParsesRosterSpreadsheet;
+use App\Console\Commands\Concerns\ResolvesEstacionesPorNombre;
 use App\Models\Estacion;
 use App\Models\EstadisticaDiaria;
 use Illuminate\Console\Command;
@@ -26,7 +27,7 @@ use Throwable;
  */
 class ImportEstadisticasCommand extends Command
 {
-    use ParsesRosterSpreadsheet;
+    use ParsesRosterSpreadsheet, ResolvesEstacionesPorNombre;
 
     private const DEFAULT_IMPORT_DIR = 'private/imports/estadisticas';
 
@@ -185,7 +186,7 @@ class ImportEstadisticasCommand extends Command
             }
 
             if ($this->esFilaDeEncabezadoDeEstacion($sheet, $row, $highestRow, $celdaARaw, $celdaANormalizada)) {
-                $estacionActual = $this->resolverEstacion($celdaANormalizada, $estacionesPorNombre);
+                $estacionActual = $this->resolverEstacion($celdaANormalizada, $estacionesPorNombre, self::ALIAS);
 
                 if ($estacionActual === null) {
                     $this->registrarEstacionNoReconocida($celdaARaw, $estacionesNoReconocidas);
@@ -292,70 +293,6 @@ class ImportEstadisticasCommand extends Command
         }
 
         return (int) round((float) $normalized);
-    }
-
-    /**
-     * @param  array<string, Estacion>  $estacionesPorNombre
-     */
-    private function resolverEstacion(string $normalizedHeader, array $estacionesPorNombre): ?Estacion
-    {
-        foreach (self::ALIAS as $aliasClave => $nombreEstacion) {
-            if (str_contains($normalizedHeader, $aliasClave)) {
-                return $estacionesPorNombre[$this->normalizeHeader($nombreEstacion)] ?? null;
-            }
-        }
-
-        // Iterated longest-name-first (see
-        // estacionesPorNombreNormalizadoDescendente()) so e.g. "Tulum
-        // Aeropuerto" is never matched by the shorter "Tulum" prefix.
-        foreach ($estacionesPorNombre as $nombreNormalizado => $estacion) {
-            if (str_contains($normalizedHeader, $nombreNormalizado)) {
-                return $estacion;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @return array<string, Estacion>
-     */
-    private function estacionesPorNombreNormalizadoDescendente(): array
-    {
-        $indexed = [];
-
-        foreach (Estacion::query()->get() as $estacion) {
-            $nombreNormalizado = $this->normalizeHeader($estacion->nombre);
-
-            if ($nombreNormalizado !== null) {
-                $indexed[$nombreNormalizado] = $estacion;
-            }
-        }
-
-        uksort($indexed, fn (string $a, string $b) => mb_strlen($b) <=> mb_strlen($a));
-
-        return $indexed;
-    }
-
-    /**
-     * Uppercase + strip accents + collapse whitespace, for matching
-     * station-header text against the `estaciones` catalog and against the
-     * "DÍA"/"TOTAL..." row markers, independent of accents/casing in the
-     * source file.
-     */
-    private function normalizeHeader(?string $value): ?string
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        $normalized = trim(mb_strtoupper($value));
-        $normalized = strtr($normalized, [
-            'Á' => 'A', 'É' => 'E', 'Í' => 'I', 'Ó' => 'O', 'Ú' => 'U', 'Ñ' => 'N',
-        ]);
-        $normalized = preg_replace('/\s+/u', ' ', $normalized) ?? $normalized;
-
-        return $normalized !== '' ? $normalized : null;
     }
 
     /**
