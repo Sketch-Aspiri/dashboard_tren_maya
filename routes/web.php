@@ -6,6 +6,7 @@ use App\Http\Controllers\ComisionadoFueraController;
 use App\Http\Controllers\ComisionadoVisitanteController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmpleadoController;
+use App\Http\Controllers\EstadisticaController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Auth;
@@ -67,6 +68,18 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
                 ->middleware('throttle:asistencia-zona-data')
                 ->name('data');
             Route::get('/{estacion}', [AsistenciaZonaController::class, 'show'])->name('show');
+        });
+    });
+
+    // Módulo "Estadísticas": flujo de pasajeros / boletos vendidos por
+    // estación (ver el plan aprobado y app/Policies/EstadisticaDiariaPolicy.php).
+    Route::prefix('estadisticas')->name('estadisticas.')->group(function () {
+        Route::get('/', [EstadisticaController::class, 'index'])->name('index');
+        Route::get('/{estacion}', [EstadisticaController::class, 'show'])->name('show');
+
+        Route::middleware('throttle:estadisticas-write')->group(function () {
+            Route::put('/{estacion}', [EstadisticaController::class, 'update'])->name('update');
+            Route::delete('/{estacion}/registros/{registro}', [EstadisticaController::class, 'destroy'])->name('destroy');
         });
     });
 

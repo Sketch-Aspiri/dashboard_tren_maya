@@ -82,4 +82,12 @@ class Estacion extends Model
     {
         return $this->hasMany(ComisionadoFuera::class);
     }
+
+    /**
+     * @return HasMany<EstadisticaDiaria, $this>
+     */
+    public function estadisticasDiarias(): HasMany
+    {
+        return $this->hasMany(EstadisticaDiaria::class);
+    }
 }

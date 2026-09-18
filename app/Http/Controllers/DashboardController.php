@@ -2,38 +2,59 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Estacion;
+use App\Models\EstadisticaDiaria;
 use App\Services\AsistenciaCapturaService;
+use App\Services\EstadisticaDiariaService;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 
 class DashboardController extends Controller
 {
-    public function __construct(private readonly AsistenciaCapturaService $asistenciaCapturaService) {}
+    public function __construct(
+        private readonly AsistenciaCapturaService $asistenciaCapturaService,
+        private readonly EstadisticaDiariaService $estadisticaDiariaService,
+    ) {}
 
     /**
      * Show the Jefe de Zona dashboard.
      *
-     * Most KPI cards below use placeholder/dummy data on purpose: the real
-     * indicators are blocked on the data model the Jefe de Zona has not
-     * yet provided (see CLAUDE.md "Pendientes bloqueados por información
-     * externa"). Swap `dummyKpis()` for a real query once that lands. The
-     * "Estaciones capturadas hoy" card (Etapa 3 — Control de Asistencia
-     * Diaria) is the first real KPI, added alongside the dummy ones
-     * exactly per that convention.
+     * Only KPIs backed by real data are shown; the placeholder cards were
+     * removed. Further indicators stay blocked on the definitions the Jefe
+     * de Zona has not yet provided (see CLAUDE.md "Pendientes bloqueados
+     * por información externa").
      */
     public function index(Request $request): View
     {
         Gate::authorize('view-dashboard');
 
-        $kpis = $this->dummyKpis();
+        $kpis = [];
 
         if (Gate::allows('view-asistencia-zona')) {
             array_unshift($kpis, $this->asistenciaZonaKpi());
         }
 
-        return view('dashboard', ['kpis' => $kpis]);
+        $estadisticasChart = null;
+
+        // Módulo "Estadísticas" — first real (non-dummy) chart on the
+        // dashboard. resumenMensualPorEstacion() is intentionally never
+        // scoped per-estación (see EstadisticaDiariaService) — safe here
+        // only because 'view-dashboard' above already restricts this whole
+        // page to Jefe de Zona/Administrador, never "Estación".
+        if (Gate::allows('viewAny', EstadisticaDiaria::class)) {
+            $resumenDelMes = $this->estadisticaDiariaService->resumenMensualPorEstacion(
+                CarbonImmutable::today()->year,
+                CarbonImmutable::today()->month,
+            );
+
+            array_push($kpis, ...$this->estadisticasDelMesKpis($resumenDelMes));
+            $estadisticasChart = $this->estadisticasDelMesChartData($resumenDelMes);
+        }
+
+        return view('dashboard', ['kpis' => $kpis, 'estadisticasChart' => $estadisticasChart]);
     }
 
     /**
@@ -54,21 +75,35 @@ class DashboardController extends Controller
     }
 
     /**
+     * @param  Collection<int, array{estacion: Estacion, abordan: int, boletos_vendidos: int}>  $resumenDelMes
      * @return list<array{label: string, value: string, hint: string}>
      */
-    private function dummyKpis(): array
+    private function estadisticasDelMesKpis(Collection $resumenDelMes): array
     {
         return [
             [
-                'label' => 'Registros totales (dummy)',
-                'value' => '—',
-                'hint' => 'Pendiente del modelo de datos real.',
+                'label' => 'Pasajeros del mes',
+                'value' => number_format($resumenDelMes->sum('abordan')),
+                'hint' => 'Estadísticas — suma de todas las estaciones, mes actual.',
             ],
             [
-                'label' => 'Actividad reciente (dummy)',
-                'value' => '—',
-                'hint' => 'Pendiente de la definición de KPIs.',
+                'label' => 'Boletos vendidos del mes',
+                'value' => number_format($resumenDelMes->sum('boletos_vendidos')),
+                'hint' => 'Estadísticas — suma de todas las estaciones, mes actual.',
             ],
+        ];
+    }
+
+    /**
+     * @param  Collection<int, array{estacion: Estacion, abordan: int, boletos_vendidos: int}>  $resumenDelMes
+     * @return array{labels: list<string>, values: list<int>, valuesBoletos: list<int>}
+     */
+    private function estadisticasDelMesChartData(Collection $resumenDelMes): array
+    {
+        return [
+            'labels' => $resumenDelMes->pluck('estacion.nombre')->all(),
+            'values' => $resumenDelMes->pluck('abordan')->all(),
+            'valuesBoletos' => $resumenDelMes->pluck('boletos_vendidos')->all(),
         ];
     }
 }

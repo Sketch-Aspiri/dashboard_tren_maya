@@ -96,6 +96,18 @@ class DashboardTest extends TestCase
         $response->assertSee('1/2');
     }
 
+    public function test_dashboard_does_not_show_the_placeholder_dummy_kpis(): void
+    {
+        $this->actingAsTwoFactorVerified(tap(User::factory()->create())->assignRole('Jefe de Zona'));
+
+        $response = $this->get(route('dashboard'));
+
+        $response->assertOk();
+        $response->assertDontSee('Registros totales (dummy)');
+        $response->assertDontSee('Actividad reciente (dummy)');
+        $response->assertDontSee('Los indicadores mostrados son de ejemplo');
+    }
+
     /**
      * Estación-role accounts have no Dashboard link in the nav at all
      * (routes/web.php + navigation.blade.php), but the underlying

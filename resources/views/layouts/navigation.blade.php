@@ -24,17 +24,53 @@
                             {{ __('Agenda Zona Oriente') }}
                         </x-nav-link>
                     @endunlessrole
-                    @hasanyrole('Jefe de Zona|Administrador')
-                        <x-nav-link :href="route('asistencia.zona.index')" :active="request()->routeIs('asistencia.zona.*')">
-                            {{ __('Asistencia Zona Oriente') }}
-                        </x-nav-link>
+                    @hasanyrole('Jefe de Zona|Administrador|Estación')
+                        {{-- "Asistencia" groups the two links below under one
+                             dropdown — the trigger shows for anyone who can
+                             see at least one of them (union of both roles'
+                             conditions); each x-dropdown-link keeps its own
+                             original @hasanyrole guard, so a single-role user
+                             (e.g. Estación) sees the trigger with only their
+                             one applicable option inside. --}}
+                        @php
+                            $asistenciaActiva = request()->routeIs('asistencia.zona.*') || request()->routeIs('asistencia.captura.*');
+                            $asistenciaTriggerClasses = $asistenciaActiva
+                                ? 'inline-flex items-center px-1 pt-1 border-b-2 border-brand-teal text-sm font-semibold leading-5 text-brand-green focus:outline-none focus:border-brand-green transition duration-150 ease-in-out'
+                                : 'inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-gray-500 hover:text-brand-green hover:border-brand-mint focus:outline-none focus:text-brand-green focus:border-brand-mint transition duration-150 ease-in-out';
+                        @endphp
+                        {{-- class/trigger-classes "flex": let the trigger stretch to the
+                             full nav height like the sibling <x-nav-link>s, so its label
+                             and underline line up with theirs instead of sitting at the top. --}}
+                        <x-dropdown align="left" width="w-64" class="flex" trigger-classes="flex">
+                            <x-slot name="trigger">
+                                <button type="button" class="{{ $asistenciaTriggerClasses }}">
+                                    {{ __('Asistencia') }}
+                                    <svg class="ms-1 h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </x-slot>
+
+                            <x-slot name="content">
+                                @hasanyrole('Jefe de Zona|Administrador')
+                                    <x-dropdown-link :href="route('asistencia.zona.index')">
+                                        {{ __('Asistencia Zona Oriente') }}
+                                    </x-dropdown-link>
+                                @endhasanyrole
+                                @hasanyrole('Estación|Administrador')
+                                    {{-- Administrador can capture/correct any estación
+                                         (not just the ones with their own login), so it
+                                         needs a nav entry point too, not only Estación. --}}
+                                    <x-dropdown-link :href="route('asistencia.captura.index')">
+                                        {{ __('Captura de asistencia') }}
+                                    </x-dropdown-link>
+                                @endhasanyrole
+                            </x-slot>
+                        </x-dropdown>
                     @endhasanyrole
-                    @hasanyrole('Estación|Administrador')
-                        {{-- Administrador can capture/correct any estación
-                             (not just the ones with their own login), so it
-                             needs a nav entry point too, not only Estación. --}}
-                        <x-nav-link :href="route('asistencia.captura.index')" :active="request()->routeIs('asistencia.captura.*')">
-                            {{ __('Captura de asistencia') }}
+                    @hasanyrole('Jefe de Zona|Administrador|Estación')
+                        <x-nav-link :href="route('estadisticas.index')" :active="request()->routeIs('estadisticas.*')">
+                            {{ __('Estadísticas') }}
                         </x-nav-link>
                     @endhasanyrole
                     @hasrole('Administrador')
@@ -105,14 +141,45 @@
                     {{ __('Agenda Zona Oriente') }}
                 </x-responsive-nav-link>
             @endunlessrole
-            @hasanyrole('Jefe de Zona|Administrador')
-                <x-responsive-nav-link :href="route('asistencia.zona.index')" :active="request()->routeIs('asistencia.zona.*')">
-                    {{ __('Asistencia Zona Oriente') }}
-                </x-responsive-nav-link>
+            @hasanyrole('Jefe de Zona|Administrador|Estación')
+                {{-- Same "Asistencia" grouping as the desktop dropdown above,
+                     as a local Alpine accordion (own x-data scope —
+                     "openAsistencia", distinct from the hamburger menu's
+                     "open" — so toggling one never affects the other). Each
+                     option below keeps its own original @hasanyrole guard. --}}
+                @php
+                    $asistenciaActivaResponsive = request()->routeIs('asistencia.zona.*') || request()->routeIs('asistencia.captura.*');
+                    $asistenciaResponsiveTriggerClasses = $asistenciaActivaResponsive
+                        ? 'flex items-center justify-between min-h-[44px] w-full ps-3 pe-4 py-2 border-l-4 border-brand-teal text-start text-base font-semibold text-brand-green bg-brand-mist focus:outline-none focus:text-brand-green-dark focus:bg-brand-mist focus:border-brand-green transition duration-150 ease-in-out'
+                        : 'flex items-center justify-between min-h-[44px] w-full ps-3 pe-4 py-2 border-l-4 border-transparent text-start text-base font-medium text-gray-600 hover:text-brand-green hover:bg-brand-mist hover:border-brand-mint focus:outline-none focus:text-brand-green focus:bg-brand-mist focus:border-brand-mint transition duration-150 ease-in-out';
+                @endphp
+                <div x-data="{ openAsistencia: {{ $asistenciaActivaResponsive ? 'true' : 'false' }} }">
+                    <button type="button" @click="openAsistencia = ! openAsistencia"
+                            :aria-expanded="openAsistencia.toString()"
+                            class="{{ $asistenciaResponsiveTriggerClasses }}">
+                        <span>{{ __('Asistencia') }}</span>
+                        <svg class="h-4 w-4 fill-current transition-transform" :class="{ 'rotate-180': openAsistencia }"
+                             xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <div x-show="openAsistencia" class="space-y-1 pl-4">
+                        @hasanyrole('Jefe de Zona|Administrador')
+                            <x-responsive-nav-link :href="route('asistencia.zona.index')" :active="request()->routeIs('asistencia.zona.*')">
+                                {{ __('Asistencia Zona Oriente') }}
+                            </x-responsive-nav-link>
+                        @endhasanyrole
+                        @hasanyrole('Estación|Administrador')
+                            <x-responsive-nav-link :href="route('asistencia.captura.index')" :active="request()->routeIs('asistencia.captura.*')">
+                                {{ __('Captura de asistencia') }}
+                            </x-responsive-nav-link>
+                        @endhasanyrole
+                    </div>
+                </div>
             @endhasanyrole
-            @hasanyrole('Estación|Administrador')
-                <x-responsive-nav-link :href="route('asistencia.captura.index')" :active="request()->routeIs('asistencia.captura.*')">
-                    {{ __('Captura de asistencia') }}
+            @hasanyrole('Jefe de Zona|Administrador|Estación')
+                <x-responsive-nav-link :href="route('estadisticas.index')" :active="request()->routeIs('estadisticas.*')">
+                    {{ __('Estadísticas') }}
                 </x-responsive-nav-link>
             @endhasanyrole
             @hasrole('Administrador')

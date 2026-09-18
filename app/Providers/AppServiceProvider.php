@@ -86,6 +86,13 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('asistencia-zona-data', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
+
+        // Módulo "Estadísticas" — captura mensual (update) y borrado
+        // (destroy) de registros. Same treatment as usuarios-write: a
+        // state-changing route, not just a read.
+        RateLimiter::for('estadisticas-write', function (Request $request) {
+            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+        });
     }
 
     /**

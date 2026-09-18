@@ -24,23 +24,60 @@
                         <x-kpi-card :label="$kpi['label']" :value="$kpi['value']" :hint="$kpi['hint']" />
                     @endforeach
                 </div>
-                <p class="mt-3 text-xs text-gray-400">
-                    {{ __('Los indicadores mostrados son de ejemplo. Los KPIs reales se definirán con el Jefe de Zona (ver CLAUDE.md).') }}
-                </p>
             </div>
 
             <div>
                 <h3 class="mb-3 font-heading text-sm font-semibold uppercase tracking-wide text-gray-500">
                     {{ __('Gráficas e indicadores') }}
                 </h3>
-                <div class="rounded-xl border border-dashed border-brand-green/20 bg-white/60 p-8 text-center shadow-sm shadow-brand-green/5 sm:p-12">
-                    <p class="font-heading text-base font-semibold text-brand-green">
-                        {{ __('Próximamente') }}
-                    </p>
-                    <p class="mx-auto mt-2 max-w-md text-sm text-gray-500">
-                        {{ __('Las gráficas interactivas (Chart.js / ApexCharts) se habilitarán una vez definidos los indicadores y dimensiones que necesita consultar el Jefe de Zona.') }}
-                    </p>
-                </div>
+                @if ($estadisticasChart && count($estadisticasChart['labels']) > 0 && (array_sum($estadisticasChart['values']) > 0 || array_sum($estadisticasChart['valuesBoletos']) > 0))
+                    @php
+                        $dashboardChartConfig = [
+                            'type' => 'bar',
+                            'data' => [
+                                'labels' => $estadisticasChart['labels'],
+                                'datasets' => [
+                                    [
+                                        'label' => __('Pasajeros (abordan)'),
+                                        'data' => $estadisticasChart['values'],
+                                        'backgroundColor' => 'rgba(20, 108, 67, 0.6)',
+                                    ],
+                                    [
+                                        'label' => __('Boletos vendidos'),
+                                        'data' => $estadisticasChart['valuesBoletos'],
+                                        'backgroundColor' => 'rgba(45, 156, 219, 0.6)',
+                                    ],
+                                ],
+                            ],
+                            'options' => [
+                                'responsive' => true,
+                                'maintainAspectRatio' => false,
+                                'scales' => ['y' => ['beginAtZero' => true]],
+                            ],
+                        ];
+                    @endphp
+                    <div class="rounded-xl border border-brand-green/10 bg-white p-5 shadow-sm shadow-brand-green/5 sm:p-6">
+                        <p class="mb-3 text-sm font-medium text-gray-600">
+                            {{ __('Pasajeros y boletos vendidos por estación — mes actual') }}
+                        </p>
+                        <div class="relative h-64 sm:h-72">
+                            <canvas id="estadisticas-dashboard-chart"></canvas>
+                        </div>
+                    </div>
+                    <script>
+                        window.__pendingCharts = window.__pendingCharts || [];
+                        window.__pendingCharts.push({ canvasId: 'estadisticas-dashboard-chart', config: @json($dashboardChartConfig) });
+                    </script>
+                @else
+                    <div class="rounded-xl border border-dashed border-brand-green/20 bg-white/60 p-8 text-center shadow-sm shadow-brand-green/5 sm:p-12">
+                        <p class="font-heading text-base font-semibold text-brand-green">
+                            {{ __('Sin datos todavía') }}
+                        </p>
+                        <p class="mx-auto mt-2 max-w-md text-sm text-gray-500">
+                            {{ __('Aún no hay estadísticas capturadas para el mes actual. La gráfica aparecerá aquí en cuanto se registren datos en el módulo Estadísticas.') }}
+                        </p>
+                    </div>
+                @endif
             </div>
 
             <div class="rounded-xl border border-brand-green/10 bg-white p-5 shadow-sm shadow-brand-green/5 sm:p-6">
@@ -56,6 +93,12 @@
                         <a href="{{ route('asistencia.zona.index') }}"
                            class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-md border border-brand-green/20 bg-white px-4 py-2 text-sm font-medium text-brand-green transition duration-150 ease-in-out hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">
                             {{ __('Asistencia Zona Oriente') }}
+                        </a>
+                    @endcan
+                    @can('viewAny', App\Models\EstadisticaDiaria::class)
+                        <a href="{{ route('estadisticas.index') }}"
+                           class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-md border border-brand-green/20 bg-white px-4 py-2 text-sm font-medium text-brand-green transition duration-150 ease-in-out hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">
+                            {{ __('Estadísticas') }}
                         </a>
                     @endcan
                 </div>
