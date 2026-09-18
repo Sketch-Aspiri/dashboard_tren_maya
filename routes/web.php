@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AsistenciaCapturaController;
+use App\Http\Controllers\AsistenciaDocumentoController;
 use App\Http\Controllers\AsistenciaZonaController;
 use App\Http\Controllers\ComisionadoFueraController;
 use App\Http\Controllers\ComisionadoVisitanteController;
@@ -47,6 +48,16 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
         Route::get('/captura', [AsistenciaCapturaController::class, 'index'])->name('captura.index');
         Route::put('/captura', [AsistenciaCapturaController::class, 'update'])->name('captura.update');
 
+        // Oficios autogenerados (.docx + .pdf): generación y descarga. La
+        // generación convierte con LibreOffice, por eso va con throttle propio.
+        Route::post('/captura/oficio', [AsistenciaDocumentoController::class, 'storeEstacion'])
+            ->middleware('throttle:asistencia-documentos')
+            ->name('captura.oficio.store');
+        Route::get('/documentos/{documento}/{formato}', [AsistenciaDocumentoController::class, 'download'])
+            ->middleware('throttle:60,1')
+            ->whereIn('formato', ['docx', 'pdf'])
+            ->name('documentos.download');
+
         // Etapa 2 — comisionados_visitantes / comisionados_fuera (ver el
         // plan aprobado). Listados inline en la misma pantalla de captura,
         // sin index/show propios.
@@ -67,6 +78,9 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
             Route::get('/data', [AsistenciaZonaController::class, 'data'])
                 ->middleware('throttle:asistencia-zona-data')
                 ->name('data');
+            Route::post('/oficio', [AsistenciaDocumentoController::class, 'storeZona'])
+                ->middleware('throttle:asistencia-documentos')
+                ->name('oficio.store');
             Route::get('/{estacion}', [AsistenciaZonaController::class, 'show'])->name('show');
         });
     });

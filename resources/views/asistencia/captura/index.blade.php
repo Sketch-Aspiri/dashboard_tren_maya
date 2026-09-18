@@ -162,6 +162,8 @@
                 </form>
             </div>
 
+            @include('asistencia.captura._oficio')
+
             {{-- Etapa 2 — comisionados_visitantes: personal de otras
                  coordinaciones presentes hoy (ver el plan aprobado). --}}
             <div class="overflow-hidden rounded-xl border border-brand-green/10 bg-white p-4 shadow-sm shadow-brand-green/5 sm:p-6 space-y-4">

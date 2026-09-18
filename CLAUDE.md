@@ -105,6 +105,10 @@ php artisan migrate --seed
 # Provisionar la cuenta real del Jefe de Zona (interactivo, sin contraseña por defecto)
 php artisan app:create-zone-chief
 
+# Orden de las filas en los oficios de asistencia (lee
+# storage/app/private/imports/documentos-autogenerados/orden_oficio.json)
+php artisan asistencia:importar-orden-oficio
+
 # Generar recursos
 php artisan make:model NombreModelo -mcr
 php artisan make:request NombreRequest
@@ -112,6 +116,19 @@ php artisan make:request NombreRequest
 # Pruebas
 php artisan test
 ```
+
+## Oficios de asistencia autogenerados (.docx + .pdf)
+
+Tras capturar la asistencia, la estación genera su oficio desde la pantalla de
+captura; Administrador/Jefe de Zona generan el oficio de zona desde
+*Asistencia Zona Oriente* cuando todas las estaciones (incluido Edificio Zonal
+Este) capturaron. Las plantillas Word editables viven en `resources/documentos/`
+(`asistencia_estacion.docx`, `asistencia_zona.docx`; scripts de origen en
+`resources/documentos/build/`) y el texto fijo/firmantes en
+`config/asistencia_documentos.php`. El PDF se obtiene convirtiendo el mismo
+.docx con **LibreOffice headless**: requiere `libreoffice-writer` y `fonts-noto`
+en el VPS y `ASISTENCIA_SOFFICE_PATH` en `.env`. Los archivos se guardan en
+disco privado y solo se descargan por rutas autorizadas.
 
 ## Pendientes bloqueados por información externa
 

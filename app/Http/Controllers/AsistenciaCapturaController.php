@@ -6,9 +6,11 @@ use App\Enums\EstatusAsistencia;
 use App\Http\Requests\GuardarAsistenciaCapturaRequest;
 use App\Models\ComisionadoFuera;
 use App\Models\ComisionadoVisitante;
+use App\Models\DocumentoAsistencia;
 use App\Models\Estacion;
 use App\Models\RegistroDiario;
 use App\Services\AsistenciaCapturaService;
+use App\Services\AsistenciaDocumentoService;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -20,7 +22,10 @@ use Illuminate\Http\Request;
  */
 class AsistenciaCapturaController extends Controller
 {
-    public function __construct(private readonly AsistenciaCapturaService $service) {}
+    public function __construct(
+        private readonly AsistenciaCapturaService $service,
+        private readonly AsistenciaDocumentoService $documentos,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -63,6 +68,9 @@ class AsistenciaCapturaController extends Controller
             // el plan aprobado).
             'comisionadosVisitantes' => $this->service->comisionadosVisitantesFor($estacion, $fecha),
             'comisionadosFuera' => $this->service->comisionadosFueraFor($estacion, $fecha),
+            // Card "Oficio de asistencia" (.docx + .pdf).
+            'oficio' => $this->documentos->panelEstacion($estacion, $fecha),
+            'puedeGenerarOficio' => $request->user()->can('generarEstacion', [DocumentoAsistencia::class, $estacion, $fecha]),
             'puedeGestionarComisionados' => $request->user()->can('createFor', [ComisionadoVisitante::class, $estacion])
                 && $request->user()->can('createFor', [ComisionadoFuera::class, $estacion]),
         ]);

@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Services\Documentos\ConvertidorPdf;
+use App\Services\Documentos\ConvertidorPdfLibreOffice;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -30,7 +32,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(ConvertidorPdf::class, fn () => new ConvertidorPdfLibreOffice(
+            binario: (string) config('asistencia_documentos.soffice_path'),
+            timeoutSegundos: (int) config('asistencia_documentos.conversion_timeout'),
+        ));
     }
 
     /**
@@ -70,6 +75,12 @@ class AppServiceProvider extends ServiceProvider
      */
     private function configureRateLimiting(): void
     {
+        // Generating an oficio launches LibreOffice (several seconds of CPU),
+        // so it is limited far below the read endpoints.
+        RateLimiter::for('asistencia-documentos', function (Request $request) {
+            return Limit::perMinute(6)->by($request->user()?->id ?: $request->ip());
+        });
+
         RateLimiter::for('agenda-personal-data', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });

@@ -117,6 +117,65 @@ final class AsistenciaCapturaService
     }
 
     /**
+     * Whether every active empleado of the estación already has a
+     * RegistroDiario for $fecha (same definition as resumenDelDia()'s
+     * "capturado"). A station with no active roster is not "captured":
+     * there is nothing to report, so no oficio can be generated for it.
+     */
+    public function estacionCapturada(Estacion $estacion, CarbonInterface $fecha): bool
+    {
+        $rosterIds = Empleado::query()
+            ->where('estacion_id', $estacion->id)
+            ->where('estatus', EmpleadoEstatus::Activo->value)
+            ->pluck('id');
+
+        if ($rosterIds->isEmpty()) {
+            return false;
+        }
+
+        $capturados = RegistroDiario::query()
+            ->whereIn('empleado_id', $rosterIds)
+            ->whereDate('fecha', $fecha)
+            ->distinct()
+            ->count('empleado_id');
+
+        return $capturados === $rosterIds->count();
+    }
+
+    /**
+     * Every station (Edificio Zonal Este included) that has active roster
+     * but has not captured all of it for $fecha yet. The zone oficio can
+     * only be generated when this is empty. Two queries in total, merged in
+     * PHP, so it does not grow with the number of stations.
+     *
+     * @return SupportCollection<int, Estacion>
+     */
+    public function estacionesPendientes(CarbonInterface $fecha): SupportCollection
+    {
+        $rosterPorEstacion = Empleado::query()
+            ->where('estatus', EmpleadoEstatus::Activo->value)
+            ->whereNotNull('estacion_id')
+            ->get(['id', 'estacion_id'])
+            ->groupBy('estacion_id');
+
+        $capturados = RegistroDiario::query()
+            ->whereDate('fecha', $fecha)
+            ->pluck('empleado_id')
+            ->unique();
+
+        return Estacion::query()
+            ->orderBy('orden')
+            ->orderBy('nombre')
+            ->get()
+            ->filter(function (Estacion $estacion) use ($rosterPorEstacion, $capturados) {
+                $ids = $rosterPorEstacion->get($estacion->id, collect())->pluck('id');
+
+                return $ids->isNotEmpty() && $ids->diff($capturados)->isNotEmpty();
+            })
+            ->values();
+    }
+
+    /**
      * Today's (or the viewed fecha's) visiting personnel from other
      * coordinations for the given estación (Etapa 2).
      *

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Estacion;
 use App\Services\AsistenciaCapturaService;
+use App\Services\AsistenciaDocumentoService;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -21,7 +22,10 @@ use Throwable;
  */
 class AsistenciaZonaController extends Controller
 {
-    public function __construct(private readonly AsistenciaCapturaService $service) {}
+    public function __construct(
+        private readonly AsistenciaCapturaService $service,
+        private readonly AsistenciaDocumentoService $documentos,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -32,6 +36,7 @@ class AsistenciaZonaController extends Controller
         return view('asistencia.zona.index', [
             'fecha' => $fecha,
             'resumen' => $this->service->resumenDelDia($fecha),
+            'oficioZona' => $this->documentos->panelZona($fecha),
         ]);
     }
 
