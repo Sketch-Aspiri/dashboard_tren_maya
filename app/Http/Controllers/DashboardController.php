@@ -8,6 +8,7 @@ use App\Services\AsistenciaCapturaService;
 use App\Services\EstadisticaDiariaService;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
@@ -27,8 +28,15 @@ class DashboardController extends Controller
      * de Zona has not yet provided (see CLAUDE.md "Pendientes bloqueados
      * por información externa").
      */
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
+        // Every login flow lands on the dashboard route. A station account
+        // has no dashboard (its Gate stays closed), so its home is its own
+        // capture screen instead of a dead-end 403.
+        if ($request->user()?->hasRole('Estación')) {
+            return redirect()->route('asistencia.captura.index');
+        }
+
         Gate::authorize('view-dashboard');
 
         $kpis = [];

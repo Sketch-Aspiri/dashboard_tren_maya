@@ -109,13 +109,12 @@ class DashboardTest extends TestCase
     }
 
     /**
-     * Estación-role accounts have no Dashboard link in the nav at all
-     * (routes/web.php + navigation.blade.php), but the underlying
-     * `view-dashboard` Gate itself must still deny them if they somehow
-     * reach the route directly — unrelated to Etapa 3, but a quick sanity
-     * check that adding the new KPI/gate didn't loosen that.
+     * Estación-role accounts have no dashboard (the `view-dashboard` Gate
+     * stays closed for them), but every login flow lands on that route: it
+     * sends them to their own capture screen instead of a dead-end 403, and
+     * never renders any dashboard data for them.
      */
-    public function test_estacion_user_still_cannot_view_the_dashboard(): void
+    public function test_estacion_user_is_sent_to_the_capture_screen_and_never_sees_the_dashboard(): void
     {
         $estacion = Estacion::factory()->create(['is_operativa' => true]);
         $user = User::factory()->create(['estacion_id' => $estacion->id]);
@@ -124,6 +123,15 @@ class DashboardTest extends TestCase
 
         $response = $this->get(route('dashboard'));
 
-        $response->assertForbidden();
+        $response->assertRedirect(route('asistencia.captura.index'));
+    }
+
+    public function test_the_gate_still_denies_estacion_accounts(): void
+    {
+        $estacion = Estacion::factory()->create(['is_operativa' => true]);
+        $user = User::factory()->create(['estacion_id' => $estacion->id]);
+        $user->assignRole('Estación');
+
+        $this->assertFalse($user->can('view-dashboard'));
     }
 }
