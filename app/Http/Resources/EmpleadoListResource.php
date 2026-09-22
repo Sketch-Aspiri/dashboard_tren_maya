@@ -31,6 +31,10 @@ class EmpleadoListResource extends JsonResource
             'estatus' => $this->estatus->value,
             'estatus_label' => $this->estatus->label(),
             'estacion_codigo' => $this->estacion_codigo,
+            'estacion' => $this->whenLoaded('estacion', fn () => $this->estacion === null ? null : [
+                'id' => $this->estacion->id,
+                'nombre' => $this->estacion->nombre,
+            ]),
             'plaza_actual' => $this->plaza_actual,
             'nombre_completo' => $this->nombre_completo,
             'puesto' => $this->puesto,

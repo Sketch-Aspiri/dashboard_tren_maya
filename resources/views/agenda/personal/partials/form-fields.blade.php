@@ -1,5 +1,6 @@
 @php
     /** @var \App\Models\Empleado|null $empleado */
+    /** @var \Illuminate\Support\Collection<int, \App\Models\Estacion> $estaciones */
 @endphp
 
 {{-- Fields follow the exact column order of the source Excel sheet ("Base
@@ -11,6 +12,19 @@
         <x-text-input id="estacion_codigo" name="estacion_codigo" type="text" class="block mt-1 w-full"
                       :value="old('estacion_codigo', $empleado?->estacion_codigo)" />
         <x-input-error :messages="$errors->get('estacion_codigo')" class="mt-2" />
+    </div>
+
+    <div>
+        <x-input-label for="estacion_id" :value="__('Estación (vinculación real — define en qué estación pasa lista)')" />
+        <select id="estacion_id" name="estacion_id" class="mt-1 block w-full min-h-[44px] rounded-md border-gray-300 shadow-sm focus:border-brand-teal focus:ring-brand-teal">
+            <option value="">{{ __('— Sin vincular —') }}</option>
+            @foreach ($estaciones as $estacion)
+                <option value="{{ $estacion->id }}" @selected((int) old('estacion_id', $empleado?->estacion_id) === $estacion->id)>
+                    {{ $estacion->nombre }}
+                </option>
+            @endforeach
+        </select>
+        <x-input-error :messages="$errors->get('estacion_id')" class="mt-2" />
     </div>
 
     <div>

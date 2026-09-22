@@ -22,6 +22,10 @@
                         <p class="text-sm text-gray-900">{{ $empleado->estacion_codigo ?? '—' }}</p>
                     </div>
                     <div>
+                        <p class="text-sm font-medium text-gray-500">{{ __('Estación (vinculación real)') }}</p>
+                        <p class="text-sm text-gray-900">{{ $empleado->estacion?->nombre ?? __('Sin vincular') }}</p>
+                    </div>
+                    <div>
                         <p class="text-sm font-medium text-gray-500">{{ __('Plaza actual') }}</p>
                         <p class="text-sm text-gray-900">{{ $empleado->plaza_actual ?? '—' }}</p>
                     </div>

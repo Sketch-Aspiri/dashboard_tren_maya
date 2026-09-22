@@ -29,6 +29,7 @@ class StoreEmpleadoRequest extends FormRequest
             'no_empleado' => ['nullable', 'string', 'max:255', 'unique:empleados,no_empleado'],
             'estatus' => ['required', Rule::enum(EmpleadoEstatus::class)],
             'estacion_codigo' => ['nullable', 'string', 'max:255'],
+            'estacion_id' => ['nullable', 'integer', Rule::exists('estaciones', 'id')],
             'plaza_actual' => ['nullable', 'string', 'max:255'],
             'nombre_completo' => ['nullable', 'string', 'max:255'],
             'puesto' => ['nullable', 'string', 'max:255'],

@@ -69,6 +69,7 @@ final class EmpleadoService
         $direction = $request->query('direction') === 'desc' ? 'desc' : 'asc';
 
         return Empleado::query()
+            ->with('estacion')
             ->when($request->filled('q'), function ($query) use ($request) {
                 $term = '%'.$request->string('q')->value().'%';
 

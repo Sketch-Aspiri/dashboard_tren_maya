@@ -4,9 +4,12 @@ namespace Tests\Feature;
 
 use App\Enums\EmpleadoEstatus;
 use App\Models\Empleado;
+use App\Models\Estacion;
 use App\Models\User;
+use App\Services\AsistenciaCapturaService;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Spatie\Activitylog\Models\Activity;
 use Tests\Concerns\InteractsWithTwoFactor;
 use Tests\TestCase;
@@ -208,6 +211,49 @@ class EmpleadoCrudTest extends TestCase
 
         $response->assertValid();
         $response->assertRedirect(route('agenda.personal.index'));
+    }
+
+    public function test_update_rejects_a_nonexistent_estacion_id(): void
+    {
+        $this->actingAsTwoFactorVerified($this->administrador());
+        $empleado = Empleado::factory()->create();
+
+        $response = $this->put(route('agenda.personal.update', $empleado), $this->validPayload([
+            'no_empleado' => $empleado->no_empleado,
+            'estacion_id' => 999999,
+        ]));
+
+        $response->assertInvalid(['estacion_id']);
+    }
+
+    public function test_update_allows_a_null_estacion_id(): void
+    {
+        $this->actingAsTwoFactorVerified($this->administrador());
+        $estacion = Estacion::factory()->create();
+        $empleado = Empleado::factory()->create(['estacion_id' => $estacion->id]);
+
+        $response = $this->put(route('agenda.personal.update', $empleado), $this->validPayload([
+            'no_empleado' => $empleado->no_empleado,
+            'estacion_id' => null,
+        ]));
+
+        $response->assertValid();
+        $this->assertDatabaseHas('empleados', ['id' => $empleado->id, 'estacion_id' => null]);
+    }
+
+    public function test_update_accepts_a_valid_estacion_id(): void
+    {
+        $this->actingAsTwoFactorVerified($this->administrador());
+        $estacion = Estacion::factory()->create();
+        $empleado = Empleado::factory()->create();
+
+        $response = $this->put(route('agenda.personal.update', $empleado), $this->validPayload([
+            'no_empleado' => $empleado->no_empleado,
+            'estacion_id' => $estacion->id,
+        ]));
+
+        $response->assertValid();
+        $this->assertDatabaseHas('empleados', ['id' => $empleado->id, 'estacion_id' => $estacion->id]);
     }
 
     // --- Mass-assignment safety ---------------------------------------
@@ -457,5 +503,58 @@ class EmpleadoCrudTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('PELJ900520MDFRPN01');
+    }
+
+    // --- estacion_id drives the daily attendance roster -----------------
+
+    /**
+     * Concrete proof (not just "the field saves") that editing an
+     * empleado's estacion_id from the Personal edit form is what actually
+     * moves that person between stations' daily attendance roll-call
+     * lists — see AsistenciaCapturaService::rosterFor(), which is the
+     * single source of truth for "pasar lista" per estación.
+     */
+    public function test_updating_estacion_id_moves_the_empleado_between_attendance_rosters(): void
+    {
+        $admin = $this->actingAsTwoFactorVerified($this->administrador());
+
+        $estacionA = Estacion::factory()->create(['nombre' => 'Estación A']);
+        $estacionB = Estacion::factory()->create(['nombre' => 'Estación B']);
+
+        $empleado = Empleado::factory()->create([
+            'estatus' => EmpleadoEstatus::Activo->value,
+            'nombre_completo' => 'Empleado Roster',
+            'estacion_id' => $estacionA->id,
+        ]);
+
+        $fecha = Carbon::today();
+        $service = app(AsistenciaCapturaService::class);
+
+        $rosterA = $service->rosterFor($estacionA, $fecha);
+        $rosterB = $service->rosterFor($estacionB, $fecha);
+        $this->assertTrue($rosterA->contains('id', $empleado->id));
+        $this->assertFalse($rosterB->contains('id', $empleado->id));
+
+        $response = $this->put(route('agenda.personal.update', $empleado), $this->validPayload([
+            'no_empleado' => $empleado->no_empleado,
+            'nombre_completo' => 'Empleado Roster',
+            'estacion_id' => $estacionB->id,
+        ]));
+        $response->assertRedirect(route('agenda.personal.index'));
+
+        $rosterA = $service->rosterFor($estacionA, $fecha);
+        $rosterB = $service->rosterFor($estacionB, $fecha);
+        $this->assertFalse($rosterA->contains('id', $empleado->id));
+        $this->assertTrue($rosterB->contains('id', $empleado->id));
+
+        $activity = Activity::query()->where('subject_id', $empleado->id)
+            ->where('subject_type', Empleado::class)
+            ->where('event', 'updated')
+            ->latest('id')
+            ->first();
+        $this->assertNotNull($activity);
+        $this->assertSame($admin->id, $activity->causer_id);
+        $this->assertSame($estacionB->id, $activity->properties->get('attributes')['estacion_id']);
+        $this->assertSame($estacionA->id, $activity->properties->get('old')['estacion_id']);
     }
 }

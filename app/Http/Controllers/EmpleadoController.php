@@ -8,11 +8,13 @@ use App\Http\Requests\UpdateEmpleadoRequest;
 use App\Http\Resources\EmpleadoListResource;
 use App\Http\Resources\EmpleadoResource;
 use App\Models\Empleado;
+use App\Models\Estacion;
 use App\Services\EmpleadoService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 /**
  * "Agenda Zona Oriente" -> Personal: real personnel directory CRUD.
@@ -76,6 +78,7 @@ class EmpleadoController extends Controller
 
         return view('agenda.personal.create', [
             'statuses' => EmpleadoEstatus::cases(),
+            'estaciones' => $this->estacionesForSelect(),
         ]);
     }
 
@@ -91,7 +94,7 @@ class EmpleadoController extends Controller
     {
         $this->authorize('view', $empleado);
 
-        return view('agenda.personal.show', ['empleado' => $empleado]);
+        return view('agenda.personal.show', ['empleado' => $empleado->load('estacion')]);
     }
 
     public function edit(Empleado $empleado): View
@@ -101,6 +104,7 @@ class EmpleadoController extends Controller
         return view('agenda.personal.edit', [
             'empleado' => $empleado,
             'statuses' => EmpleadoEstatus::cases(),
+            'estaciones' => $this->estacionesForSelect(),
         ]);
     }
 
@@ -120,5 +124,20 @@ class EmpleadoController extends Controller
 
         return redirect()->route('agenda.personal.index')
             ->with('status', __('Registro eliminado correctamente.'));
+    }
+
+    /**
+     * Full station catalog (operational and non-operational, e.g.
+     * "Edificio Zonal Este") for the create/edit form's estacion_id
+     * select — an Administrador must be able to link an empleado to any
+     * station, not only the operational ones. Ordered per the
+     * orden/nombre convention used elsewhere (see
+     * AsistenciaCapturaService::resolveEstacionObjetivo()).
+     *
+     * @return Collection<int, Estacion>
+     */
+    private function estacionesForSelect(): Collection
+    {
+        return Estacion::query()->orderBy('orden')->orderBy('nombre')->get();
     }
 }
