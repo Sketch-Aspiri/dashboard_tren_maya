@@ -96,13 +96,13 @@ final class AsistenciaDocumentoDataBuilder
                 'registrosDiarios' => fn ($query) => $query->whereDate('fecha', $fecha)->with('estacion'),
             ])
             ->get()
-            ->sort(fn (Empleado $a, Empleado $b) => $this->comparar($a, $b));
+            ->sort(fn (Empleado $a, Empleado $b) => $this->compararPorEstacion($a, $b));
 
         $grupos = ['militares' => [], 'permanentes' => [], 'eventuales' => []];
 
         foreach ($empleados as $empleado) {
             $registro = $empleado->registrosDiarios->first();
-            $ubicacion = mb_strtoupper($registro?->estacion?->nombre ?? $empleado->estacion->nombre);
+            $ubicacion = mb_strtoupper($this->estacionUbicacion($empleado)->nombre);
             $grupo = match ($empleado->tipo_plaza) {
                 TipoPlaza::Militar => 'militares',
                 TipoPlaza::Eventual => 'eventuales',
@@ -204,5 +204,42 @@ final class AsistenciaDocumentoDataBuilder
         $ordenB = $b->orden_oficio ?? PHP_INT_MAX;
 
         return [$ordenA, $a->nombre_completo] <=> [$ordenB, $b->nombre_completo];
+    }
+
+    /**
+     * Zone oficio ordering: every station's people print together (per
+     * Estacion.orden, the same geographic/route order used everywhere else
+     * — Bacalar, Chetumal, ... Edificio Zonal Este last), and only within a
+     * station does orden_oficio/name break ties. Without the station
+     * grouping the list interleaves stations, which is what the printed
+     * oficio must never do.
+     */
+    private function compararPorEstacion(Empleado $a, Empleado $b): int
+    {
+        // estaciones.orden is nullable at the schema level even though
+        // EstacionSeeder always sets it for the 10 fixed rows — guarded the
+        // same defensive way as comparar() guards orden_oficio, so a
+        // never-expected null sorts predictably last instead of silently
+        // jumping first.
+        $ordenEstacionA = $this->estacionUbicacion($a)->orden ?? PHP_INT_MAX;
+        $ordenEstacionB = $this->estacionUbicacion($b)->orden ?? PHP_INT_MAX;
+
+        if ($ordenEstacionA !== $ordenEstacionB) {
+            return $ordenEstacionA <=> $ordenEstacionB;
+        }
+
+        return $this->comparar($a, $b);
+    }
+
+    /**
+     * The station a person actually prints under for the day: their
+     * RegistroDiario's estación if today's capture points somewhere else
+     * (e.g. a temporary reassignment), otherwise their own estación_id.
+     * Mirrors the fallback already used for the printed "ubicación" label,
+     * so the sort key and the label always agree.
+     */
+    private function estacionUbicacion(Empleado $empleado): Estacion
+    {
+        return $empleado->registrosDiarios->first()?->estacion ?? $empleado->estacion;
     }
 }

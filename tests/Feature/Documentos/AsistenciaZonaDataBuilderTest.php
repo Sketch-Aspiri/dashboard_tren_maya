@@ -36,8 +36,11 @@ class AsistenciaZonaDataBuilderTest extends TestCase
         parent::setUp();
 
         $this->fecha = CarbonImmutable::parse('2026-09-18');
-        $this->pmo = Estacion::factory()->create(['nombre' => 'Puerto Morelos', 'is_operativa' => true]);
-        $this->eze = Estacion::factory()->create(['nombre' => 'Edificio Zonal Este', 'is_operativa' => false]);
+        // Orden set explicitly (not left to the factory's random default):
+        // the zone oficio must group people by station in this order, and a
+        // random orden would make that assertion flaky.
+        $this->pmo = Estacion::factory()->create(['nombre' => 'Puerto Morelos', 'is_operativa' => true, 'orden' => 7]);
+        $this->eze = Estacion::factory()->create(['nombre' => 'Edificio Zonal Este', 'is_operativa' => false, 'orden' => 10]);
     }
 
     private function builder(): AsistenciaDocumentoDataBuilder
@@ -169,6 +172,29 @@ class AsistenciaZonaDataBuilderTest extends TestCase
         // Perm D is commissioned AND on vacation: counted in both columns, once in the total.
         $this->assertSame(1, $resumen->de(EstatusAsistencia::Vacaciones));
         $this->assertSame(3, $resumen->total);
+    }
+
+    public function test_las_listas_de_zona_agrupan_por_estacion_aunque_el_orden_oficio_se_intercale(): void
+    {
+        // Each station numbers its own orden_oficio starting at 1 — the real
+        // scenario that produced the reported bug. Sorting by orden_oficio
+        // alone (the old comparar()-only behavior) ties within each orden
+        // value and falls back to name, giving "EZE Uno, PMO Uno, EZE Dos,
+        // PMO Dos" — stations interleaved. Only sorting by station first
+        // (compararPorEstacion) groups every PMO person before every EZE
+        // person, as asserted below.
+        $this->persona($this->pmo, 'PMO Uno', TipoPlaza::Permanente, 1);
+        $this->persona($this->eze, 'EZE Uno', TipoPlaza::Permanente, 1);
+        $this->persona($this->pmo, 'PMO Dos', TipoPlaza::Permanente, 2);
+        $this->persona($this->eze, 'EZE Dos', TipoPlaza::Permanente, 2);
+
+        $filas = $this->builder()->paraZona($this->fecha)->permanentes;
+
+        $this->assertSame(['PMO Uno', 'PMO Dos', 'EZE Uno', 'EZE Dos'], array_map(fn ($f) => $f->nombre, $filas));
+        $this->assertSame(
+            ['PUERTO MORELOS', 'PUERTO MORELOS', 'EDIFICIO ZONAL ESTE', 'EDIFICIO ZONAL ESTE'],
+            array_map(fn ($f) => $f->ubicacion, $filas),
+        );
     }
 
     public function test_personal_sin_estacion_o_inactivo_no_aparece_en_las_listas(): void
