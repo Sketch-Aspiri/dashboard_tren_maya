@@ -1,3 +1,10 @@
+{{-- $navegacionBuscable (destinos del buscador del menú) se calcula en
+     layouts/app.blade.php, no aquí: el buscador de escritorio ahora vive en
+     la misma fila que el título de página (slot "header" de app.blade.php),
+     así que ese layout necesita la variable tanto como esta vista. Blade
+     comparte el scope de la vista padre hacia @include, así que definirla
+     una sola vez en app.blade.php basta para ambos usos (este archivo solo
+     la consume, en el buscador del menú de hamburguesa más abajo). --}}
 <nav x-data="{ open: false }" class="bg-white border-b border-brand-green/10 shadow-sm">
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -15,7 +22,12 @@
                 </div>
 
                 <!-- Navigation Links -->
-                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                {{-- shrink-0: el buscador nuevo a la derecha nunca debe
+                     comprimir estos enlaces — antes de añadirlo, "Agenda
+                     Zona Oriente" y el resto siempre tenían su ancho
+                     natural; sin shrink-0, flexbox los encoge y su texto
+                     se parte en varias líneas cuando falta espacio. --}}
+                <div class="hidden shrink-0 space-x-8 sm:-my-px sm:ms-10 sm:flex">
                     @unlessrole('Estación')
                         <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                             {{ __('Dashboard') }}
@@ -212,8 +224,43 @@
         </div>
     </div>
 
+    {{-- El buscador de escritorio ya NO vive aquí como una tira propia
+         debajo de la barra principal (eso era justo la queja de diseño:
+         dos tiras delgadas apiladas, una para el buscador y otra para el
+         título de página). Ahora se renderiza dentro de
+         layouts/app.blade.php, en la misma fila que el slot "header", para
+         leerse como una sola franja de encabezado. Ver ese archivo para el
+         buscador de escritorio; abajo sigue la copia para el menú de
+         hamburguesa en celular, sin cambios. --}}
+
     <!-- Responsive Navigation Menu -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden border-t border-brand-green/10 sm:hidden">
+        {{-- Mismo buscador que arriba (ver el bloque justo encima), a ancho
+             completo para la barra de navegación en celular. --}}
+        <div class="relative px-4 pt-3" x-data='navBuscador(@json($navegacionBuscable))' @click.outside="abierto = false">
+            <label for="buscar-nav-movil" class="sr-only">{{ __('Buscar en el menú') }}</label>
+            <x-text-input id="buscar-nav-movil" type="search"
+                          class="block w-full text-sm"
+                          placeholder="{{ __('Buscar en el menú…') }}"
+                          x-model="query"
+                          @focus="abierto = true"
+                          @input="abierto = true"
+                          @keydown.escape="abierto = false; query = ''"
+                          @keydown.enter.prevent="irAlPrimero()" />
+            <ul x-show="abierto && resultados.length > 0" x-cloak
+                class="absolute z-50 left-4 right-4 mt-1 rounded-md border border-brand-green/10 bg-white py-1 shadow-lg">
+                <template x-for="item in resultados" :key="item.href">
+                    <li>
+                        <a :href="item.href" x-text="item.label" @click="abierto = false"
+                           class="block min-h-[44px] w-full items-center px-4 py-2 text-start text-sm leading-5 text-gray-700 hover:bg-brand-mist hover:text-brand-green focus:outline-none focus:bg-brand-mist transition duration-150 ease-in-out"></a>
+                    </li>
+                </template>
+            </ul>
+            <p x-show="abierto && query.trim() !== '' && resultados.length === 0" x-cloak
+               class="absolute z-50 left-4 right-4 mt-1 rounded-md border border-brand-green/10 bg-white px-4 py-2 text-sm text-gray-500 shadow-lg">
+                {{ __('Sin resultados.') }}
+            </p>
+        </div>
         <div class="space-y-1 pt-2 pb-3">
             @unlessrole('Estación')
                 <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
