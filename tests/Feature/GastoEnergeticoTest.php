@@ -72,12 +72,16 @@ class GastoEnergeticoTest extends TestCase
         $this->assertNotSame(200, $response->getStatusCode());
     }
 
-    public function test_estacion_user_cannot_see_the_report(): void
+    public function test_estacion_user_can_see_the_report_scoped_to_its_own_station(): void
     {
-        $estacion = Estacion::factory()->create();
-        $this->actingAsTwoFactorVerified($this->userWithRole('Estación', ['estacion_id' => $estacion->id]));
+        $suya = $this->servicio('Bacalar', agua: false, anio: 2026, montosPorMes: [1 => 100.0]);
+        $otra = $this->servicio('Tulum', agua: false, anio: 2026, montosPorMes: [1 => 200.0]);
+        $this->actingAsTwoFactorVerified($this->userWithRole('Estación', ['estacion_id' => $suya->estacion_id]));
 
-        $this->get(route('estadisticas.gasto-energetico.index'))->assertForbidden();
+        $this->get(route('estadisticas.gasto-energetico.index'))
+            ->assertOk()
+            ->assertSee('Bacalar')
+            ->assertDontSee('Tulum');
     }
 
     public function test_zone_chief_and_administrador_can_see_the_report(): void
@@ -175,13 +179,31 @@ class GastoEnergeticoTest extends TestCase
         $this->put(route('estadisticas.gasto-energetico.update', $estacion), $this->payload(2026))->assertRedirect(route('login'));
     }
 
-    public function test_estacion_user_cannot_view_or_update_any_station(): void
+    public function test_estacion_user_can_view_and_update_its_own_station(): void
     {
         $estacion = Estacion::factory()->create();
-        $this->actingAsTwoFactorVerified($this->userWithRole('Estación', ['estacion_id' => $estacion->id]));
+        $estacionUser = $this->actingAsTwoFactorVerified($this->userWithRole('Estación', ['estacion_id' => $estacion->id]));
 
-        $this->get(route('estadisticas.gasto-energetico.show', $estacion))->assertForbidden();
-        $this->put(route('estadisticas.gasto-energetico.update', $estacion), $this->payload(2026, ['meses' => [1 => 100]]))->assertForbidden();
+        $this->get(route('estadisticas.gasto-energetico.show', $estacion))->assertOk();
+
+        $this->put(route('estadisticas.gasto-energetico.update', $estacion), $this->payload(2026, ['meses' => [1 => 100]]))
+            ->assertRedirect(route('estadisticas.gasto-energetico.show', ['estacion' => $estacion->id, 'anio' => 2026]));
+        $this->assertSame(1, PagoServicio::count());
+        $this->assertDatabaseHas('activity_log', [
+            'subject_type' => ServicioEstacion::class,
+            'event' => 'created',
+            'causer_id' => $estacionUser->id,
+        ]);
+    }
+
+    public function test_estacion_user_cannot_view_or_update_another_station(): void
+    {
+        $suya = Estacion::factory()->create();
+        $otra = Estacion::factory()->create();
+        $this->actingAsTwoFactorVerified($this->userWithRole('Estación', ['estacion_id' => $suya->id]));
+
+        $this->get(route('estadisticas.gasto-energetico.show', $otra))->assertForbidden();
+        $this->put(route('estadisticas.gasto-energetico.update', $otra), $this->payload(2026, ['meses' => [1 => 100]]))->assertForbidden();
         $this->assertSame(0, PagoServicio::count());
     }
 
@@ -384,7 +406,7 @@ class GastoEnergeticoTest extends TestCase
 
     // --- Navigation ---------------------------------------------------------
 
-    public function test_estadisticas_menu_offers_gasto_energetico_only_to_zone_roles(): void
+    public function test_estadisticas_menu_offers_gasto_energetico_to_every_role(): void
     {
         $this->actingAsTwoFactorVerified($this->userWithRole('Jefe de Zona'));
 
@@ -397,6 +419,6 @@ class GastoEnergeticoTest extends TestCase
 
         $this->get(route('asistencia.captura.index'))
             ->assertSee(route('estadisticas.index'), false)
-            ->assertDontSee(route('estadisticas.gasto-energetico.index'), false);
+            ->assertSee(route('estadisticas.gasto-energetico.index'), false);
     }
 }

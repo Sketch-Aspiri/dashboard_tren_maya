@@ -118,6 +118,11 @@ php artisan app:import-rol-vacaciones
 # ANEXO B desde storage/app/private/imports/estadisticas/gasto energetico/*.xlsx (idempotente)
 php artisan app:import-gasto-energetico
 
+# Controles (Escaleras eléctricas / Elevadores): importa el inventario desde
+# storage/app/private/imports/controles/escaleras y elevadores/*.xlsx. Reemplaza el
+# contenido completo de ambas tablas en cada corrida (no hay llave natural por equipo).
+php artisan app:import-controles
+
 # Generar recursos
 php artisan make:model NombreModelo -mcr
 php artisan make:request NombreRequest

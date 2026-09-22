@@ -6,6 +6,7 @@ use App\Http\Requests\ConsultarGastoEnergeticoRequest;
 use App\Http\Requests\GuardarGastoEnergeticoRequest;
 use App\Models\Estacion;
 use App\Models\PagoServicio;
+use App\Models\ServicioEstacion;
 use App\Services\GastoEnergeticoService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -13,9 +14,12 @@ use Illuminate\Http\RedirectResponse;
 /**
  * "Estadísticas" -> Gasto energético: pagos mensuales de energía eléctrica y
  * agua por estación (resumen de la zona, captura por estación y baja de un
- * pago). Thin-controller shape per .claude/rules/code-style.md; la
- * autorización de lectura/escritura vive en las Form Requests
- * (ServicioEstacionPolicy) y la de baja en PagoServicioPolicy.
+ * pago). Thin-controller shape per .claude/rules/code-style.md. Mismo
+ * criterio de alcance que "Estadísticas": "Jefe de Zona" y "Administrador"
+ * ven/editan todas las estaciones; "Estación" solo la suya
+ * (ServicioEstacionPolicy::manageFor()). La lectura/escritura de la
+ * consulta (`?anio=`) vive en las Form Requests; la baja en
+ * PagoServicioPolicy.
  */
 class GastoEnergeticoController extends Controller
 {
@@ -24,15 +28,27 @@ class GastoEnergeticoController extends Controller
     public function index(ConsultarGastoEnergeticoRequest $request): View
     {
         $anio = $this->resolverAnio($request);
+        $resumen = $this->service->resumenAnual($request->user(), $anio);
 
         return view('estadisticas.gasto-energetico.index', [
             'anio' => $anio,
-            'resumen' => $this->service->resumenAnual($anio),
+            'resumen' => $resumen,
+            // resumenAnual() already scopes "Estación"-role users to their
+            // own estación, so every row here is always manageable by them
+            // — computed explicitly anyway (never duplicating the Policy
+            // rule in the view), mismo criterio que EstadisticaController::index().
+            'puedeEditar' => collect($resumen)
+                ->flatMap(fn (array $bloque) => $bloque['filas'])
+                ->pluck('servicio.estacion')
+                ->unique('id')
+                ->mapWithKeys(fn (Estacion $estacion) => [$estacion->id => $request->user()->can('manageFor', [ServicioEstacion::class, $estacion])]),
         ]);
     }
 
     public function show(Estacion $estacion, ConsultarGastoEnergeticoRequest $request): View
     {
+        $this->authorize('manageFor', [ServicioEstacion::class, $estacion]);
+
         $anio = $this->resolverAnio($request);
 
         return view('estadisticas.gasto-energetico.show', [

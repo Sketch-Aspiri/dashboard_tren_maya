@@ -5,6 +5,7 @@ use App\Http\Controllers\AsistenciaDocumentoController;
 use App\Http\Controllers\AsistenciaZonaController;
 use App\Http\Controllers\ComisionadoFueraController;
 use App\Http\Controllers\ComisionadoVisitanteController;
+use App\Http\Controllers\ControlesController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\EstadisticaController;
@@ -115,6 +116,21 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
         Route::middleware('throttle:estadisticas-write')->group(function () {
             Route::put('/{estacion}', [EstadisticaController::class, 'update'])->name('update');
             Route::delete('/{estacion}/registros/{registro}', [EstadisticaController::class, 'destroy'])->name('destroy');
+        });
+    });
+
+    // Módulo "Controles": inventario de escaleras eléctricas y elevadores
+    // (ver app/Console/Commands/ImportControlesCommand.php y
+    // app/Policies/EscaleraElectricaPolicy.php / ElevadorPolicy.php).
+    Route::prefix('controles')->name('controles.')->group(function () {
+        Route::get('/escaleras-electricas', [ControlesController::class, 'escalerasElectricas'])->name('escaleras-electricas.index');
+        Route::get('/escaleras-electricas/{escalera}/editar', [ControlesController::class, 'editarEscaleraElectrica'])->name('escaleras-electricas.edit');
+        Route::get('/elevadores', [ControlesController::class, 'elevadores'])->name('elevadores.index');
+        Route::get('/elevadores/{elevador}/editar', [ControlesController::class, 'editarElevador'])->name('elevadores.edit');
+
+        Route::middleware('throttle:controles-write')->group(function () {
+            Route::put('/escaleras-electricas/{escalera}', [ControlesController::class, 'actualizarEscaleraElectrica'])->name('escaleras-electricas.update');
+            Route::put('/elevadores/{elevador}', [ControlesController::class, 'actualizarElevador'])->name('elevadores.update');
         });
     });
 

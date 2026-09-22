@@ -1,6 +1,7 @@
 @php
     /** @var int $anio */
     /** @var list<array{tipo: \App\Enums\TipoServicio, filas: list<array{servicio: \App\Models\ServicioEstacion, meses: array<int, float|null>, total: float}>, totalesMensuales: array<int, float>, total: float}> $resumen */
+    /** @var \Illuminate\Support\Collection<int, bool> $puedeEditar */
     $meses = [
         1 => 'Ene', 2 => 'Feb', 3 => 'Mar', 4 => 'Abr', 5 => 'May', 6 => 'Jun',
         7 => 'Jul', 8 => 'Ago', 9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dic',
@@ -122,10 +123,12 @@
                                         @endforeach
                                         <td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-brand-green">{{ $dinero($fila['total']) }}</td>
                                         <td class="px-3 py-3 text-right">
-                                            <a href="{{ route('estadisticas.gasto-energetico.show', ['estacion' => $servicio->estacion_id, 'anio' => $anio]) }}"
-                                               class="font-medium text-brand-teal hover:text-brand-green-dark">
-                                                {{ __('Editar') }}
-                                            </a>
+                                            @if ($puedeEditar[$servicio->estacion_id] ?? false)
+                                                <a href="{{ route('estadisticas.gasto-energetico.show', ['estacion' => $servicio->estacion_id, 'anio' => $anio]) }}"
+                                                   class="font-medium text-brand-teal hover:text-brand-green-dark">
+                                                    {{ __('Editar') }}
+                                                </a>
+                                            @endif
                                         </td>
                                     </tr>
                                 @empty

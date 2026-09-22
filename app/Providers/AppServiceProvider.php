@@ -104,6 +104,11 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('estadisticas-write', function (Request $request) {
             return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
         });
+
+        // Módulo "Controles" — edición de escaleras eléctricas y elevadores.
+        RateLimiter::for('controles-write', function (Request $request) {
+            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+        });
     }
 
     /**

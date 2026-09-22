@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Estacion;
 use App\Models\ServicioEstacion;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -11,7 +12,8 @@ use Illuminate\Foundation\Http\FormRequest;
  * Gasto energético for one estación (bound from the {estacion} route
  * parameter, never from the body): the datos of each servicio (proveedor,
  * contrato, observaciones) and its monthly payments. Same shape as
- * GuardarEstadisticaMensualRequest.
+ * GuardarEstadisticaMensualRequest — delegates the full "who may write this
+ * estación" rule to ServicioEstacionPolicy::manageFor().
  */
 class GuardarGastoEnergeticoRequest extends FormRequest
 {
@@ -20,7 +22,10 @@ class GuardarGastoEnergeticoRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->user()?->can('manage', ServicioEstacion::class) ?? false;
+        $estacion = $this->route('estacion');
+
+        return $estacion instanceof Estacion
+            && $this->user()?->can('manageFor', [ServicioEstacion::class, $estacion]) === true;
     }
 
     /**

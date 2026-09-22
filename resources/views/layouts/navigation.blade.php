@@ -94,9 +94,10 @@
                         </x-dropdown>
                     @endhasanyrole
                     @hasanyrole('Jefe de Zona|Administrador|Estación')
-                        {{-- "Estadísticas" groups Flujo de pasajeros (every role)
-                             and Gasto energético (zone roles only, per
-                             ServicioEstacionPolicy) under one dropdown. --}}
+                        {{-- "Estadísticas" groups Flujo de pasajeros and Gasto
+                             energético under one dropdown — every role sees
+                             both, each scoped to its own estación for
+                             "Estación" accounts per ServicioEstacionPolicy. --}}
                         @php
                             $estadisticasActiva = request()->routeIs('estadisticas.*');
                             $estadisticasTriggerClasses = $estadisticasActiva
@@ -117,11 +118,40 @@
                                 <x-dropdown-link :href="route('estadisticas.index')">
                                     {{ __('Flujo de pasajeros') }}
                                 </x-dropdown-link>
-                                @hasanyrole('Jefe de Zona|Administrador')
-                                    <x-dropdown-link :href="route('estadisticas.gasto-energetico.index')">
-                                        {{ __('Gasto energético') }}
-                                    </x-dropdown-link>
-                                @endhasanyrole
+                                <x-dropdown-link :href="route('estadisticas.gasto-energetico.index')">
+                                    {{ __('Gasto energético') }}
+                                </x-dropdown-link>
+                            </x-slot>
+                        </x-dropdown>
+                    @endhasanyrole
+                    @hasanyrole('Jefe de Zona|Administrador|Estación')
+                        {{-- "Controles" groups Escaleras eléctricas y Elevadores
+                             bajo un dropdown, mismo patrón que "Estadísticas".
+                             Ambas páginas son placeholder hasta que llegue el
+                             modelo de datos real (ver CLAUDE.md). --}}
+                        @php
+                            $controlesActiva = request()->routeIs('controles.*');
+                            $controlesTriggerClasses = $controlesActiva
+                                ? 'inline-flex items-center px-1 pt-1 border-b-2 border-brand-teal text-sm font-semibold leading-5 text-brand-green focus:outline-none focus:border-brand-green transition duration-150 ease-in-out'
+                                : 'inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-gray-500 hover:text-brand-green hover:border-brand-mint focus:outline-none focus:text-brand-green focus:border-brand-mint transition duration-150 ease-in-out';
+                        @endphp
+                        <x-dropdown align="left" width="w-64" class="flex" trigger-classes="flex">
+                            <x-slot name="trigger">
+                                <button type="button" class="{{ $controlesTriggerClasses }}">
+                                    {{ __('Controles') }}
+                                    <svg class="ms-1 h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </x-slot>
+
+                            <x-slot name="content">
+                                <x-dropdown-link :href="route('controles.escaleras-electricas.index')">
+                                    {{ __('Escaleras eléctricas') }}
+                                </x-dropdown-link>
+                                <x-dropdown-link :href="route('controles.elevadores.index')">
+                                    {{ __('Elevadores') }}
+                                </x-dropdown-link>
                             </x-slot>
                         </x-dropdown>
                     @endhasanyrole
@@ -276,11 +306,38 @@
                         <x-responsive-nav-link :href="route('estadisticas.index')" :active="request()->routeIs('estadisticas.*') && ! request()->routeIs('estadisticas.gasto-energetico.*')">
                             {{ __('Flujo de pasajeros') }}
                         </x-responsive-nav-link>
-                        @hasanyrole('Jefe de Zona|Administrador')
-                            <x-responsive-nav-link :href="route('estadisticas.gasto-energetico.index')" :active="request()->routeIs('estadisticas.gasto-energetico.*')">
-                                {{ __('Gasto energético') }}
-                            </x-responsive-nav-link>
-                        @endhasanyrole
+                        <x-responsive-nav-link :href="route('estadisticas.gasto-energetico.index')" :active="request()->routeIs('estadisticas.gasto-energetico.*')">
+                            {{ __('Gasto energético') }}
+                        </x-responsive-nav-link>
+                    </div>
+                </div>
+            @endhasanyrole
+            @hasanyrole('Jefe de Zona|Administrador|Estación')
+                {{-- Same accordion shape as "Estadísticas" (own x-data scope:
+                     "openControles"). --}}
+                @php
+                    $controlesActivaResponsive = request()->routeIs('controles.*');
+                    $controlesResponsiveTriggerClasses = $controlesActivaResponsive
+                        ? 'flex items-center justify-between min-h-[44px] w-full ps-3 pe-4 py-2 border-l-4 border-brand-teal text-start text-base font-semibold text-brand-green bg-brand-mist focus:outline-none focus:text-brand-green-dark focus:bg-brand-mist focus:border-brand-green transition duration-150 ease-in-out'
+                        : 'flex items-center justify-between min-h-[44px] w-full ps-3 pe-4 py-2 border-l-4 border-transparent text-start text-base font-medium text-gray-600 hover:text-brand-green hover:bg-brand-mist hover:border-brand-mint focus:outline-none focus:text-brand-green focus:bg-brand-mist focus:border-brand-mint transition duration-150 ease-in-out';
+                @endphp
+                <div x-data="{ openControles: {{ $controlesActivaResponsive ? 'true' : 'false' }} }">
+                    <button type="button" @click="openControles = ! openControles"
+                            :aria-expanded="openControles.toString()"
+                            class="{{ $controlesResponsiveTriggerClasses }}">
+                        <span>{{ __('Controles') }}</span>
+                        <svg class="h-4 w-4 fill-current transition-transform" :class="{ 'rotate-180': openControles }"
+                             xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <div x-show="openControles" class="space-y-1 pl-4">
+                        <x-responsive-nav-link :href="route('controles.escaleras-electricas.index')" :active="request()->routeIs('controles.escaleras-electricas.*')">
+                            {{ __('Escaleras eléctricas') }}
+                        </x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('controles.elevadores.index')" :active="request()->routeIs('controles.elevadores.*')">
+                            {{ __('Elevadores') }}
+                        </x-responsive-nav-link>
                     </div>
                 </div>
             @endhasanyrole

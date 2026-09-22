@@ -6,6 +6,7 @@ use App\Enums\TipoServicio;
 use App\Models\Estacion;
 use App\Models\PagoServicio;
 use App\Models\ServicioEstacion;
+use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -35,7 +36,9 @@ final class GastoEnergeticoService
     /**
      * Un bloque por tipo de servicio, con una fila por estación (catálogo en
      * orden) y los pagos de los 12 meses del año. Un mes sin dato es null;
-     * un pago de $0 es 0.
+     * un pago de $0 es 0. Un usuario "Estación" siempre se limita aquí a su
+     * propia estación — nunca confía en que el llamador ya haya filtrado,
+     * mismo criterio que EstadisticaDiariaService::resumenAnual().
      *
      * @return list<array{
      *     tipo: TipoServicio,
@@ -44,10 +47,14 @@ final class GastoEnergeticoService
      *     total: float
      * }>
      */
-    public function resumenAnual(int $anio): array
+    public function resumenAnual(User $user, int $anio): array
     {
         $servicios = ServicioEstacion::query()
             ->with(['estacion', 'pagos' => fn ($pagos) => $pagos->where('anio', $anio)])
+            ->when(
+                $user->hasRole('Estación'),
+                fn ($query) => $query->where('estacion_id', $user->estacion_id),
+            )
             ->get()
             ->sortBy(fn (ServicioEstacion $servicio) => $servicio->estacion->orden);
 

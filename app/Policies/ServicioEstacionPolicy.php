@@ -2,29 +2,33 @@
 
 namespace App\Policies;
 
+use App\Models\Estacion;
 use App\Models\User;
 
 /**
- * Authorization for "Estadísticas" -> Gasto energético. Zone-wide report:
- * only the zone roles read it ("Estación" accounts never see other
- * stations' payments), and — same split as the passenger statistics — both
- * zone roles may capture/correct it while deleting a payment is limited to
- * "Administrador" (PagoServicioPolicy::delete).
+ * Authorization for "Estadísticas" -> Gasto energético. Same split as the
+ * passenger statistics (EstadisticaDiariaPolicy): "Jefe de Zona" and
+ * "Administrador" read/capture every estación; "Estación" reads/captures
+ * only its own. Deleting a payment stays limited to "Administrador"
+ * (PagoServicioPolicy::delete).
  */
 class ServicioEstacionPolicy
 {
-    private const ZONA_ROLES = ['Jefe de Zona', 'Administrador'];
+    private const ROLES = ['Jefe de Zona', 'Administrador', 'Estación'];
 
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(self::ZONA_ROLES);
+        return $user->hasAnyRole(self::ROLES);
     }
 
     /**
-     * Capture or correct the servicios and monthly payments of any estación.
+     * Whether the user may view/capture/correct the servicios and monthly
+     * payments of the given estación. "Administrador" and "Jefe de Zona"
+     * may manage any estación; "Estación" may only manage its own.
      */
-    public function manage(User $user): bool
+    public function manageFor(User $user, Estacion $estacion): bool
     {
-        return $user->hasAnyRole(self::ZONA_ROLES);
+        return $user->hasAnyRole(['Jefe de Zona', 'Administrador'])
+            || ($user->hasRole('Estación') && $user->estacion_id === $estacion->id);
     }
 }
