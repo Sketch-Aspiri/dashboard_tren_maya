@@ -53,6 +53,7 @@
                 $puedeVerEstadisticasYControles ? ['label' => __('Gasto energético'), 'href' => route('estadisticas.gasto-energetico.index')] : null,
                 $puedeVerEstadisticasYControles ? ['label' => __('Escaleras eléctricas'), 'href' => route('controles.escaleras-electricas.index')] : null,
                 $puedeVerEstadisticasYControles ? ['label' => __('Elevadores'), 'href' => route('controles.elevadores.index')] : null,
+                $puedeVerEstadisticasYControles ? ['label' => __('Estatus de vías y andenes'), 'href' => route('controles.estatus-vias-andenes.index')] : null,
                 $puedeVerUsuarios ? ['label' => __('Usuarios'), 'href' => route('usuarios.index')] : null,
             ])->filter()->values();
         @endphp

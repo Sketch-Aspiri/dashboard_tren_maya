@@ -19,9 +19,8 @@ use Throwable;
 /**
  * Importa el ANEXO "Escaleras eléctricas, Elevadores, Esquemas activos"
  * hacia escaleras_electricas + elevadores (módulo "Controles"). Solo se
- * leen las hojas "ESCALERAS ELECTRICAS-*" y "ELEVADORES-*" — las demás
- * hojas del archivo (esquemas de vías/andenes por mes) son un reporte
- * distinto y se ignoran.
+ * leen las hojas "ESCALERAS ELECTRICAS-*" y "ELEVADORES-*" — la hoja de
+ * esquema de vías/andenes ("ZO_*") la carga app:import-estatus-vias-andenes.
  *
  * Cada hoja tiene una fila de encabezados y luego una fila por equipo; la
  * columna "Estación" solo lleva valor en la primera fila de cada estación

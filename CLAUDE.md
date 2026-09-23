@@ -123,6 +123,11 @@ php artisan app:import-gasto-energetico
 # contenido completo de ambas tablas en cada corrida (no hay llave natural por equipo).
 php artisan app:import-controles
 
+# Controles > Estatus de vías y andenes: importa la hoja visible "ZO_*" del mismo archivo
+# (una fila por vía de cada estación; ignora las hojas ZO_* ocultas de meses anteriores).
+# Reemplaza el contenido completo de estatus_vias_andenes en cada corrida.
+php artisan app:import-estatus-vias-andenes
+
 # Generar recursos
 php artisan make:model NombreModelo -mcr
 php artisan make:request NombreRequest

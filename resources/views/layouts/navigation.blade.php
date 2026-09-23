@@ -164,6 +164,9 @@
                                 <x-dropdown-link :href="route('controles.elevadores.index')">
                                     {{ __('Elevadores') }}
                                 </x-dropdown-link>
+                                <x-dropdown-link :href="route('controles.estatus-vias-andenes.index')">
+                                    {{ __('Estatus de vías y andenes') }}
+                                </x-dropdown-link>
                             </x-slot>
                         </x-dropdown>
                     @endhasanyrole
@@ -384,6 +387,9 @@
                         </x-responsive-nav-link>
                         <x-responsive-nav-link :href="route('controles.elevadores.index')" :active="request()->routeIs('controles.elevadores.*')">
                             {{ __('Elevadores') }}
+                        </x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('controles.estatus-vias-andenes.index')" :active="request()->routeIs('controles.estatus-vias-andenes.*')">
+                            {{ __('Estatus de vías y andenes') }}
                         </x-responsive-nav-link>
                     </div>
                 </div>
