@@ -5,7 +5,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-heading text-xl font-semibold text-brand-green leading-tight">
-            {{ __('Agenda Zona Oriente') }} — {{ $empleado->nombre_completo ?? __('(Vacante)') }}
+            {{ __('RR.HH.') }} — {{ $empleado->nombre_completo ?? __('(Vacante)') }}
         </h2>
     </x-slot>
 

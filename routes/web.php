@@ -12,6 +12,7 @@ use App\Http\Controllers\EstadisticaController;
 use App\Http\Controllers\GastoEnergeticoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RolVacacionesController;
+use App\Http\Controllers\SeccionPendienteController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -136,6 +137,10 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
             Route::put('/estatus-vias-andenes/{estatusViaAnden}', [ControlesController::class, 'actualizarEstatusViaAnden'])->name('estatus-vias-andenes.update');
         });
     });
+
+    // Conceptos del PPT "Dashboard Tren Maya" sin módulo todavía: página
+    // "pendiente de agregar información" (config/navegacion.php).
+    Route::get('/secciones/{grupo}/{seccion}', [SeccionPendienteController::class, 'show'])->name('secciones.show');
 
     // Gestión de usuarios: Administrador-only account management panel
     // (see app/Policies/UserPolicy.php). Supersedes console-only

@@ -15,7 +15,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-heading text-xl font-semibold text-brand-green leading-tight">
-            {{ __('Agenda Zona Oriente') }} — {{ __('Rol de vacaciones') }} {{ $anio }}
+            {{ __('RR.HH.') }} — {{ __('Rol de vacaciones') }} {{ $anio }}
         </h2>
     </x-slot>
 

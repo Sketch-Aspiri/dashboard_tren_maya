@@ -5,7 +5,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-heading text-xl font-semibold text-brand-green leading-tight">
-            {{ __('Controles') }} — {{ __('Editar elevador') }}
+            {{ __('Recursos materiales') }} — {{ __('Editar elevador') }}
         </h2>
     </x-slot>
 

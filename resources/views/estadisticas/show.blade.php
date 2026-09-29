@@ -44,7 +44,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-heading text-xl font-semibold text-brand-green leading-tight">
-            {{ __('Estadísticas') }} — {{ $estacion->nombre }}
+            {{ __('Recursos financieros') }} — {{ $estacion->nombre }}
         </h2>
     </x-slot>
 

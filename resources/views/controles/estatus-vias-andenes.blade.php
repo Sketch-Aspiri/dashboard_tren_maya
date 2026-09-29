@@ -15,7 +15,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-heading text-xl font-semibold text-brand-green leading-tight">
-            {{ __('Controles') }} — {{ __('Estatus de vías y andenes') }}
+            {{ __('Recursos materiales') }} — {{ __('Estatus de vías y andenes') }}
         </h2>
     </x-slot>
 

@@ -42,7 +42,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-heading text-xl font-semibold text-brand-green leading-tight">
-            {{ __('Estadísticas') }} — {{ __('Flujo de pasajeros y boletos vendidos') }}
+            {{ __('Recursos financieros') }} — {{ __('Flujo de pasajeros y boletos vendidos') }}
         </h2>
     </x-slot>
 

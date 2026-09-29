@@ -13,7 +13,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-heading text-xl font-semibold text-brand-green leading-tight">
-            {{ __('Estadísticas') }} — {{ __('Gasto energético') }} {{ $anio }}
+            {{ __('Recursos financieros') }} — {{ __('Gasto energético') }} {{ $anio }}
         </h2>
     </x-slot>
 

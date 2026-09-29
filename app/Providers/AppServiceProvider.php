@@ -125,6 +125,12 @@ class AppServiceProvider extends ServiceProvider
         // capturó hoy?" oversight board. "Estación" is deliberately not in
         // ZONA_ROLES — it can only ever see its own station's capture
         // screen, never the zona-wide board.
+        // Secciones del PPT aún sin módulo (config/navegacion.php): solo la
+        // Jefatura de Zona las ve; "Estación" nunca.
+        Gate::define('view-seccion-pendiente', function (User $user): bool {
+            return $user->hasAnyRole(self::ZONA_ROLES);
+        });
+
         Gate::define('view-asistencia-zona', function (User $user): bool {
             return $user->hasAnyRole(self::ZONA_ROLES);
         });
