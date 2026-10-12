@@ -5,6 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Http\Middleware\EnsureTwoFactorIsVerified;
 use App\Models\User;
 use App\Services\TwoFactorAuthenticationService;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
@@ -178,5 +179,29 @@ class TwoFactorAuthenticationTest extends TestCase
             'seconds',
             session('errors')->get('one_time_password')[0],
         );
+    }
+
+    public function test_unenrolled_user_reaches_the_dashboard_when_two_factor_is_switched_off(): void
+    {
+        config(['auth.two_factor.enabled' => false]);
+        $this->seed(RoleSeeder::class);
+        $user = User::factory()->create();
+        $user->assignRole('Administrador');
+
+        $response = $this->actingAs($user)->get(route('dashboard'));
+
+        $response->assertOk();
+    }
+
+    public function test_two_factor_is_enforced_again_when_switched_back_on(): void
+    {
+        config(['auth.two_factor.enabled' => true]);
+        $this->seed(RoleSeeder::class);
+        $user = User::factory()->create();
+        $user->assignRole('Administrador');
+
+        $response = $this->actingAs($user)->get(route('dashboard'));
+
+        $response->assertRedirect(route('two-factor.setup'));
     }
 }

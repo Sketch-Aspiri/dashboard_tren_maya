@@ -38,6 +38,7 @@ class CreateZoneChiefCommandTest extends TestCase
 
         $this->assertNotNull($user);
         $this->assertTrue($user->hasRole('Jefe de Zona'));
+        $this->assertTrue($user->hasRole('Administrador'));
         $this->assertTrue(Hash::check('Correct-horse-battery-staple-1', $user->password));
     }
 

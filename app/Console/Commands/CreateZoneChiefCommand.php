@@ -18,7 +18,16 @@ use Spatie\Permission\Models\Role;
  */
 class CreateZoneChiefCommand extends Command
 {
-    private const ROLE_NAME = 'Jefe de Zona';
+    /**
+     * The single shared account carries both roles: "Jefe de Zona" (the
+     * dashboard owner) and "Administrador" (captures attendance for every
+     * station, manages sections/users). Decision of the Jefe de Zona,
+     * oct 2026: one administrator account shared by the whole team, no
+     * per-station accounts for now.
+     *
+     * @var list<string>
+     */
+    private const ROLE_NAMES = ['Jefe de Zona', 'Administrador'];
 
     /**
      * The name and signature of the console command.
@@ -66,8 +75,11 @@ class CreateZoneChiefCommand extends Command
             'email_verified_at' => now(),
         ]);
 
-        Role::findOrCreate(self::ROLE_NAME, 'web');
-        $user->assignRole(self::ROLE_NAME);
+        foreach (self::ROLE_NAMES as $roleName) {
+            Role::findOrCreate($roleName, 'web');
+        }
+
+        $user->assignRole(self::ROLE_NAMES);
 
         activity()
             ->performedOn($user)

@@ -22,6 +22,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Two-Factor Authentication
+    |--------------------------------------------------------------------------
+    |
+    | Interruptor global del 2FA (EnsureTwoFactorIsVerified). Por defecto
+    | encendido; el .env de producción lo apaga temporalmente mientras todo
+    | el equipo comparte una sola cuenta de administrador (decisión del Jefe
+    | de Zona, oct 2026). El código de enrolamiento/verificación no se
+    | eliminó: basta con TWO_FACTOR_ENABLED=true para volver a exigirlo.
+    |
+    */
+
+    'two_factor' => [
+        'enabled' => (bool) env('TWO_FACTOR_ENABLED', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Authentication Guards
     |--------------------------------------------------------------------------
     |

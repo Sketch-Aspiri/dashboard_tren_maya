@@ -14,6 +14,10 @@ use Symfony\Component\HttpFoundation\Response;
  * A user without a confirmed TOTP secret is redirected to the mandatory
  * enrollment screen; a user with a secret who has not verified an OTP in
  * the current session is redirected to the verification challenge.
+ *
+ * Can be switched off globally with TWO_FACTOR_ENABLED=false
+ * (config('auth.two_factor.enabled')) while the whole team shares a single
+ * administrator account — see config/auth.php.
  */
 class EnsureTwoFactorIsVerified
 {
@@ -46,7 +50,7 @@ class EnsureTwoFactorIsVerified
     {
         $user = $request->user();
 
-        if (! $user || $this->isExemptRoute()) {
+        if (! config('auth.two_factor.enabled') || ! $user || $this->isExemptRoute()) {
             return $next($request);
         }
 
