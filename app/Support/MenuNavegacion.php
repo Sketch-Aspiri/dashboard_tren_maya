@@ -2,79 +2,64 @@
 
 namespace App\Support;
 
+use App\Models\MenuGrupo;
+use App\Models\Seccion;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 
 /**
- * Arma los grupos del menú (config/navegacion.php) para un usuario: solo los
- * enlaces que su rol puede ver, con su URL y estado activo ya resueltos.
- * Un grupo sin enlaces visibles se omite.
+ * Arma los grupos del menú para un usuario: los grupos y secciones visibles
+ * de la base (administrables desde "Administrar menú") más los módulos
+ * fijos de config/navegacion.php que su rol puede ver, con URL y estado
+ * activo ya resueltos. Un grupo sin enlaces visibles se omite.
  */
 class MenuNavegacion
 {
     /**
-     * @return Collection<int, array{id: string, label: string, activo: bool, items: array<int, array{label: string, href: string, activo: bool, pendiente: bool}>}>
+     * @return Collection<int, array{id: string, label: string, activo: bool, items: array<int, array{label: string, href: string, activo: bool}>}>
      */
     public function grupos(User $usuario, Request $request): Collection
     {
-        $puedeVerPendientes = $usuario->hasAnyRole(config('navegacion.roles_pendientes'));
+        $puedeVerSecciones = $usuario->can('viewAny', Seccion::class);
+        $fijos = collect(config('navegacion.grupos'))->keyBy('slug');
+        $seccionActual = $request->routeIs('secciones.*') ? $request->route('seccion') : null;
 
-        return collect(config('navegacion.grupos'))
-            ->map(function (array $grupo) use ($usuario, $request, $puedeVerPendientes): array {
-                $items = collect($grupo['items'])
+        return MenuGrupo::query()
+            ->orderBy('orden')
+            ->orderBy('id')
+            ->when($puedeVerSecciones, fn ($consulta) => $consulta->with(['secciones' => fn ($secciones) => $secciones->where('is_visible', true)]))
+            ->get()
+            ->map(function (MenuGrupo $grupo) use ($usuario, $request, $fijos, $puedeVerSecciones, $seccionActual): array {
+                $config = $fijos->get($grupo->slug, ['items' => [], 'patrones' => []]);
+
+                $items = collect($config['items'])
                     ->filter(fn (array $item) => $usuario->hasAnyRole($item['roles']))
                     ->map(fn (array $item) => [
                         'label' => $item['label'],
                         'href' => route($item['ruta']),
                         'activo' => $request->routeIs($item['patron']) && ! $request->routeIs($item['excepto'] ?? ''),
-                        'pendiente' => false,
                     ]);
 
-                if ($puedeVerPendientes) {
-                    $items = $items->concat(collect($grupo['pendientes'] ?? [])->map(function (string $label) use ($grupo, $request): array {
-                        $slug = Str::slug($label);
-
-                        return [
-                            'label' => $label,
-                            'href' => route('secciones.show', [$grupo['id'], $slug]),
-                            'pendiente' => true,
-                            'activo' => $request->routeIs('secciones.show')
-                                && $request->route('grupo') === $grupo['id']
-                                && $request->route('seccion') === $slug,
-                        ];
-                    }));
+                if ($puedeVerSecciones) {
+                    $items = $items->concat($grupo->secciones->map(fn (Seccion $seccion) => [
+                        'label' => $seccion->nombre,
+                        'href' => route('secciones.show', $seccion),
+                        'activo' => $seccionActual instanceof Seccion && $seccionActual->is($seccion),
+                    ]));
                 }
 
                 $items = $items->values();
+                $patrones = $config['patrones'] ?: [''];
 
                 return [
-                    'id' => $grupo['id'],
-                    'label' => $grupo['label'],
-                    'activo' => $request->routeIs(...($grupo['patrones'] ?: [''])) || $items->contains('activo', true),
+                    'id' => $grupo->slug,
+                    'label' => $grupo->nombre,
+                    'activo' => $request->routeIs(...$patrones) || $items->contains('activo', true),
                     'items' => $items->all(),
                 ];
             })
             ->filter(fn (array $grupo) => $grupo['items'] !== [])
             ->values();
-    }
-
-    /**
-     * Etiqueta y grupo de un concepto pendiente, o null si no existe.
-     *
-     * @return array{grupo: string, label: string}|null
-     */
-    public function buscarPendiente(string $grupoId, string $slug): ?array
-    {
-        $grupo = collect(config('navegacion.grupos'))->firstWhere('id', $grupoId);
-
-        if ($grupo === null) {
-            return null;
-        }
-
-        $label = collect($grupo['pendientes'] ?? [])->first(fn (string $label) => Str::slug($label) === $slug);
-
-        return $label === null ? null : ['grupo' => $grupo['label'], 'label' => $label];
     }
 }

@@ -13,6 +13,12 @@
                 </div>
             @endif
 
+            @can('importar', \App\Models\Empleado::class)
+                <x-zona-arrastre id="zona-personal" :url="route('agenda.personal.importar.store')"
+                                 :titulo="__('Arrastra aquí el Excel de la Base de datos Zona Oriente')"
+                                 :ayuda="__('Se actualizan por número de empleado las personas que ya existen y se agregan las nuevas. Verás cuántos cambios habrá antes de aplicar.')" />
+            @endcan
+
             <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between" x-data>
                 <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                     <input

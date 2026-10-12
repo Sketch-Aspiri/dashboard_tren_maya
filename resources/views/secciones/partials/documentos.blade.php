@@ -1,0 +1,51 @@
+@php
+    $extensionesIa = ['pdf', 'jpg', 'jpeg', 'png', 'docx', 'doc', 'pptx'];
+@endphp
+
+@if ($documentos->isEmpty())
+    <div class="rounded-xl border border-dashed border-brand-green/25 bg-white p-8 text-center text-sm text-gray-600 shadow-sm shadow-brand-green/5">
+        {{ $filtros['q'] ? __('Ningún documento coincide con la búsqueda.') : __('Aún no hay documentos. Arrástralos a la zona de arriba.') }}
+    </div>
+@else
+    <ul class="divide-y divide-gray-100 overflow-hidden rounded-xl border border-brand-green/10 bg-white shadow-sm shadow-brand-green/5">
+        @foreach ($documentos as $documento)
+            <li class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex min-w-0 items-start gap-3">
+                    <span class="mt-0.5 inline-flex h-9 w-12 shrink-0 items-center justify-center rounded-md bg-brand-mist text-xs font-bold uppercase text-brand-green">
+                        {{ $documento->extension }}
+                    </span>
+                    <div class="min-w-0">
+                        <p class="truncate text-sm font-medium text-gray-900">{{ $documento->nombre_original }}</p>
+                        <p class="text-xs text-gray-500">
+                            {{ $documento->tamanoLegible() }} · {{ $documento->created_at->format('d/m/Y H:i') }}
+                            @if ($documento->autor) · {{ $documento->autor->name }} @endif
+                            @if ($documento->seccion_fila_id) · {{ __('adjunto de un registro') }} @endif
+                        </p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-1 sm:justify-end">
+                    @if ($documento->admiteVistaPrevia())
+                        <a href="{{ route('secciones.archivos.show', [$seccion, $documento, 'ver' => 1]) }}" target="_blank" rel="noopener"
+                           class="min-h-[36px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Ver') }}</a>
+                    @endif
+                    <a href="{{ route('secciones.archivos.show', [$seccion, $documento]) }}"
+                       class="min-h-[36px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Descargar') }}</a>
+                    @if ($puedeGestionar && $iaDisponible && in_array($documento->extension, $extensionesIa, true))
+                        <form method="POST" action="{{ route('secciones.archivos.ia', [$seccion, $documento]) }}" x-data="{ enviando: false }" @submit="enviando = true">
+                            @csrf
+                            <button type="submit" :disabled="enviando"
+                                    class="min-h-[36px] rounded-md px-2 text-sm font-medium text-brand-green hover:bg-brand-mist disabled:opacity-50"
+                                    title="{{ __('Envía el documento a la IA (Claude) para extraer sus tablas. Revisarás el resultado antes de guardarlo.') }}">
+                                <span x-show="! enviando">✨ {{ __('Extraer con IA') }}</span>
+                                <span x-show="enviando" x-cloak>{{ __('Leyendo con IA…') }}</span>
+                            </button>
+                        </form>
+                    @endif
+                    @if ($puedeGestionar)
+                        <x-confirmar-eliminar :action="route('secciones.archivos.destroy', [$seccion, $documento])" />
+                    @endif
+                </div>
+            </li>
+        @endforeach
+    </ul>
+@endif

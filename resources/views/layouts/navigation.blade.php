@@ -1,6 +1,6 @@
 {{-- $navegacionBuscable (destinos del menú) y $gruposNav se calculan en
      layouts/app.blade.php; Blade comparte ese scope con este @include.
-     Cada grupo trae sus items con 'activo', 'href' y 'pendiente' (ver
+     Cada grupo trae sus items con 'label', 'href' y 'activo' (ver
      App\Support\MenuNavegacion). --}}
 <nav class="relative z-40 bg-white shadow-sm" aria-label="{{ __('Navegación principal') }}">
     {{-- Nivel 1: identidad (logo + nombre del sistema) y cuenta. Es la única
@@ -36,6 +36,11 @@
                             <p class="truncate text-sm font-medium text-brand-green">{{ Auth::user()->name }}</p>
                             <p class="truncate text-xs text-gray-600">{{ Auth::user()->email }}</p>
                         </div>
+                        @can('create', \App\Models\Seccion::class)
+                            <x-dropdown-link :href="route('secciones.administrar')">
+                                {{ __('Administrar menú') }}
+                            </x-dropdown-link>
+                        @endcan
                         @hasrole('Administrador')
                             <x-dropdown-link :href="route('usuarios.index')">
                                 {{ __('Usuarios') }}
@@ -87,15 +92,10 @@
                     {{ __('Dashboard') }}
                 </a>
             @endunlessrole
-            {{-- Grupos ($gruposNav, según "Dashboard Tren Maya.pptx"), ya
-                 filtrados por rol. Dentro de cada uno: primero los módulos
-                 que ya existen y, separados, los conceptos pendientes de
-                 información. --}}
+            {{-- Grupos ($gruposNav): módulos fijos (Personal, Asistencia) y
+                 secciones administrables desde "Administrar menú", ya
+                 filtrados por rol (App\Support\MenuNavegacion). --}}
             @foreach ($gruposNav as $grupo)
-                @php
-                    $existentes = collect($grupo['items'])->reject(fn ($item) => $item['pendiente']);
-                    $pendientes = collect($grupo['items'])->filter(fn ($item) => $item['pendiente']);
-                @endphp
                 <x-dropdown align="left" width="w-80" class="flex shrink-0" trigger-classes="flex" content-classes="max-h-[70vh] overflow-y-auto bg-white py-1">
                     <x-slot name="trigger">
                         <button type="button" aria-haspopup="true" :aria-expanded="open.toString()"
@@ -110,23 +110,12 @@
                     </x-slot>
 
                     <x-slot name="content">
-                        @foreach ($existentes as $item)
+                        @foreach ($grupo['items'] as $item)
                             <x-dropdown-link :href="$item['href']" :aria-current="$item['activo'] ? 'page' : null"
                                              class="{{ $item['activo'] ? 'border-s-4 border-brand-teal bg-brand-mist font-semibold !text-brand-green' : 'border-s-4 border-transparent font-medium' }}">
-                                {{ __($item['label']) }}
+                                {{ $item['label'] }}
                             </x-dropdown-link>
                         @endforeach
-                        @if ($pendientes->isNotEmpty())
-                            <p class="{{ $existentes->isNotEmpty() ? 'mt-1 border-t border-gray-100 pt-3' : 'pt-2' }} px-4 pb-1 text-xs font-semibold uppercase tracking-wide text-gray-600">
-                                {{ __('Pendiente de información') }}
-                            </p>
-                            @foreach ($pendientes as $item)
-                                <x-dropdown-link :href="$item['href']" :aria-current="$item['activo'] ? 'page' : null"
-                                                 class="{{ $item['activo'] ? 'border-s-4 border-brand-teal bg-brand-mist font-semibold !text-brand-green' : 'border-s-4 border-transparent text-gray-600' }}">
-                                    {{ __($item['label']) }}
-                                </x-dropdown-link>
-                            @endforeach
-                        @endif
                     </x-slot>
                 </x-dropdown>
             @endforeach
@@ -148,10 +137,6 @@
                  con su propio x-data ("abierto"), distinto del "open" de la
                  hamburguesa. El grupo activo arranca abierto. --}}
             @foreach ($gruposNav as $grupo)
-                @php
-                    $existentes = collect($grupo['items'])->reject(fn ($item) => $item['pendiente']);
-                    $pendientes = collect($grupo['items'])->filter(fn ($item) => $item['pendiente']);
-                @endphp
                 <div x-data="{ abierto: {{ $grupo['activo'] ? 'true' : 'false' }} }">
                     <button type="button" @click="abierto = ! abierto"
                             :aria-expanded="abierto.toString()"
@@ -165,21 +150,11 @@
                         </svg>
                     </button>
                     <div x-show="abierto" x-cloak class="ms-4 border-s border-brand-green/15 py-1 ps-2">
-                        @foreach ($existentes as $item)
+                        @foreach ($grupo['items'] as $item)
                             <x-responsive-nav-link :href="$item['href']" :active="$item['activo']" class="text-sm">
-                                {{ __($item['label']) }}
+                                {{ $item['label'] }}
                             </x-responsive-nav-link>
                         @endforeach
-                        @if ($pendientes->isNotEmpty())
-                            <p class="px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-gray-600">
-                                {{ __('Pendiente de información') }}
-                            </p>
-                            @foreach ($pendientes as $item)
-                                <x-responsive-nav-link :href="$item['href']" :active="$item['activo']" class="text-sm">
-                                    {{ __($item['label']) }}
-                                </x-responsive-nav-link>
-                            @endforeach
-                        @endif
                     </div>
                 </div>
             @endforeach
@@ -193,6 +168,11 @@
             </div>
 
             <div class="mt-3 space-y-1">
+                @can('create', \App\Models\Seccion::class)
+                    <x-responsive-nav-link :href="route('secciones.administrar')" :active="request()->routeIs('secciones.administrar')">
+                        {{ __('Administrar menú') }}
+                    </x-responsive-nav-link>
+                @endcan
                 @hasrole('Administrador')
                     <x-responsive-nav-link :href="route('usuarios.index')" :active="request()->routeIs('usuarios.*')">
                         {{ __('Usuarios') }}

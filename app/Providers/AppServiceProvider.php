@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Services\Asistente\ClienteClaude;
+use App\Services\Asistente\ModeloLenguaje;
 use App\Services\Documentos\ConvertidorPdf;
 use App\Services\Documentos\ConvertidorPdfLibreOffice;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -36,6 +38,8 @@ class AppServiceProvider extends ServiceProvider
             binario: (string) config('asistencia_documentos.soffice_path'),
             timeoutSegundos: (int) config('asistencia_documentos.conversion_timeout'),
         ));
+
+        $this->app->singleton(ModeloLenguaje::class, ClienteClaude::class);
     }
 
     /**
@@ -98,16 +102,25 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 
-        // Módulo "Estadísticas" — captura mensual (update) y borrado
-        // (destroy) de registros. Same treatment as usuarios-write: a
-        // state-changing route, not just a read.
-        RateLimiter::for('estadisticas-write', function (Request $request) {
-            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+        // Secciones dinámicas: menú, columnas, filas, cargas.
+        RateLimiter::for('secciones-write', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 
-        // Módulo "Controles" — edición de escaleras eléctricas y elevadores.
-        RateLimiter::for('controles-write', function (Request $request) {
-            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+        // Subida de documentos (hasta 100 MB c/u; leer tablas/texto cuesta CPU).
+        RateLimiter::for('secciones-archivos', function (Request $request) {
+            return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // Todo lo que llama a la Claude API (asistente y "Extraer con IA"):
+        // por minuto y tope diario, para acotar costo y abuso.
+        RateLimiter::for('ia', function (Request $request) {
+            $clave = $request->user()?->id ?: $request->ip();
+
+            return [
+                Limit::perMinute((int) config('services.anthropic.asistente_por_minuto'))->by('min:'.$clave),
+                Limit::perDay((int) config('services.anthropic.asistente_por_dia'))->by('dia:'.$clave),
+            ];
         });
     }
 
@@ -125,13 +138,13 @@ class AppServiceProvider extends ServiceProvider
         // capturó hoy?" oversight board. "Estación" is deliberately not in
         // ZONA_ROLES — it can only ever see its own station's capture
         // screen, never the zona-wide board.
-        // Secciones del PPT aún sin módulo (config/navegacion.php): solo la
-        // Jefatura de Zona las ve; "Estación" nunca.
-        Gate::define('view-seccion-pendiente', function (User $user): bool {
+        Gate::define('view-asistencia-zona', function (User $user): bool {
             return $user->hasAnyRole(self::ZONA_ROLES);
         });
 
-        Gate::define('view-asistencia-zona', function (User $user): bool {
+        // Asistente de preguntas del dashboard (Claude API): consulta toda la
+        // información de la zona, así que solo la Jefatura de Zona.
+        Gate::define('usar-asistente', function (User $user): bool {
             return $user->hasAnyRole(self::ZONA_ROLES);
         });
     }

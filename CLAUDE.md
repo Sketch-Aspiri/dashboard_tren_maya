@@ -8,11 +8,10 @@ para la administración de la información. Es la primera versión del sistema:
 diseñado para un solo usuario (el Jefe de Zona), pero preparado desde el
 diseño para escalar a más usuarios en el futuro.
 
-**Estatus actual:** en desarrollo. Aún no se cuenta con el modelo de datos
-final (los campos específicos de la información que manejará el sistema
-todavía no han sido entregados). Mientras se espera esa información, el
-trabajo se enfoca en la base del sistema: autenticación, roles, layout y un
-CRUD genérico de referencia.
+**Estatus actual:** preparado para producción sobre MySQL. Como el modelo de
+datos de cada concepto no se entregó, el propio usuario define y llena la
+información desde la pantalla (secciones dinámicas, ver abajo), capturando a
+mano o arrastrando documentos.
 
 ## Stack tecnológico
 
@@ -64,7 +63,9 @@ Arquitectura de tres capas, alojada en un VPS propio:
 ## Requisitos de seguridad (no negociables)
 
 - Nunca exponer la aplicación directamente a internet sin VPN.
-- 2FA obligatorio para el login.
+- 2FA obligatorio para el login. **Excepción vigente:** apagado con
+  `TWO_FACTOR_ENABLED=false` mientras se usa una sola cuenta compartida
+  (decisión del Jefe de Zona, oct 2026); se reactiva con cuentas individuales.
 - Roles y permisos desde el día uno, aunque hoy solo exista un usuario.
 - Toda acción de creación/edición/eliminación debe quedar registrada en la
   bitácora de auditoría (`activitylog`).
@@ -99,34 +100,21 @@ npm install
 php artisan serve
 npm run dev
 
-# Migraciones y seeders (roles: Jefe de Zona, Administrador; no crea usuarios)
+# Migraciones y seeders (roles, catálogo de estaciones y menú inicial de secciones;
+# no crea usuarios). MySQL en todos los entornos; las pruebas usan la base
+# dashboard_jefe_zona_test (phpunit.xml).
 php artisan migrate --seed
 
-# Provisionar la cuenta real del Jefe de Zona (interactivo, sin contraseña por defecto)
+# Provisionar la cuenta compartida (Jefe de Zona + Administrador; interactivo, sin
+# contraseña por defecto)
 php artisan app:create-zone-chief
 
 # Orden de las filas en los oficios de asistencia (lee
 # storage/app/private/imports/documentos-autogenerados/orden_oficio.json)
 php artisan asistencia:importar-orden-oficio
 
-# Rol de vacaciones (Agenda Zona Oriente > Rol de vacaciones): importa el ANEXO A de
-# vacacionistas desde storage/app/private/imports/rol-vacaciones/*.xlsx (idempotente;
-# el año se infiere del nombre del archivo o con --anio=YYYY)
-php artisan app:import-rol-vacaciones
-
-# Gasto energético (Estadísticas > Gasto energético): importa la hoja "ZONA ORIENTE" del
-# ANEXO B desde storage/app/private/imports/estadisticas/gasto energetico/*.xlsx (idempotente)
-php artisan app:import-gasto-energetico
-
-# Controles (Escaleras eléctricas / Elevadores): importa el inventario desde
-# storage/app/private/imports/controles/escaleras y elevadores/*.xlsx. Reemplaza el
-# contenido completo de ambas tablas en cada corrida (no hay llave natural por equipo).
-php artisan app:import-controles
-
-# Controles > Estatus de vías y andenes: importa la hoja visible "ZO_*" del mismo archivo
-# (una fila por vía de cada estación; ignora las hojas ZO_* ocultas de meses anteriores).
-# Reemplaza el contenido completo de estatus_vias_andenes en cada corrida.
-php artisan app:import-estatus-vias-andenes
+# Personal también se importa arrastrando el Excel en RR.HH. > Personal; por consola:
+php artisan app:import-agenda-zona-oriente
 
 # Generar recursos
 php artisan make:model NombreModelo -mcr
@@ -149,22 +137,52 @@ Este) capturaron. Las plantillas Word editables viven en `resources/documentos/`
 en el VPS y `ASISTENCIA_SOFFICE_PATH` en `.env`. Los archivos se guardan en
 disco privado y solo se descargan por rutas autorizadas.
 
-## Pendientes bloqueados por información externa
+## Secciones dinámicas (tablas + documentos)
 
-Estos puntos **no se deben construir todavía** porque dependen de
-información que aún no ha entregado el Jefe de Zona:
+Decisión del Jefe de Zona (oct 2026): en lugar de un módulo a la medida por
+concepto, cada concepto del menú es una **sección dinámica**
+(`app/Services/Secciones`, `app/Http/Controllers/Secciones`):
 
-- Modelo de datos final del CRUD (campos reales de la información a
-  gestionar).
-- Definición exacta de los indicadores/KPIs que irán en el dashboard
-  principal.
-- Tipos de gráficas específicas y las dimensiones/filtros que necesita ver
-  el Jefe de Zona.
-- Contenido y formato de los reportes exportables (PDF/Excel).
+- El administrador crea, renombra, mueve, oculta o elimina (baja lógica)
+  grupos y secciones desde *Administrar menú*. `config/navegacion.php` solo
+  define el catálogo inicial (`MenuSeeder`) y los módulos fijos con ruta
+  propia (Personal y Asistencia, que dependen de modelos estructurados y
+  generan oficios).
+- Cada sección tiene una tabla configurable (`seccion_columnas`: texto,
+  número, fecha, sí/no, lista; valores en `seccion_filas.datos` JSON) con
+  alta/edición/baja manual, búsqueda, orden y exportación a Excel, más un
+  repositorio de documentos privado.
+- Arrastrar un documento: Excel/CSV/tablas de Word se leen sin IA
+  (`ExtractorDocumentos`); se abre una vista previa con mapeo de columnas y
+  modo (agregar / actualizar por columna llave / reemplazar). Si la tabla no
+  existe se crea sola. Cada carga aplicada se puede deshacer (solo la más
+  reciente de la sección).
+- "Extraer con IA" (PDF escaneado, foto, Word sin tablas) usa la Claude API
+  con salidas estructuradas y entra a la misma vista previa. Opcional:
+  apagado si `ANTHROPIC_API_KEY` está vacío.
+- Las importaciones masivas registran un evento resumen en la bitácora
+  (`importacion_aplicada` / `importacion_deshecha`), no una entrada por fila.
 
-Mientras tanto, estos módulos se desarrollan con datos de ejemplo (dummy
-data) para dejar el patrón de código listo y adaptarlo rápido en cuanto
-llegue la información real.
+Los módulos fijos anteriores (Rol de vacaciones, Escaleras eléctricas,
+Elevadores, Estatus de vías y andenes, Flujo de pasajeros, Gasto energético)
+se retiraron y hoy son secciones dinámicas con el mismo nombre.
+
+## Asistente de preguntas (Claude API)
+
+El dashboard incluye un asistente que responde preguntas sobre la
+información (`app/Services/Asistente`). Claude nunca recibe la base completa:
+solo puede pedir consultas de solo lectura acotadas (herramientas) que el
+servidor ejecuta, y recibe únicamente el resultado. Requiere
+`ANTHROPIC_API_KEY`; límites en `ASISTENTE_LIMITE_POR_MINUTO` /
+`ASISTENTE_LIMITE_DIARIO`. Cada pregunta queda en la bitácora.
+
+## Cuenta compartida y 2FA
+
+Por decisión del Jefe de Zona (oct 2026) hay **una sola cuenta** con roles
+Jefe de Zona + Administrador que usa todo el equipo, y el 2FA está apagado
+con `TWO_FACTOR_ENABLED=false` (el código de 2FA sigue completo). Volver a
+`true` en cuanto existan cuentas individuales. El rol Estación existe pero
+sin cuentas.
 
 ## Roles del proyecto
 

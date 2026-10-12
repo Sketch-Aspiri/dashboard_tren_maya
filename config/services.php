@@ -35,4 +35,16 @@ return [
         ],
     ],
 
+    /*
+     * Claude API (asistente del dashboard y "Extraer con IA"). Sin llave, la
+     * IA queda apagada en toda la aplicación (App\Services\Asistente\ClienteClaude).
+     */
+    'anthropic' => [
+        'key' => (string) env('ANTHROPIC_API_KEY', ''),
+        'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-5-5'),
+        'timeout' => (float) env('ANTHROPIC_TIMEOUT', 120),
+        'asistente_por_minuto' => (int) env('ASISTENTE_LIMITE_POR_MINUTO', 10),
+        'asistente_por_dia' => (int) env('ASISTENTE_LIMITE_DIARIO', 300),
+    ],
+
 ];

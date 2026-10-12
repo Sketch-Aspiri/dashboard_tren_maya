@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="py-8 sm:py-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div class="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
 
             <div class="rounded-xl border border-l-4 border-brand-green/10 border-l-brand-teal bg-white p-5 shadow-sm shadow-brand-green/5 sm:p-6">
                 <p class="text-sm text-gray-600">{{ __('Sesión activa') }}</p>
@@ -26,96 +26,40 @@
                 </div>
             </div>
 
-            <div>
-                <h3 class="mb-3 font-heading text-sm font-semibold uppercase tracking-wide text-gray-600">
-                    {{ __('Gráficas e indicadores') }}
-                </h3>
-                @if ($estadisticasChart && count($estadisticasChart['labels']) > 0)
-                    @php
-                        $dashboardChartConfig = [
-                            'type' => 'bar',
-                            'data' => [
-                                'labels' => $estadisticasChart['labels'],
-                                'datasets' => [
-                                    [
-                                        'label' => __('Pasajeros (abordan)'),
-                                        'data' => $estadisticasChart['values'],
-                                        'backgroundColor' => 'rgba(31, 116, 96, 0.75)',
-                                    ],
-                                    [
-                                        'label' => __('Boletos vendidos'),
-                                        'data' => $estadisticasChart['valuesBoletos'],
-                                        'backgroundColor' => 'rgba(112, 194, 173, 0.85)',
-                                    ],
-                                ],
-                            ],
-                            'options' => [
-                                'responsive' => true,
-                                'maintainAspectRatio' => false,
-                                'scales' => ['y' => ['beginAtZero' => true]],
-                            ],
-                        ];
-                    @endphp
-                    {{-- Filtra la gráfica por nombre de estación en el navegador:
-                         los datos ya llegaron autorizados al render inicial, así
-                         que no hace falta un endpoint nuevo para un simple filtro
-                         de texto sobre lo que ya está en pantalla. La lógica del
-                         componente vive en resources/js/app.js
-                         (Alpine.data('estadisticasBuscador', ...)) — aquí solo se
-                         invoca con los datos de esta vista.
+            <div class="rounded-xl border border-brand-green/10 bg-white p-5 shadow-sm shadow-brand-green/5 sm:p-6">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <h3 class="font-heading text-sm font-semibold uppercase tracking-wide text-gray-600">
+                        {{ __('Actualizado recientemente') }}
+                    </h3>
+                    @can('create', \App\Models\Seccion::class)
+                        <a href="{{ route('secciones.administrar') }}" class="text-sm font-medium text-brand-teal hover:text-brand-green-dark">
+                            {{ __('Administrar menú') }}
+                        </a>
+                    @endcan
+                </div>
 
-                         x-data va entre comillas SIMPLES a propósito: @json()
-                         genera JSON, que usa comillas DOBLES para cada string
-                         (eso es sintaxis JSON, no algo que @json() pueda evitar
-                         — sus flags JSON_HEX_* solo escapan comillas que
-                         aparecen DENTRO de un valor, nunca las comillas
-                         estructurales que delimitan cada string). Con x-data
-                         entre comillas dobles, el navegador corta el atributo
-                         en la primera comilla del JSON y el resto queda como
-                         texto/atributos sueltos — bug real, reproducido con la
-                         consola del navegador. Por eso también el literal
-                         'estadisticas-dashboard-chart' pasa a comillas dobles
-                         aquí abajo (ya no puede usar comillas simples, que
-                         ahora delimitan todo el atributo). --}}
-                    <div
-                        x-data='estadisticasBuscador(@json($estadisticasChart['labels']), @json($estadisticasChart['values']), @json($estadisticasChart['valuesBoletos']), "estadisticas-dashboard-chart")'
-                        class="rounded-xl border border-brand-green/10 bg-white p-5 shadow-sm shadow-brand-green/5 sm:p-6"
-                    >
-                        <div class="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <p class="text-sm font-medium text-gray-600">
-                                {{ __('Pasajeros y boletos vendidos por estación — mes actual') }}
-                            </p>
-                            <div class="w-full sm:max-w-xs">
-                                <label for="buscar-estadisticas-estacion" class="sr-only">
-                                    {{ __('Buscar estación por nombre') }}
-                                </label>
-                                <x-text-input id="buscar-estadisticas-estacion" type="search"
-                                              class="block w-full text-sm"
-                                              placeholder="{{ __('Buscar estación por nombre…') }}"
-                                              x-model="query" @input="actualizarGrafica()" />
-                            </div>
-                        </div>
-                        <p x-show="query.trim() !== '' && indicesFiltrados.length === 0" x-cloak
-                           class="mb-3 text-sm text-gray-500">
-                            {{ __('Ninguna estación coincide con la búsqueda.') }}
+                @if ($recientes->isEmpty())
+                    <div class="mt-4 rounded-lg border border-dashed border-brand-green/20 bg-brand-mist/50 p-6 text-center">
+                        <p class="font-heading text-base font-semibold text-brand-green">{{ __('Todavía no hay información capturada') }}</p>
+                        <p class="mx-auto mt-2 max-w-lg text-sm text-gray-600">
+                            {{ __('Abre cualquier sección del menú y arrastra un Excel, Word o PDF: si trae una tabla, el sistema la crea sola. También puedes capturar registros a mano.') }}
                         </p>
-                        <div class="relative h-64 sm:h-72">
-                            <canvas id="estadisticas-dashboard-chart"></canvas>
-                        </div>
                     </div>
-                    <script>
-                        window.__pendingCharts = window.__pendingCharts || [];
-                        window.__pendingCharts.push({ canvasId: 'estadisticas-dashboard-chart', config: @json($dashboardChartConfig) });
-                    </script>
                 @else
-                    <div class="rounded-xl border border-dashed border-brand-green/20 bg-white/60 p-8 text-center shadow-sm shadow-brand-green/5 sm:p-12">
-                        <p class="font-heading text-base font-semibold text-brand-green">
-                            {{ __('Sin datos todavía') }}
-                        </p>
-                        <p class="mx-auto mt-2 max-w-md text-sm text-gray-500">
-                            {{ __('Aún no hay estadísticas capturadas para el mes actual. La gráfica aparecerá aquí en cuanto se registren datos en el módulo Recursos financieros.') }}
-                        </p>
-                    </div>
+                    <ul class="mt-3 divide-y divide-gray-100">
+                        @foreach ($recientes as $reciente)
+                            <li>
+                                <a href="{{ route('secciones.show', $reciente['seccion']) }}"
+                                   class="flex min-h-[48px] items-center justify-between gap-3 py-2 hover:bg-brand-mist/40">
+                                    <span class="min-w-0">
+                                        <span class="block truncate text-sm font-medium text-brand-green">{{ $reciente['seccion']->nombre }}</span>
+                                        <span class="block text-xs text-gray-500">{{ $reciente['seccion']->grupo->nombre }}</span>
+                                    </span>
+                                    <span class="shrink-0 text-xs text-gray-500">{{ $reciente['actualizada']->diffForHumans() }}</span>
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
                 @endif
             </div>
 
@@ -123,10 +67,10 @@
                 <h3 class="font-heading text-sm font-semibold uppercase tracking-wide text-gray-600">
                     {{ __('Accesos directos') }}
                 </h3>
-                <div class="mt-3 flex flex-col gap-3 sm:flex-row">
+                <div class="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                     <a href="{{ route('agenda.personal.index') }}"
                        class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-md border border-brand-green/20 bg-white px-4 py-2 text-sm font-medium text-brand-green transition duration-150 ease-in-out hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">
-                        {{ __('RR.HH.') }}
+                        {{ __('Personal') }}
                     </a>
                     @can('view-asistencia-zona')
                         <a href="{{ route('asistencia.zona.index') }}"
@@ -134,12 +78,12 @@
                             {{ __('Asistencia Zona Oriente') }}
                         </a>
                     @endcan
-                    @can('viewAny', App\Models\EstadisticaDiaria::class)
-                        <a href="{{ route('estadisticas.index') }}"
+                    @hasrole('Administrador')
+                        <a href="{{ route('asistencia.captura.index') }}"
                            class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-md border border-brand-green/20 bg-white px-4 py-2 text-sm font-medium text-brand-green transition duration-150 ease-in-out hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">
-                            {{ __('Recursos financieros') }}
+                            {{ __('Captura de asistencia') }}
                         </a>
-                    @endcan
+                    @endhasrole
                 </div>
             </div>
 

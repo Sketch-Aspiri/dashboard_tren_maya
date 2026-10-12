@@ -1,31 +1,29 @@
 <?php
 
 /*
- * Catálogo del menú según "Dashboard Tren Maya.pptx".
+ * Menú principal según "Dashboard Tren Maya.pptx".
  *
- * - 'items': módulos que ya existen (ruta real). 'patron'/'excepto' son
- *   patrones de routeIs() para marcar el enlace activo; 'roles' quién lo ve.
- * - 'pendientes': conceptos del PPT sin módulo ni enlace todavía. Cada uno
- *   abre una página "pendiente de agregar información"
- *   (SeccionPendienteController) visible solo para Jefe de Zona y
- *   Administrador. Al llegar la información real, se mueve el concepto de
- *   'pendientes' a 'items' con su ruta.
+ * - 'items': módulos FIJOS con ruta propia (Personal y Asistencia, que
+ *   generan oficios y dependen de modelos estructurados). 'patron' /
+ *   'excepto' son patrones de routeIs() para marcar el enlace activo;
+ *   'roles' quién lo ve.
+ * - 'secciones': catálogo INICIAL de secciones dinámicas. MenuSeeder las
+ *   crea en la base (tablas menu_grupos / secciones) una sola vez; después
+ *   el administrador las renombra, mueve, oculta, elimina o agrega desde
+ *   "Administrar menú". Cambiar esta lista no altera una base ya sembrada.
  * - 'patrones': patrones de routeIs() que marcan activo el grupo.
  */
 
 $zona = ['Jefe de Zona', 'Administrador'];
-$todos = ['Jefe de Zona', 'Administrador', 'Estación'];
 
 return [
-    'roles_pendientes' => $zona,
-
     'grupos' => [
         [
-            'id' => 'cronograma-de-informes',
-            'label' => 'Cronograma de informes',
+            'slug' => 'cronograma-de-informes',
+            'nombre' => 'Cronograma de informes',
             'patrones' => [],
             'items' => [],
-            'pendientes' => [
+            'secciones' => [
                 'Distribución de trabajo y funciones',
                 'Seguimiento a documentos recibidos (Mesa de entrada)',
                 'Seguimiento de actividades (correo y pend.)',
@@ -33,16 +31,16 @@ return [
             ],
         ],
         [
-            'id' => 'rrhh',
-            'label' => 'RR.HH.',
+            'slug' => 'rrhh',
+            'nombre' => 'RR.HH.',
             'patrones' => ['agenda.*', 'asistencia.*'],
             'items' => [
                 ['label' => 'Personal', 'ruta' => 'agenda.personal.index', 'patron' => 'agenda.personal.*', 'roles' => $zona],
-                ['label' => 'Rol de vacaciones', 'ruta' => 'agenda.vacaciones.index', 'patron' => 'agenda.vacaciones.*', 'roles' => $zona],
                 ['label' => 'Asistencia Zona Oriente', 'ruta' => 'asistencia.zona.index', 'patron' => 'asistencia.zona.*', 'roles' => $zona],
                 ['label' => 'Captura de asistencia', 'ruta' => 'asistencia.captura.index', 'patron' => 'asistencia.captura.*', 'roles' => ['Estación', 'Administrador']],
             ],
-            'pendientes' => [
+            'secciones' => [
+                'Rol de vacaciones',
                 'Relación nominal',
                 'Hojas de datos del personal',
                 'Organigrama corporativo',
@@ -54,15 +52,14 @@ return [
             ],
         ],
         [
-            'id' => 'recursos-materiales',
-            'label' => 'Recursos materiales',
-            'patrones' => ['controles.*'],
-            'items' => [
-                ['label' => 'Escaleras eléctricas', 'ruta' => 'controles.escaleras-electricas.index', 'patron' => 'controles.escaleras-electricas.*', 'roles' => $todos],
-                ['label' => 'Elevadores', 'ruta' => 'controles.elevadores.index', 'patron' => 'controles.elevadores.*', 'roles' => $todos],
-                ['label' => 'Estatus de vías y andenes', 'ruta' => 'controles.estatus-vias-andenes.index', 'patron' => 'controles.estatus-vias-andenes.*', 'roles' => $todos],
-            ],
-            'pendientes' => [
+            'slug' => 'recursos-materiales',
+            'nombre' => 'Recursos materiales',
+            'patrones' => [],
+            'items' => [],
+            'secciones' => [
+                'Escaleras eléctricas',
+                'Elevadores',
+                'Estatus de vías y andenes',
                 'Inventario edificio',
                 'Resguardos individuales',
                 'Entrega y recepción edificio',
@@ -77,14 +74,13 @@ return [
             ],
         ],
         [
-            'id' => 'recursos-financieros',
-            'label' => 'Recursos financieros',
-            'patrones' => ['estadisticas.*'],
-            'items' => [
-                ['label' => 'Flujo de pasajeros', 'ruta' => 'estadisticas.index', 'patron' => 'estadisticas.*', 'excepto' => 'estadisticas.gasto-energetico.*', 'roles' => $todos],
-                ['label' => 'Gasto energético', 'ruta' => 'estadisticas.gasto-energetico.index', 'patron' => 'estadisticas.gasto-energetico.*', 'roles' => $todos],
-            ],
-            'pendientes' => [
+            'slug' => 'recursos-financieros',
+            'nombre' => 'Recursos financieros',
+            'patrones' => [],
+            'items' => [],
+            'secciones' => [
+                'Flujo de pasajeros',
+                'Gasto energético',
                 'Drive comprobaciones Diesel',
                 'Drive comprobaciones agua purificada',
                 'Drive de expediente de recursos ejercidos por esta dirección',
@@ -96,11 +92,11 @@ return [
             ],
         ],
         [
-            'id' => 'sgd-fis',
-            'label' => 'SGD. Fis',
+            'slug' => 'sgd-fis',
+            'nombre' => 'SGD. Fis',
             'patrones' => [],
             'items' => [],
-            'pendientes' => [
+            'secciones' => [
                 'Directorio telefónico',
                 'Drive fumigación',
                 'Drive de verificación extintores',
@@ -111,11 +107,11 @@ return [
             ],
         ],
         [
-            'id' => 'otros',
-            'label' => 'Otros',
+            'slug' => 'otros',
+            'nombre' => 'Otros',
             'patrones' => [],
             'items' => [],
-            'pendientes' => [
+            'secciones' => [
                 'Manuales y reglamentos',
                 'Esquemas de vías',
                 'Mapa del Tren Maya',

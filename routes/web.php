@@ -5,14 +5,18 @@ use App\Http\Controllers\AsistenciaDocumentoController;
 use App\Http\Controllers\AsistenciaZonaController;
 use App\Http\Controllers\ComisionadoFueraController;
 use App\Http\Controllers\ComisionadoVisitanteController;
-use App\Http\Controllers\ControlesController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmpleadoController;
-use App\Http\Controllers\EstadisticaController;
-use App\Http\Controllers\GastoEnergeticoController;
+use App\Http\Controllers\PersonalImportacionController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\RolVacacionesController;
-use App\Http\Controllers\SeccionPendienteController;
+use App\Http\Controllers\Secciones\AdministrarMenuController;
+use App\Http\Controllers\Secciones\MenuGrupoController;
+use App\Http\Controllers\Secciones\SeccionArchivoController;
+use App\Http\Controllers\Secciones\SeccionColumnaController;
+use App\Http\Controllers\Secciones\SeccionController;
+use App\Http\Controllers\Secciones\SeccionExportacionController;
+use App\Http\Controllers\Secciones\SeccionFilaController;
+use App\Http\Controllers\Secciones\SeccionImportacionController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -40,15 +44,22 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
             ->name('data');
         Route::get('/create', [EmpleadoController::class, 'create'])->name('create');
         Route::post('/', [EmpleadoController::class, 'store'])->name('store');
+
+        // Importar el Excel de la base de datos arrastrándolo (vista previa
+        // y luego aplicar). Antes de '/{empleado}' para no chocar con él.
+        Route::get('/importar', [PersonalImportacionController::class, 'show'])->name('importar.show');
+        Route::post('/importar', [PersonalImportacionController::class, 'store'])
+            ->middleware('throttle:secciones-archivos')
+            ->name('importar.store');
+        Route::post('/importar/aplicar', [PersonalImportacionController::class, 'aplicar'])
+            ->middleware('throttle:secciones-write')
+            ->name('importar.aplicar');
+        Route::delete('/importar', [PersonalImportacionController::class, 'destroy'])->name('importar.destroy');
         Route::get('/{empleado}', [EmpleadoController::class, 'show'])->name('show');
         Route::get('/{empleado}/edit', [EmpleadoController::class, 'edit'])->name('edit');
         Route::put('/{empleado}', [EmpleadoController::class, 'update'])->name('update');
         Route::delete('/{empleado}', [EmpleadoController::class, 'destroy'])->name('destroy');
     });
-
-    // Agenda Zona Oriente -> Rol de vacaciones: consulta del rol anual
-    // (solo lectura; se carga con app:import-rol-vacaciones).
-    Route::get('agenda/vacaciones', [RolVacacionesController::class, 'index'])->name('agenda.vacaciones.index');
 
     // Control de Asistencia Diaria -> Fase 1: captura de roster diario
     // (ver el plan aprobado y app/Policies/RegistroDiarioPolicy.php).
@@ -93,54 +104,60 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
         });
     });
 
-    // Estadísticas -> Gasto energético: resumen de la zona, captura/corrección
-    // por estación y baja de un pago (carga inicial con
-    // app:import-gasto-energetico). Declarado ANTES del grupo "estadisticas"
-    // de abajo para que "/estadisticas/gasto-energetico" no lo capture la
-    // ruta "/estadisticas/{estacion}".
-    Route::prefix('estadisticas/gasto-energetico')->name('estadisticas.gasto-energetico.')->group(function () {
-        Route::get('/', [GastoEnergeticoController::class, 'index'])->name('index');
-        Route::get('/{estacion}', [GastoEnergeticoController::class, 'show'])->name('show');
+    // Secciones dinámicas del menú (tabla configurable + documentos +
+    // cargas por arrastre). Las rutas anidadas usan scopeBindings(): una
+    // fila/columna/archivo/carga solo resuelve dentro de SU sección.
+    Route::prefix('secciones')->name('secciones.')->group(function () {
+        Route::get('/administrar', [AdministrarMenuController::class, 'index'])->name('administrar');
 
-        Route::middleware('throttle:estadisticas-write')->group(function () {
-            Route::put('/{estacion}', [GastoEnergeticoController::class, 'update'])->name('update');
-            Route::delete('/{estacion}/pagos/{pago}', [GastoEnergeticoController::class, 'destroy'])->name('destroy');
+        Route::middleware('throttle:secciones-write')->group(function () {
+            Route::post('/grupos', [MenuGrupoController::class, 'store'])->name('grupos.store');
+            Route::put('/grupos/{grupo}', [MenuGrupoController::class, 'update'])->name('grupos.update');
+            Route::post('/grupos/{grupo}/mover', [MenuGrupoController::class, 'mover'])->name('grupos.mover');
+            Route::delete('/grupos/{grupo}', [MenuGrupoController::class, 'destroy'])->name('grupos.destroy');
+
+            Route::post('/', [SeccionController::class, 'store'])->name('store');
+        });
+
+        Route::get('/{seccion}', [SeccionController::class, 'show'])->name('show');
+        Route::get('/{seccion}/exportar', SeccionExportacionController::class)->name('exportar');
+        Route::get('/{seccion}/columnas', [SeccionColumnaController::class, 'index'])->name('columnas.index');
+
+        Route::scopeBindings()->group(function () {
+            Route::get('/{seccion}/archivos/{archivo}', [SeccionArchivoController::class, 'show'])->name('archivos.show');
+            Route::get('/{seccion}/importaciones/{importacion}', [SeccionImportacionController::class, 'show'])->name('importaciones.show');
+
+            Route::middleware('throttle:secciones-write')->group(function () {
+                Route::put('/{seccion}', [SeccionController::class, 'update'])->name('update');
+                Route::post('/{seccion}/mover', [SeccionController::class, 'mover'])->name('mover');
+                Route::delete('/{seccion}', [SeccionController::class, 'destroy'])->name('destroy');
+
+                Route::post('/{seccion}/columnas', [SeccionColumnaController::class, 'store'])->name('columnas.store');
+                Route::put('/{seccion}/columnas/{columna}', [SeccionColumnaController::class, 'update'])->name('columnas.update');
+                Route::post('/{seccion}/columnas/{columna}/mover', [SeccionColumnaController::class, 'mover'])->name('columnas.mover');
+                Route::delete('/{seccion}/columnas/{columna}', [SeccionColumnaController::class, 'destroy'])->name('columnas.destroy');
+
+                Route::post('/{seccion}/filas', [SeccionFilaController::class, 'store'])->name('filas.store');
+                Route::put('/{seccion}/filas/{fila}', [SeccionFilaController::class, 'update'])->name('filas.update');
+                Route::delete('/{seccion}/filas/{fila}', [SeccionFilaController::class, 'destroy'])->name('filas.destroy');
+
+                Route::delete('/{seccion}/archivos/{archivo}', [SeccionArchivoController::class, 'destroy'])->name('archivos.destroy');
+
+                Route::post('/{seccion}/importaciones/{importacion}/calcular', [SeccionImportacionController::class, 'calcular'])->name('importaciones.calcular');
+                Route::post('/{seccion}/importaciones/{importacion}/aplicar', [SeccionImportacionController::class, 'aplicar'])->name('importaciones.aplicar');
+                Route::post('/{seccion}/importaciones/{importacion}/deshacer', [SeccionImportacionController::class, 'deshacer'])->name('importaciones.deshacer');
+                Route::delete('/{seccion}/importaciones/{importacion}', [SeccionImportacionController::class, 'destroy'])->name('importaciones.destroy');
+            });
+
+            Route::post('/{seccion}/archivos', [SeccionArchivoController::class, 'store'])
+                ->middleware('throttle:secciones-archivos')
+                ->name('archivos.store');
+
+            Route::post('/{seccion}/archivos/{archivo}/ia', [SeccionImportacionController::class, 'extraerConIa'])
+                ->middleware('throttle:ia')
+                ->name('archivos.ia');
         });
     });
-
-    // Módulo "Estadísticas": flujo de pasajeros / boletos vendidos por
-    // estación (ver el plan aprobado y app/Policies/EstadisticaDiariaPolicy.php).
-    Route::prefix('estadisticas')->name('estadisticas.')->group(function () {
-        Route::get('/', [EstadisticaController::class, 'index'])->name('index');
-        Route::get('/{estacion}', [EstadisticaController::class, 'show'])->name('show');
-
-        Route::middleware('throttle:estadisticas-write')->group(function () {
-            Route::put('/{estacion}', [EstadisticaController::class, 'update'])->name('update');
-            Route::delete('/{estacion}/registros/{registro}', [EstadisticaController::class, 'destroy'])->name('destroy');
-        });
-    });
-
-    // Módulo "Controles": inventario de escaleras eléctricas y elevadores,
-    // más el estatus de vías y andenes (ver app/Console/Commands/ImportControlesCommand.php y
-    // app/Policies/EscaleraElectricaPolicy.php / ElevadorPolicy.php).
-    Route::prefix('controles')->name('controles.')->group(function () {
-        Route::get('/escaleras-electricas', [ControlesController::class, 'escalerasElectricas'])->name('escaleras-electricas.index');
-        Route::get('/escaleras-electricas/{escalera}/editar', [ControlesController::class, 'editarEscaleraElectrica'])->name('escaleras-electricas.edit');
-        Route::get('/elevadores', [ControlesController::class, 'elevadores'])->name('elevadores.index');
-        Route::get('/elevadores/{elevador}/editar', [ControlesController::class, 'editarElevador'])->name('elevadores.edit');
-        Route::get('/estatus-vias-andenes', [ControlesController::class, 'estatusViasAndenes'])->name('estatus-vias-andenes.index');
-        Route::get('/estatus-vias-andenes/{estatusViaAnden}/editar', [ControlesController::class, 'editarEstatusViaAnden'])->name('estatus-vias-andenes.edit');
-
-        Route::middleware('throttle:controles-write')->group(function () {
-            Route::put('/escaleras-electricas/{escalera}', [ControlesController::class, 'actualizarEscaleraElectrica'])->name('escaleras-electricas.update');
-            Route::put('/elevadores/{elevador}', [ControlesController::class, 'actualizarElevador'])->name('elevadores.update');
-            Route::put('/estatus-vias-andenes/{estatusViaAnden}', [ControlesController::class, 'actualizarEstatusViaAnden'])->name('estatus-vias-andenes.update');
-        });
-    });
-
-    // Conceptos del PPT "Dashboard Tren Maya" sin módulo todavía: página
-    // "pendiente de agregar información" (config/navegacion.php).
-    Route::get('/secciones/{grupo}/{seccion}', [SeccionPendienteController::class, 'show'])->name('secciones.show');
 
     // Gestión de usuarios: Administrador-only account management panel
     // (see app/Policies/UserPolicy.php). Supersedes console-only

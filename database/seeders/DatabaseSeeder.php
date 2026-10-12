@@ -6,7 +6,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 
 /**
- * Seeds roles only. The real Jefe de Zona account is never provisioned
+ * Seeds roles, the station catalog and the initial menu. The real Jefe de Zona account is never provisioned
  * with a known/default password via `migrate --seed` — it must be created
  * interactively via `php artisan app:create-zone-chief`, which prompts for
  * a fresh password on every environment. See CreateZoneChiefCommand.
@@ -20,5 +20,6 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(RoleSeeder::class);
         $this->call(EstacionSeeder::class);
+        $this->call(MenuSeeder::class);
     }
 }

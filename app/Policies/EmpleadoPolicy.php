@@ -41,6 +41,15 @@ class EmpleadoPolicy
     }
 
     /**
+     * Importar el Excel de la base de datos de personal (alta y
+     * actualización masiva por número de empleado).
+     */
+    public function importar(User $user): bool
+    {
+        return $user->hasAnyRole(self::WRITE_ROLES);
+    }
+
+    /**
      * Determine whether the user can update the model.
      */
     public function update(User $user, Empleado $empleado): bool

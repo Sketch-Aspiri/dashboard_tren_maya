@@ -2,6 +2,7 @@ import './bootstrap';
 
 import Alpine from 'alpinejs';
 import { Chart } from 'chart.js/auto';
+import { registrarSecciones } from './secciones';
 
 window.Alpine = Alpine;
 window.Chart = Chart;
@@ -26,52 +27,6 @@ function normalizarTexto(texto) {
     }
     return resultado.toLowerCase();
 }
-
-/**
- * Componente de búsqueda por nombre de estación para la gráfica del
- * dashboard. Vive aquí (registrado con Alpine.data) en vez de escribirse
- * como un objeto x-data inline en el Blade: un objeto largo con varias
- * funciones dentro de un atributo HTML es frágil (basta un intermediario
- * — minificador, proxy, caché de vista desalineada — que reescriba mal
- * una comilla o un `<`/`>` para romper el atributo), y la vista solo
- * necesita invocar la función con sus datos.
- *
- * @param {string[]} labels
- * @param {number[]} values
- * @param {number[]} valuesBoletos
- * @param {string} canvasId
- */
-function estadisticasBuscador(labels, values, valuesBoletos, canvasId) {
-    return {
-        query: '',
-        labels,
-        values,
-        valuesBoletos,
-        get indicesFiltrados() {
-            const consulta = normalizarTexto(this.query).trim();
-            if (!consulta) {
-                return this.labels.map((_, i) => i);
-            }
-            return this.labels.reduce((indices, label, i) => {
-                if (normalizarTexto(label).includes(consulta)) {
-                    indices.push(i);
-                }
-                return indices;
-            }, []);
-        },
-        actualizarGrafica() {
-            const chart = window.__charts?.[canvasId];
-            if (!chart) return;
-            const indices = this.indicesFiltrados;
-            chart.data.labels = indices.map((i) => this.labels[i]);
-            chart.data.datasets[0].data = indices.map((i) => this.values[i]);
-            chart.data.datasets[1].data = indices.map((i) => this.valuesBoletos[i]);
-            chart.update();
-        },
-    };
-}
-
-Alpine.data('estadisticasBuscador', estadisticasBuscador);
 
 /**
  * Buscador de la barra de navegación: filtra en el navegador la lista de
@@ -132,5 +87,7 @@ window.__charts = window.__charts || {};
     }
 });
 window.__pendingCharts = [];
+
+registrarSecciones(Alpine);
 
 Alpine.start();

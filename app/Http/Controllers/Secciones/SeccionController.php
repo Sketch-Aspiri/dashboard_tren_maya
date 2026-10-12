@@ -1,0 +1,92 @@
+<?php
+
+namespace App\Http\Controllers\Secciones;
+
+use App\Enums\TipoColumna;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Secciones\ListarSeccionRequest;
+use App\Http\Requests\Secciones\MoverElementoRequest;
+use App\Http\Requests\Secciones\StoreSeccionRequest;
+use App\Http\Requests\Secciones\UpdateSeccionRequest;
+use App\Models\Seccion;
+use App\Services\Asistente\ModeloLenguaje;
+use App\Services\Secciones\ConsultaSeccionService;
+use App\Services\Secciones\ImportacionService;
+use App\Services\Secciones\MenuService;
+use App\Services\Secciones\NormalizadorValores;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
+
+/**
+ * Pantalla de una sección (tabla + documentos + cargas) y su alta/edición
+ * desde "Administrar menú".
+ */
+class SeccionController extends Controller
+{
+    public function __construct(
+        private readonly MenuService $menu,
+        private readonly ConsultaSeccionService $consulta,
+        private readonly ImportacionService $importaciones,
+    ) {}
+
+    public function show(ListarSeccionRequest $request, Seccion $seccion, NormalizadorValores $normalizador, ModeloLenguaje $claude): View
+    {
+        $this->authorize('view', $seccion);
+
+        $seccion->load(['grupo', 'columnas']);
+        $filtros = $request->filtros();
+
+        $cargas = $seccion->importaciones()->with('usuario:id,name', 'archivo:id,nombre_original')->latest()->limit(30)->get();
+
+        return view('secciones.show', [
+            'seccion' => $seccion,
+            'filtros' => $filtros,
+            'tab' => $request->validated('tab') ?? 'tabla',
+            'filas' => $this->consulta->filas($seccion, $filtros),
+            'documentos' => $this->consulta->documentos($seccion, $filtros['q']),
+            'cargas' => $cargas,
+            'cargaDeshacible' => $cargas->first(fn ($carga) => $this->importaciones->puedeDeshacerse($carga)),
+            'normalizador' => $normalizador,
+            'tiposColumna' => TipoColumna::cases(),
+            'iaDisponible' => $claude->disponible(),
+        ]);
+    }
+
+    public function store(StoreSeccionRequest $request): RedirectResponse
+    {
+        $this->authorize('create', Seccion::class);
+
+        $seccion = $this->menu->crearSeccion($request->validated());
+
+        return redirect()->route('secciones.show', $seccion)
+            ->with('status', __('Sección ":nombre" creada. Arrastra un documento o define sus columnas para empezar.', ['nombre' => $seccion->nombre]));
+    }
+
+    public function update(UpdateSeccionRequest $request, Seccion $seccion): RedirectResponse
+    {
+        $this->authorize('update', $seccion);
+
+        $this->menu->actualizarSeccion($seccion, $request->validated());
+
+        return back()->with('status', __('Sección actualizada.'));
+    }
+
+    public function mover(MoverElementoRequest $request, Seccion $seccion): RedirectResponse
+    {
+        $this->authorize('update', $seccion);
+
+        $this->menu->moverSeccion($seccion, $request->validated('direccion'));
+
+        return redirect()->route('secciones.administrar');
+    }
+
+    public function destroy(Seccion $seccion): RedirectResponse
+    {
+        $this->authorize('delete', $seccion);
+
+        $this->menu->eliminarSeccion($seccion);
+
+        return redirect()->route('secciones.administrar')
+            ->with('status', __('Sección ":nombre" eliminada del menú.', ['nombre' => $seccion->nombre]));
+    }
+}
