@@ -15,6 +15,10 @@
                 </p>
             </div>
 
+            @if ($asistenteDisponible)
+                @include('dashboard.asistente')
+            @endif
+
             <div>
                 <h3 class="mb-3 font-heading text-sm font-semibold uppercase tracking-wide text-gray-600">
                     {{ __('Indicadores clave') }}

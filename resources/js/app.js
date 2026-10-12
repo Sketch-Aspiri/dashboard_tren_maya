@@ -2,6 +2,7 @@ import './bootstrap';
 
 import Alpine from 'alpinejs';
 import { Chart } from 'chart.js/auto';
+import { registrarAsistente } from './asistente';
 import { registrarSecciones } from './secciones';
 
 window.Alpine = Alpine;
@@ -89,5 +90,6 @@ window.__charts = window.__charts || {};
 window.__pendingCharts = [];
 
 registrarSecciones(Alpine);
+registrarAsistente(Alpine);
 
 Alpine.start();

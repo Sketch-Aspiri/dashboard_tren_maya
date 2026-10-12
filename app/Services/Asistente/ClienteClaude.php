@@ -21,6 +21,11 @@ final class ClienteClaude implements ModeloLenguaje
 
     private ?Client $cliente = null;
 
+    /**
+     * @param  array<string, mixed>  $opcionesHttp  opciones extra del SDK (p. ej. 'transporter' en pruebas)
+     */
+    public function __construct(private readonly array $opcionesHttp = []) {}
+
     public function disponible(): bool
     {
         return trim((string) config('services.anthropic.key')) !== '';
@@ -60,7 +65,7 @@ final class ClienteClaude implements ModeloLenguaje
     {
         return $this->cliente ??= new Client(
             apiKey: (string) config('services.anthropic.key'),
-            requestOptions: ['timeout' => (float) config('services.anthropic.timeout')],
+            requestOptions: ['timeout' => (float) config('services.anthropic.timeout'), ...$this->opcionesHttp],
         );
     }
 }

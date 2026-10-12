@@ -3,6 +3,7 @@
 use App\Http\Controllers\AsistenciaCapturaController;
 use App\Http\Controllers\AsistenciaDocumentoController;
 use App\Http\Controllers\AsistenciaZonaController;
+use App\Http\Controllers\AsistenteController;
 use App\Http\Controllers\ComisionadoFueraController;
 use App\Http\Controllers\ComisionadoVisitanteController;
 use App\Http\Controllers\DashboardController;
@@ -30,6 +31,11 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Asistente de preguntas (Claude API), respuesta en streaming NDJSON.
+    Route::post('/dashboard/asistente', AsistenteController::class)
+        ->middleware('throttle:ia')
+        ->name('dashboard.asistente');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
