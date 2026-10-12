@@ -93,6 +93,7 @@ function asistente(url) {
     return {
         pregunta: '',
         pensando: false,
+        anuncio: '',
         conversacion: [],
         formatear: markdownSeguro,
         historial() {
@@ -111,6 +112,7 @@ function asistente(url) {
             const turno = this.conversacion[this.conversacion.length - 1];
             this.pregunta = '';
             this.pensando = true;
+            this.anuncio = 'Pensando…';
 
             try {
                 const respuesta = await fetch(url, {
@@ -137,7 +139,11 @@ function asistente(url) {
             } finally {
                 turno.estado = '';
                 this.pensando = false;
-                this.$nextTick(() => this.$refs.entrada?.focus());
+                this.anuncio = turno.error ? 'No se obtuvo respuesta.' : 'Respuesta lista.';
+                // En celular, enfocar el campo abre el teclado y tapa la respuesta.
+                if (window.matchMedia('(pointer: fine)').matches) {
+                    this.$nextTick(() => this.$refs.entrada?.focus());
+                }
             }
         },
         async leer(lector, turno) {
@@ -152,7 +158,21 @@ function asistente(url) {
                 pendiente += decodificador.decode(value, { stream: true });
                 const lineas = pendiente.split('\n');
                 pendiente = lineas.pop() ?? '';
-                lineas.filter((linea) => linea.trim() !== '').forEach((linea) => this.aplicar(JSON.parse(linea), turno));
+                lineas.forEach((linea) => this.aplicarLinea(linea, turno));
+            }
+
+            // Último evento sin salto de línea final.
+            pendiente += decodificador.decode();
+            this.aplicarLinea(pendiente, turno);
+        },
+        aplicarLinea(linea, turno) {
+            if (linea.trim() === '') {
+                return;
+            }
+            try {
+                this.aplicar(JSON.parse(linea), turno);
+            } catch {
+                // Una línea dañada no debe tirar toda la respuesta.
             }
         },
         aplicar(evento, turno) {

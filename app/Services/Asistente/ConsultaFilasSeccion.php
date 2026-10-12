@@ -7,6 +7,7 @@ use App\Models\Seccion;
 use App\Models\SeccionColumna;
 use App\Models\SeccionFila;
 use App\Services\Secciones\NormalizadorValores;
+use App\Support\DatosSensibles;
 use App\Support\Texto;
 use Illuminate\Support\Collection;
 
@@ -14,7 +15,9 @@ use Illuminate\Support\Collection;
  * Consulta de solo lectura sobre la tabla de una sección, para el
  * asistente: filtros + una operación (contar, listar, sumar...). Se evalúa
  * en PHP para comparar sin importar mayúsculas/acentos y respetando el
- * tipo de cada columna. Solo devuelve el resultado, nunca la tabla entera.
+ * tipo de cada columna. Solo devuelve el resultado, nunca la tabla entera;
+ * las columnas con datos personales se excluyen y todo valor listado pasa
+ * por DatosSensibles::redactar().
  */
 final class ConsultaFilasSeccion
 {
@@ -36,13 +39,16 @@ final class ConsultaFilasSeccion
      */
     public function ejecutar(Seccion $seccion, array $filtros, string $operacion, ?string $columnaObjetivo, int $limite): array
     {
-        $columnas = $seccion->columnas()->get();
+        // Las columnas con datos personales sensibles no existen para el asistente.
+        $columnas = $seccion->columnas()->get()->reject(fn (SeccionColumna $columna) => DatosSensibles::esColumnaSensible($columna->nombre))->values();
         $condiciones = array_map(fn (array $filtro) => [...$filtro, 'columna' => $this->resolverColumna($columnas, $filtro['columna'])], $filtros);
         $objetivo = $columnaObjetivo !== null ? $this->resolverColumna($columnas, $columnaObjetivo) : null;
 
         if (in_array($operacion, ['sumar', 'promedio', 'minimo', 'maximo', 'contar_por_valor'], true) && $objetivo === null) {
             throw new \InvalidArgumentException("La operación {$operacion} requiere columna_objetivo.");
         }
+
+        $total = SeccionFila::query()->where('seccion_id', $seccion->id)->count();
 
         $coincidentes = SeccionFila::query()
             ->where('seccion_id', $seccion->id)
@@ -57,19 +63,25 @@ final class ConsultaFilasSeccion
         return [
             'seccion' => $seccion->nombre,
             'filas_que_cumplen' => $coincidentes->count(),
+            // Si la sección es más grande que el tope evaluado, el resultado es parcial.
+            'parcial' => $total > self::MAX_FILAS_EVALUADAS,
             'resultado' => $this->operar($coincidentes, $operacion, $objetivo, $columnas, min(max($limite, 1), self::MAX_LISTAR)),
         ];
     }
 
     /**
-     * @param  Collection<int, SeccionColumna>  $columnas
+     * @param  Collection<int, SeccionColumna>  $columnas  ya sin columnas sensibles
      */
     private function resolverColumna(Collection $columnas, string $referencia): SeccionColumna
     {
+        if (DatosSensibles::esColumnaSensible($referencia)) {
+            throw new \InvalidArgumentException("La columna \"{$referencia}\" contiene datos personales y no está disponible para el asistente.");
+        }
+
         $buscada = Texto::normalizar($referencia);
 
         return $columnas->first(fn (SeccionColumna $columna) => $columna->clave === $referencia || Texto::normalizar($columna->nombre) === $buscada)
-            ?? throw new \InvalidArgumentException("La columna \"{$referencia}\" no existe en esta sección.");
+            ?? throw new \InvalidArgumentException("La columna \"{$referencia}\" no existe en esta sección (o contiene datos personales).");
     }
 
     /**
@@ -116,8 +128,11 @@ final class ConsultaFilasSeccion
 
     private function comparable(mixed $valor, TipoColumna $tipo): string|int|float|bool|null
     {
+        $numero = $tipo === TipoColumna::Numero ? $this->normalizador->numero($valor) : null;
+
         return match ($tipo) {
-            TipoColumna::Numero => $this->normalizador->numero($valor) ?? Texto::normalizar($valor),
+            // Siempre float: 5 y 5.0 deben ser iguales.
+            TipoColumna::Numero => $numero !== null ? (float) $numero : Texto::normalizar($valor),
             TipoColumna::Fecha => $this->normalizador->fecha($valor) ?? Texto::normalizar($valor),
             TipoColumna::Booleano => $this->normalizador->booleano($valor),
             default => Texto::normalizar($valor),
@@ -135,14 +150,18 @@ final class ConsultaFilasSeccion
         return match ($operacion) {
             'contar' => $filas->count(),
             'listar' => $filas->take($limite)->map(fn (array $datos) => $columnas->mapWithKeys(
-                fn (SeccionColumna $columna) => [$columna->nombre => $this->normalizador->paraMostrar($datos[$columna->clave] ?? null, $columna->tipo)],
+                fn (SeccionColumna $columna) => [$columna->nombre => DatosSensibles::redactar($this->normalizador->paraMostrar($datos[$columna->clave] ?? null, $columna->tipo))],
             )->all())->values()->all(),
             'sumar' => $numeros()->sum(),
-            'promedio' => round((float) $numeros()->avg(), 4),
+            'promedio' => $numeros()->isEmpty() ? null : round((float) $numeros()->avg(), 4),
             'minimo' => $numeros()->min(),
             'maximo' => $numeros()->max(),
             'contar_por_valor' => $filas
-                ->countBy(fn (array $datos) => $this->normalizador->paraMostrar($datos[$objetivo->clave] ?? null, $objetivo->tipo) ?: '(vacío)')
+                ->countBy(function (array $datos) use ($objetivo): string {
+                    $texto = $this->normalizador->paraMostrar($datos[$objetivo->clave] ?? null, $objetivo->tipo);
+
+                    return $texto === '' ? '(vacío)' : DatosSensibles::redactar($texto);
+                })
                 ->sortDesc()
                 ->take(self::MAX_VALORES)
                 ->all(),

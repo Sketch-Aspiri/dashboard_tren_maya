@@ -10,6 +10,7 @@ use App\Models\MenuGrupo;
 use App\Models\Seccion;
 use App\Models\SeccionColumna;
 use App\Models\User;
+use App\Support\DatosSensibles;
 use Carbon\CarbonImmutable;
 
 /**
@@ -60,31 +61,37 @@ final class AsistenteService
         $usadas = [];
         $tokens = ['entrada' => 0, 'salida' => 0];
         $motivo = null;
+        $estado = 'error';
 
-        for ($vuelta = 0; $vuelta < self::MAX_VUELTAS; $vuelta++) {
-            $respuesta = $this->modelo->transmitir($this->parametros($mensajes), fn (string $texto) => $emitir('texto', $texto));
-            $tokens['entrada'] += $respuesta->usage->inputTokens;
-            $tokens['salida'] += $respuesta->usage->outputTokens;
-            $motivo = $respuesta->stopReason;
+        try {
+            for ($vuelta = 0; $vuelta < self::MAX_VUELTAS; $vuelta++) {
+                $respuesta = $this->modelo->transmitir($this->parametros($mensajes), fn (string $texto) => $emitir('texto', $texto));
+                $tokens['entrada'] += $respuesta->usage->inputTokens;
+                $tokens['salida'] += $respuesta->usage->outputTokens;
+                $motivo = $respuesta->stopReason;
 
-            if ($motivo !== 'tool_use') {
-                break;
+                if ($motivo !== 'tool_use') {
+                    break;
+                }
+
+                // Se reenvía el contenido completo del asistente (incluidos los
+                // bloques de razonamiento) sin modificarlo: el historial es de
+                // solo-anexar.
+                $mensajes[] = ['role' => 'assistant', 'content' => $respuesta->content];
+                $mensajes[] = ['role' => 'user', 'content' => $this->ejecutarHerramientas($respuesta, $emitir, $usadas)];
             }
 
-            // Se reenvía el contenido completo del asistente (incluidos los
-            // bloques de razonamiento) sin modificarlo: el historial es de
-            // solo-anexar.
-            $mensajes[] = ['role' => 'assistant', 'content' => $respuesta->content];
-            $mensajes[] = ['role' => 'user', 'content' => $this->ejecutarHerramientas($respuesta, $emitir, $usadas)];
+            $this->cerrar($motivo, $emitir);
+            $estado = 'completada';
+        } finally {
+            // Se registra aunque la API falle a mitad: para entonces ya pudo
+            // haberse enviado información en vueltas anteriores.
+            activity('asistente')
+                ->causedBy($usuario)
+                ->event('asistente_pregunta')
+                ->withProperties(['pregunta' => $pregunta, 'estado' => $estado, 'herramientas' => $usadas, 'motivo' => $motivo, 'tokens' => $tokens])
+                ->log('Pregunta al asistente del dashboard.');
         }
-
-        $this->cerrar($motivo, $emitir);
-
-        activity('asistente')
-            ->causedBy($usuario)
-            ->event('asistente_pregunta')
-            ->withProperties(['pregunta' => $pregunta, 'herramientas' => $usadas, 'motivo' => $motivo, 'tokens' => $tokens])
-            ->log('Pregunta al asistente del dashboard.');
     }
 
     /**
@@ -200,7 +207,9 @@ final class AsistenteService
 
     private function lineaCatalogo(string $grupo, Seccion $seccion): string
     {
-        $columnas = $seccion->columnas->take(self::MAX_COLUMNAS_CATALOGO)
+        $columnas = $seccion->columnas
+            ->reject(fn (SeccionColumna $columna) => DatosSensibles::esColumnaSensible($columna->nombre))
+            ->take(self::MAX_COLUMNAS_CATALOGO)
             ->map(fn (SeccionColumna $columna) => "{$columna->nombre} [{$columna->tipo->value}]")
             ->implode('; ');
 

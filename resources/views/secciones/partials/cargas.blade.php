@@ -47,9 +47,14 @@
                             @if ($puedeGestionar && $carga->isVistaPrevia())
                                 <a href="{{ route('secciones.importaciones.show', [$seccion, $carga]) }}" class="min-h-[36px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Revisar') }}</a>
                             @endif
-                            @if ($puedeGestionar && $cargaDeshacible?->is($carga))
-                                <x-confirmar-eliminar :action="route('secciones.importaciones.deshacer', [$seccion, $carga])" metodo="POST"
-                                                      :etiqueta="__('Deshacer')" :pregunta="__('¿Deshacer esta carga?')" />
+                            @if ($puedeGestionar && $cargaDeshacible && $cargaDeshacible['carga']->is($carga))
+                                @if ($cargaDeshacible['motivo'] === null)
+                                    <x-confirmar-eliminar :action="route('secciones.importaciones.deshacer', [$seccion, $carga])" metodo="POST" tono="neutro"
+                                                          :etiqueta="__('Deshacer')" :confirmar="__('Sí, deshacer')"
+                                                          :pregunta="__('¿Deshacer? La tabla vuelve a como estaba antes de esta carga.')" />
+                                @else
+                                    <span class="text-xs text-gray-600">{{ $cargaDeshacible['motivo'] }}</span>
+                                @endif
                             @endif
                         </td>
                     </tr>
@@ -57,4 +62,5 @@
             </tbody>
         </table>
     </div>
+    <p class="mt-2 text-xs text-gray-600">{{ __('Solo se puede deshacer la carga aplicada más reciente, y solo si sus registros no se han modificado después.') }}</p>
 @endif

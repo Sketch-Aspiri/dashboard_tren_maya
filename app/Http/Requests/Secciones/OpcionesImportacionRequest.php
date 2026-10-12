@@ -37,6 +37,18 @@ class OpcionesImportacionRequest extends FormRequest
             'tipos.*' => [Rule::enum(TipoColumna::class)],
             'modo' => ['required', Rule::enum(ModoImportacion::class)],
             'llave' => ['nullable', 'integer', 'min:0'],
+            // Reemplazar borra toda la tabla: al aplicar, exige la casilla
+            // de confirmación (también se exige en pantalla).
+            'confirma_reemplazo' => $this->routeIs('secciones.importaciones.aplicar') && $this->input('modo') === ModoImportacion::Reemplazar->value
+                ? ['required', 'accepted']
+                : ['nullable'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'confirma_reemplazo.required' => __('Confirma que entiendes que se eliminarán los registros actuales.'),
         ];
     }
 

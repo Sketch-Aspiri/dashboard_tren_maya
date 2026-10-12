@@ -18,7 +18,7 @@
 
             <div class="space-y-3">
                 @forelse ($seccion->columnas as $columna)
-                    <div x-data="{ editando: false, tipo: @js($columna->tipo->value) }"
+                    <div id="columna-{{ $columna->id }}" x-data="{ editando: false, tipo: @js($columna->tipo->value) }"
                          class="rounded-xl border border-brand-green/10 bg-white p-4 shadow-sm shadow-brand-green/5">
                         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between" x-show="! editando">
                             <div>
@@ -33,7 +33,7 @@
                                     <form method="POST" action="{{ route('secciones.columnas.mover', [$seccion, $columna]) }}">
                                         @csrf
                                         <input type="hidden" name="direccion" value="{{ $direccion }}">
-                                        <button type="submit" class="min-h-[36px] min-w-[36px] rounded-md text-gray-600 hover:bg-gray-100" aria-label="{{ __('Mover :dir', ['dir' => $direccion]) }}">{{ $flecha }}</button>
+                                        <button type="submit" @disabled(($direccion === 'arriba' && $loop->parent->first) || ($direccion === 'abajo' && $loop->parent->last)) class="min-h-[44px] min-w-[44px] rounded-md text-gray-600 hover:bg-gray-100 disabled:opacity-30" aria-label="{{ __('Mover :nombre hacia :dir', ['nombre' => $columna->nombre, 'dir' => $direccion]) }}"><span aria-hidden="true">{{ $flecha }}</span></button>
                                     </form>
                                 @endforeach
                                 <button type="button" @click="editando = true" class="min-h-[36px] rounded-md px-2 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Editar') }}</button>

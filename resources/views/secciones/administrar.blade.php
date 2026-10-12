@@ -8,7 +8,7 @@
             @include('secciones.partials.mensajes')
 
             <p class="text-sm text-gray-600">
-                {{ __('Crea, renombra, ordena u oculta las secciones de cada grupo del menú. Eliminar una sección la quita del menú, pero su información queda resguardada en la base de datos y en la bitácora.') }}
+                {{ __('Crea, renombra, ordena u oculta las secciones de cada grupo del menú. Quitar una sección la saca del menú; su información se conserva en la base de datos y, si necesitas recuperarla, pídelo al equipo de sistemas.') }}
             </p>
 
             {{-- Nueva sección --}}
@@ -42,7 +42,7 @@
 
             {{-- Grupos y sus secciones --}}
             @foreach ($grupos as $grupo)
-                <div class="overflow-hidden rounded-xl border border-brand-green/10 bg-white shadow-sm shadow-brand-green/5" x-data="{ renombrando: false }">
+                <div id="grupo-{{ $grupo->id }}" class="scroll-mt-24 overflow-hidden rounded-xl border border-brand-green/10 bg-white shadow-sm shadow-brand-green/5" x-data="{ renombrando: false }">
                     <div class="flex flex-col gap-2 border-b border-gray-100 bg-brand-mist/60 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
                         <div x-show="! renombrando">
                             <h3 class="font-heading text-base font-semibold text-brand-green">{{ $grupo->nombre }}</h3>
@@ -62,7 +62,7 @@
                                 <form method="POST" action="{{ route('secciones.grupos.mover', $grupo) }}">
                                     @csrf
                                     <input type="hidden" name="direccion" value="{{ $direccion }}">
-                                    <button type="submit" class="min-h-[36px] min-w-[36px] rounded-md text-gray-600 hover:bg-white" aria-label="{{ __('Mover grupo :dir', ['dir' => $direccion]) }}">{{ $flecha }}</button>
+                                    <button type="submit" @disabled(($direccion === 'arriba' && $loop->parent->first) || ($direccion === 'abajo' && $loop->parent->last)) class="min-h-[44px] min-w-[44px] rounded-md text-gray-600 hover:bg-white disabled:opacity-30" aria-label="{{ __('Mover el grupo :nombre hacia :dir', ['nombre' => $grupo->nombre, 'dir' => $direccion]) }}"><span aria-hidden="true">{{ $flecha }}</span></button>
                                 </form>
                             @endforeach
                             <button type="button" @click="renombrando = true" class="min-h-[36px] rounded-md px-2 text-sm font-medium text-brand-teal hover:bg-white">{{ __('Renombrar') }}</button>
@@ -74,7 +74,7 @@
 
                     <ul class="divide-y divide-gray-100">
                         @forelse ($grupo->secciones as $seccion)
-                            <li class="px-5 py-3" x-data="{ editando: false }">
+                            <li id="seccion-{{ $seccion->id }}" class="scroll-mt-24 px-5 py-3" x-data="{ editando: false }">
                                 <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between" x-show="! editando">
                                     <div class="min-w-0">
                                         <a href="{{ route('secciones.show', $seccion) }}" class="font-medium text-gray-900 hover:text-brand-teal">{{ $seccion->nombre }}</a>
@@ -88,7 +88,7 @@
                                             <form method="POST" action="{{ route('secciones.mover', $seccion) }}">
                                                 @csrf
                                                 <input type="hidden" name="direccion" value="{{ $direccion }}">
-                                                <button type="submit" class="min-h-[36px] min-w-[36px] rounded-md text-gray-600 hover:bg-gray-100" aria-label="{{ __('Mover :dir', ['dir' => $direccion]) }}">{{ $flecha }}</button>
+                                                <button type="submit" @disabled(($direccion === 'arriba' && $loop->parent->first) || ($direccion === 'abajo' && $loop->parent->last)) class="min-h-[44px] min-w-[44px] rounded-md text-gray-600 hover:bg-gray-100 disabled:opacity-30" aria-label="{{ __('Mover :nombre hacia :dir', ['nombre' => $seccion->nombre, 'dir' => $direccion]) }}"><span aria-hidden="true">{{ $flecha }}</span></button>
                                             </form>
                                         @endforeach
                                         <form method="POST" action="{{ route('secciones.update', $seccion) }}">
@@ -100,7 +100,7 @@
                                             </button>
                                         </form>
                                         <button type="button" @click="editando = true" class="min-h-[36px] rounded-md px-2 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Editar') }}</button>
-                                        <x-confirmar-eliminar :action="route('secciones.destroy', $seccion)" :pregunta="__('¿Quitar del menú?')" />
+                                        <x-confirmar-eliminar :action="route('secciones.destroy', $seccion)" :etiqueta="__('Quitar del menú')" :confirmar="__('Sí, quitar')" :pregunta="__('¿Quitar «:nombre» del menú?', ['nombre' => $seccion->nombre])" />
                                     </div>
                                 </div>
 

@@ -19,12 +19,21 @@
         <div class="mx-auto max-w-7xl space-y-5 px-4 sm:px-6 lg:px-8">
             @include('secciones.partials.mensajes')
 
+            @if ($cargaPendiente && $puedeGestionar)
+                <div class="flex flex-col gap-2 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between" role="status">
+                    <span>{{ __('Tienes una carga sin aplicar: :doc.', ['doc' => $cargaPendiente->archivo?->nombre_original ?? __('documento')]) }}</span>
+                    <a href="{{ route('secciones.importaciones.show', [$seccion, $cargaPendiente]) }}"
+                       class="inline-flex min-h-[44px] items-center font-semibold underline">{{ __('Revisarla') }}</a>
+                </div>
+            @endif
+
             @if ($seccion->descripcion)
                 <p class="text-sm text-gray-600">{{ $seccion->descripcion }}</p>
             @endif
 
             @if ($puedeGestionar)
                 <x-zona-arrastre id="zona-seccion" :url="route('secciones.archivos.store', $seccion)"
+                                 :compacta="$filas->total() > 0"
                                  :titulo="__('Arrastra aquí Excel, Word, PDF o imágenes')"
                                  :ayuda="__('Si el archivo trae una tabla, el sistema la detecta y te muestra una vista previa antes de crear o actualizar la tabla de esta sección. Todo archivo queda guardado en Documentos.')" />
             @endif

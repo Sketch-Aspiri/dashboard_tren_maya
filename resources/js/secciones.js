@@ -171,16 +171,45 @@ function vistaPreviaImportacion(inicial) {
         resumen: null,
         error: '',
         calculando: false,
+        aplicando: false,
+        confirmaReemplazo: false,
+        consulta: 0,
         temporizador: null,
         nombreColumna(clave) {
             const existente = this.columnas.find((columna) => columna.clave === clave);
             return existente ? existente.nombre : clave;
         },
+        puedeAplicar() {
+            const confirmado = this.modo !== 'reemplazar' || (this.resumen?.eliminadas ?? 0) === 0 || this.confirmaReemplazo;
+            return !this.aplicando && !this.calculando && !this.error && this.resumen !== null && confirmado;
+        },
+        textoBoton() {
+            if (this.aplicando) {
+                return 'Aplicando…';
+            }
+            if (this.modo === 'reemplazar' && (this.resumen?.eliminadas ?? 0) > 0) {
+                return `Reemplazar y eliminar ${this.resumen.eliminadas} registros`;
+            }
+            return 'Aplicar a la tabla';
+        },
+        anuncio() {
+            if (this.calculando || !this.resumen) {
+                return '';
+            }
+            const r = this.resumen;
+            return `Resultado: ${r.nuevas} nuevas, ${r.actualizadas} actualizadas, ${r.eliminadas} se eliminan.`;
+        },
         calcular() {
+            // Se invalida el resumen de inmediato: no se puede aplicar con un
+            // resumen que ya no corresponde a lo elegido.
+            this.calculando = true;
+            this.resumen = null;
+            this.confirmaReemplazo = false;
             clearTimeout(this.temporizador);
             this.temporizador = setTimeout(() => this.pedirCalculo(), 250);
         },
         async pedirCalculo() {
+            const consulta = ++this.consulta;
             this.calculando = true;
             this.error = '';
             try {
@@ -203,6 +232,9 @@ function vistaPreviaImportacion(inicial) {
                     }),
                 });
                 const cuerpo = await respuesta.json().catch(() => null);
+                if (consulta !== this.consulta) {
+                    return; // llegó una respuesta vieja: hay una consulta más reciente
+                }
                 if (respuesta.ok && cuerpo?.success) {
                     this.resumen = cuerpo.data;
                 } else {
@@ -210,9 +242,14 @@ function vistaPreviaImportacion(inicial) {
                     this.error = mensajesDeError(respuesta.status, cuerpo).join(' ');
                 }
             } catch {
-                this.error = 'No se pudo calcular la vista previa. Revisa tu conexión.';
+                if (consulta === this.consulta) {
+                    this.resumen = null;
+                    this.error = 'Revisa tu conexión e intenta de nuevo.';
+                }
             } finally {
-                this.calculando = false;
+                if (consulta === this.consulta) {
+                    this.calculando = false;
+                }
             }
         },
     };

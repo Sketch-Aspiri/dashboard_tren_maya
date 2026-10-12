@@ -179,7 +179,7 @@ class ImportacionDocumentosTest extends TestCase
 
         $this->subir($seccion, $this->excel([['Folio', 'Estatus'], ['B-1', 'Nuevo'], ['B-2', 'Nuevo']]));
         $importacion = SeccionImportacion::query()->sole();
-        $opciones = ['tabla' => 0, 'fila_encabezado' => 0, 'mapeo' => ['folio', 'estatus'], 'modo' => 'reemplazar'];
+        $opciones = ['tabla' => 0, 'fila_encabezado' => 0, 'mapeo' => ['folio', 'estatus'], 'modo' => 'reemplazar', 'confirma_reemplazo' => '1'];
 
         $this->post(route('secciones.importaciones.aplicar', [$seccion, $importacion]), $opciones);
         $this->assertSoftDeleted($original);
@@ -203,7 +203,8 @@ class ImportacionDocumentosTest extends TestCase
 
         $this->post(route('secciones.importaciones.deshacer', [$seccion, $importacion]));
 
-        $this->assertDatabaseCount('seccion_filas', 0);
+        $this->assertSame(0, SeccionFila::query()->count());
+        $this->assertSame(2, SeccionFila::onlyTrashed()->count());
         $this->assertDatabaseCount('seccion_columnas', 0);
     }
 
@@ -235,6 +236,62 @@ class ImportacionDocumentosTest extends TestCase
         $this->post(route('secciones.importaciones.aplicar', [$seccion, $importacion]), $this->opciones())->assertSessionHasErrors('importacion');
 
         $this->assertSame(2, SeccionFila::query()->count());
+    }
+
+    public function test_undo_is_blocked_when_rows_were_edited_after_the_load(): void
+    {
+        $this->comoAdministrador();
+        $seccion = Seccion::factory()->create();
+        $this->subir($seccion, $this->excel($this->plantilla()));
+        $importacion = SeccionImportacion::query()->sole();
+        $this->post(route('secciones.importaciones.aplicar', [$seccion, $importacion]), $this->opciones());
+
+        $this->travel(1)->minutes();
+        $fila = SeccionFila::query()->orderBy('id')->first();
+        $this->put(route('secciones.filas.update', [$seccion, $fila]), ['datos' => ['nombre' => 'Ana López Corregida']]);
+
+        $this->post(route('secciones.importaciones.deshacer', [$seccion, $importacion]))->assertSessionHasErrors('importacion');
+
+        $this->assertSame(2, SeccionFila::query()->count());
+        $this->assertSame('Ana López Corregida', $fila->fresh()->datos['nombre']);
+        $this->get(route('secciones.show', [$seccion, 'tab' => 'cargas']))->assertSee('se modificó después de aplicarla');
+    }
+
+    public function test_replace_requires_explicit_confirmation(): void
+    {
+        $this->comoAdministrador();
+        $seccion = $this->seccionConColumnas(['Folio' => TipoColumna::Texto]);
+        $this->filaEn($seccion, ['folio' => 'A-1']);
+        $this->subir($seccion, $this->excel([['Folio'], ['B-1']]));
+        $importacion = SeccionImportacion::query()->sole();
+        $opciones = ['tabla' => 0, 'fila_encabezado' => 0, 'mapeo' => ['folio'], 'modo' => 'reemplazar'];
+
+        $this->postJson(route('secciones.importaciones.calcular', [$seccion, $importacion]), $opciones)->assertOk();
+        $this->post(route('secciones.importaciones.aplicar', [$seccion, $importacion]), $opciones)->assertSessionHasErrors('confirma_reemplazo');
+
+        $this->assertSame(['A-1'], SeccionFila::query()->get()->pluck('datos.folio')->all());
+    }
+
+    public function test_applied_load_does_not_keep_a_copy_of_the_document(): void
+    {
+        $this->comoAdministrador();
+        $seccion = Seccion::factory()->create();
+        $this->subir($seccion, $this->excel($this->plantilla()));
+        $importacion = SeccionImportacion::query()->sole();
+
+        $this->post(route('secciones.importaciones.aplicar', [$seccion, $importacion]), $this->opciones());
+
+        $this->assertSame([], $importacion->fresh()->tablas);
+        $this->assertSame('Hoja1', $importacion->fresh()->resumen['tabla']);
+    }
+
+    public function test_pending_load_is_announced_on_the_section_page(): void
+    {
+        $this->comoAdministrador();
+        $seccion = Seccion::factory()->create();
+        $this->subir($seccion, $this->excel($this->plantilla(), 'pendiente.xlsx'));
+
+        $this->get(route('secciones.show', $seccion))->assertSee('Tienes una carga sin aplicar: pendiente.xlsx.');
     }
 
     public function test_discarding_a_preview_keeps_the_document(): void

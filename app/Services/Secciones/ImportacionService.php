@@ -12,6 +12,7 @@ use App\Models\SeccionFila;
 use App\Models\SeccionImportacion;
 use App\Models\User;
 use App\Support\Texto;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -160,12 +161,17 @@ final class ImportacionService
         $seccion = $importacion->seccion;
 
         return DB::transaction(function () use ($importacion, $opciones, $usuario, $seccion): SeccionImportacion {
+            // Bloqueo de fila: un doble clic en "Aplicar" no puede aplicar dos veces.
+            $importacion = SeccionImportacion::query()->lockForUpdate()->findOrFail($importacion->id);
+            $this->exigirVistaPrevia($importacion);
+            $ahora = now();
+
             $plan = $this->planificador->planear($seccion, $importacion->tablas, $opciones);
 
             $columnasCreadas = $this->crearColumnas($seccion, $plan['columnas_nuevas']);
-            $this->insertarFilas($seccion, $importacion, $plan['nuevas'], $usuario);
-            $this->actualizarFilas($plan['actualizadas'], $usuario);
-            $this->eliminarFilas($plan['eliminadas']);
+            $this->insertarFilas($seccion, $importacion, $plan['nuevas'], $usuario, $ahora);
+            $this->actualizarFilas($plan['actualizadas'], $usuario, $ahora);
+            $this->eliminarFilas($plan['eliminadas'], $ahora);
 
             $resumen = [
                 'nuevas' => count($plan['nuevas']),
@@ -185,7 +191,10 @@ final class ImportacionService
                     'eliminadas' => $plan['eliminadas'],
                     'columnas_creadas' => $columnasCreadas,
                 ],
-                'aplicada_at' => now(),
+                // El contenido completo del documento ya está en la tabla y
+                // sigue en el archivo original: no se conserva duplicado.
+                'tablas' => [],
+                'aplicada_at' => $ahora,
             ]);
 
             activity('seccion')
@@ -200,25 +209,30 @@ final class ImportacionService
     }
 
     /**
-     * Solo se puede deshacer la última importación aplicada de la sección:
-     * deshacer una anterior podría pisar cambios de las posteriores.
+     * Revierte una carga: las filas que creó se dan de baja (baja lógica,
+     * recuperable), las que actualizó vuelven a su valor anterior y las que
+     * eliminó se restauran. Ver motivoParaNoDeshacer() para cuándo se impide.
      */
     public function deshacer(SeccionImportacion $importacion, User $usuario): SeccionImportacion
     {
-        if (! $this->puedeDeshacerse($importacion)) {
-            throw ValidationException::withMessages(['importacion' => __('Solo se puede deshacer la carga aplicada más reciente de esta sección.')]);
-        }
-
         return DB::transaction(function () use ($importacion, $usuario): SeccionImportacion {
-            $cambios = $importacion->cambios ?? [];
+            $importacion = SeccionImportacion::query()->lockForUpdate()->findOrFail($importacion->id);
+            $motivo = $this->motivoParaNoDeshacer($importacion);
 
-            SeccionFila::withTrashed()->where('seccion_importacion_id', $importacion->id)->forceDelete();
+            if ($motivo !== null) {
+                throw ValidationException::withMessages(['importacion' => $motivo]);
+            }
+
+            $cambios = $importacion->cambios ?? [];
+            $ahora = now();
+
+            SeccionFila::query()->where('seccion_importacion_id', $importacion->id)->toBase()->update(['deleted_at' => $ahora]);
 
             foreach ($cambios['actualizadas'] ?? [] as $id => $antes) {
                 SeccionFila::withTrashed()->whereKey($id)->toBase()->update([
-                    'datos' => json_encode($antes, JSON_UNESCAPED_UNICODE),
+                    'datos' => self::json($antes),
                     'texto_busqueda' => SeccionFila::textoBusqueda($antes),
-                    'updated_at' => now(),
+                    'updated_at' => $ahora,
                 ]);
             }
 
@@ -249,21 +263,58 @@ final class ImportacionService
 
     public function puedeDeshacerse(SeccionImportacion $importacion): bool
     {
+        return $this->motivoParaNoDeshacer($importacion) === null;
+    }
+
+    /**
+     * La carga aplicada más reciente de la sección (la única candidata a
+     * deshacerse), o null.
+     */
+    public function ultimaAplicada(Seccion $seccion): ?SeccionImportacion
+    {
+        return $seccion->importaciones()
+            ->where('estado', EstadoImportacion::Aplicada->value)
+            ->orderByDesc('aplicada_at')
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    /**
+     * Por qué no se puede deshacer una carga, o null si sí se puede. Se
+     * impide si no es la carga aplicada más reciente o si, después de
+     * aplicarla, alguien editó, borró o adjuntó documentos a las filas que
+     * tocó: deshacer pisaría ese trabajo manual.
+     */
+    public function motivoParaNoDeshacer(SeccionImportacion $importacion): ?string
+    {
         if ($importacion->estado !== EstadoImportacion::Aplicada) {
-            return false;
+            return __('Esta carga no está aplicada.');
         }
 
-        return ! SeccionImportacion::query()
-            ->where('seccion_id', $importacion->seccion_id)
-            ->where('estado', EstadoImportacion::Aplicada->value)
-            ->where('aplicada_at', '>', $importacion->aplicada_at)
-            ->exists()
-            && ! SeccionImportacion::query()
-                ->where('seccion_id', $importacion->seccion_id)
-                ->where('estado', EstadoImportacion::Aplicada->value)
-                ->where('aplicada_at', $importacion->aplicada_at)
-                ->where('id', '>', $importacion->id)
-                ->exists();
+        if (! $this->ultimaAplicada($importacion->seccion)?->is($importacion)) {
+            return __('Solo se puede deshacer la carga aplicada más reciente de esta sección.');
+        }
+
+        $aplicada = $importacion->aplicada_at;
+        $actualizadas = array_map('intval', array_keys($importacion->cambios['actualizadas'] ?? []));
+
+        $tocadasDespues = SeccionFila::withTrashed()
+            ->where(fn ($q) => $q->where('seccion_importacion_id', $importacion->id)->orWhereIn('id', $actualizadas))
+            ->where(fn ($q) => $q->where('updated_at', '>', $aplicada)->orWhere('deleted_at', '>', $aplicada))
+            ->count();
+
+        if ($tocadasDespues > 0) {
+            return trans_choice(
+                '{1} No se puede deshacer: un registro de esta carga se modificó después de aplicarla.|[2,*] No se puede deshacer: :count registros de esta carga se modificaron después de aplicarla.',
+                $tocadasDespues,
+            );
+        }
+
+        $conAdjuntos = SeccionArchivo::query()
+            ->whereIn('seccion_fila_id', SeccionFila::withTrashed()->where('seccion_importacion_id', $importacion->id)->select('id'))
+            ->exists();
+
+        return $conAdjuntos ? __('No se puede deshacer: hay documentos adjuntos a registros de esta carga.') : null;
     }
 
     /**
@@ -290,14 +341,12 @@ final class ImportacionService
     /**
      * @param  list<array<string, mixed>>  $nuevas
      */
-    private function insertarFilas(Seccion $seccion, SeccionImportacion $importacion, array $nuevas, User $usuario): void
+    private function insertarFilas(Seccion $seccion, SeccionImportacion $importacion, array $nuevas, User $usuario, CarbonInterface $ahora): void
     {
-        $ahora = now();
-
         foreach (array_chunk($nuevas, self::CHUNK) as $bloque) {
             SeccionFila::query()->insert(array_map(fn (array $datos) => [
                 'seccion_id' => $seccion->id,
-                'datos' => json_encode($datos, JSON_UNESCAPED_UNICODE),
+                'datos' => self::json($datos),
                 'texto_busqueda' => SeccionFila::textoBusqueda($datos),
                 'seccion_importacion_id' => $importacion->id,
                 'creado_por' => $usuario->id,
@@ -311,25 +360,36 @@ final class ImportacionService
     /**
      * @param  array<int, array{antes: array<string, mixed>, despues: array<string, mixed>}>  $actualizadas
      */
-    private function actualizarFilas(array $actualizadas, User $usuario): void
+    private function actualizarFilas(array $actualizadas, User $usuario, CarbonInterface $ahora): void
     {
         foreach ($actualizadas as $id => $cambio) {
             SeccionFila::query()->whereKey($id)->toBase()->update([
-                'datos' => json_encode($cambio['despues'], JSON_UNESCAPED_UNICODE),
+                'datos' => self::json($cambio['despues']),
                 'texto_busqueda' => SeccionFila::textoBusqueda($cambio['despues']),
                 'actualizado_por' => $usuario->id,
-                'updated_at' => now(),
+                'updated_at' => $ahora,
             ]);
         }
     }
 
     /**
+     * JSON para escrituras directas: sustituye UTF-8 inválido (texto que
+     * viene de PDF/Word) en lugar de fallar en silencio.
+     *
+     * @param  array<string, mixed>  $datos
+     */
+    public static function json(array $datos): string
+    {
+        return json_encode($datos, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR);
+    }
+
+    /**
      * @param  list<int>  $ids
      */
-    private function eliminarFilas(array $ids): void
+    private function eliminarFilas(array $ids, CarbonInterface $ahora): void
     {
         foreach (array_chunk($ids, self::CHUNK) as $bloque) {
-            SeccionFila::query()->whereIn('id', $bloque)->toBase()->update(['deleted_at' => now()]);
+            SeccionFila::query()->whereIn('id', $bloque)->toBase()->update(['deleted_at' => $ahora]);
         }
     }
 
@@ -341,17 +401,27 @@ final class ImportacionService
      */
     private function quitarColumnasSinValores(SeccionImportacion $importacion, array $ids): void
     {
-        SeccionColumna::query()->whereIn('id', $ids)->where('seccion_id', $importacion->seccion_id)->get()
-            ->each(function (SeccionColumna $columna): void {
-                $conValor = SeccionFila::query()
-                    ->where('seccion_id', $columna->seccion_id)
-                    ->get(['datos'])
-                    ->contains(fn (SeccionFila $fila) => ($fila->datos[$columna->clave] ?? null) !== null);
+        $columnas = SeccionColumna::query()->whereIn('id', $ids)->where('seccion_id', $importacion->seccion_id)->get()->keyBy('clave');
 
-                if (! $conValor) {
-                    $columna->delete();
+        if ($columnas->isEmpty()) {
+            return;
+        }
+
+        // Una sola pasada por las filas, anotando qué claves tienen valor.
+        $conValor = [];
+
+        SeccionFila::query()->where('seccion_id', $importacion->seccion_id)->select(['id', 'datos'])
+            ->chunkById(self::CHUNK, function ($filas) use ($columnas, &$conValor): void {
+                foreach ($filas as $fila) {
+                    foreach ($columnas->keys() as $clave) {
+                        if (($fila->datos[$clave] ?? null) !== null) {
+                            $conValor[$clave] = true;
+                        }
+                    }
                 }
             });
+
+        $columnas->reject(fn (SeccionColumna $columna) => isset($conValor[$columna->clave]))->each->delete();
     }
 
     /**
@@ -391,7 +461,7 @@ final class ImportacionService
         $cambios = [];
 
         foreach ($despues as $clave => $valor) {
-            if (($antes[$clave] ?? null) != $valor) {
+            if (! PlanificadorImportacion::mismoValor($antes[$clave] ?? null, $valor)) {
                 $cambios[$clave] = ['antes' => $antes[$clave] ?? null, 'despues' => $valor];
             }
         }

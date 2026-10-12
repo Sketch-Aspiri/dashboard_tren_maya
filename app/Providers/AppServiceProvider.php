@@ -7,6 +7,7 @@ use App\Services\Asistente\ClienteClaude;
 use App\Services\Asistente\ModeloLenguaje;
 use App\Services\Documentos\ConvertidorPdf;
 use App\Services\Documentos\ConvertidorPdfLibreOffice;
+use App\Services\Secciones\ExtractorDocumentos;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -40,6 +41,10 @@ class AppServiceProvider extends ServiceProvider
         ));
 
         $this->app->singleton(ModeloLenguaje::class, ClienteClaude::class);
+
+        // Una instancia por petición: comparte la caché de tablas leídas
+        // entre ArchivoService e ImportacionService (no relee el archivo).
+        $this->app->scoped(ExtractorDocumentos::class);
     }
 
     /**

@@ -10,15 +10,22 @@ use App\Models\Estacion;
 use App\Models\RegistroDiario;
 use App\Models\Seccion;
 use App\Models\SeccionArchivo;
+use App\Support\DatosSensibles;
 use App\Support\Texto;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Herramientas (tools) que Claude puede pedir al responder una pregunta.
- * Todas son de SOLO LECTURA, con límites de filas, y nunca exponen datos
- * personales sensibles (CURP, RFC, NSS, domicilio, teléfonos, salud).
- * Cada ejecución registra su fuente para mostrarla junto a la respuesta.
+ * Todas son de SOLO LECTURA y con límites de filas. Para no enviar datos
+ * personales a la API: Personal solo devuelve nombre/no. de empleado/
+ * puesto/estación/estatus/plaza; las secciones excluyen columnas con
+ * nombre sensible (ConsultaFilasSeccion); y todo valor o fragmento de
+ * documento pasa por DatosSensibles::redactar() (CURP, RFC, NSS,
+ * teléfonos, correos, cuentas). Es una mitigación por patrones, no una
+ * garantía absoluta: el asistente es opcional y se apaga sin
+ * ANTHROPIC_API_KEY. Cada ejecución registra su fuente.
  */
 final class HerramientasAsistente
 {
@@ -113,6 +120,12 @@ final class HerramientasAsistente
             return ['contenido' => json_encode($resultado, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'error' => false];
         } catch (\InvalidArgumentException $e) {
             return ['contenido' => $e->getMessage(), 'error' => true];
+        } catch (\Throwable $e) {
+            // Entrada inesperada del modelo u otro fallo: se informa a Claude
+            // como error de la herramienta en lugar de cortar la respuesta.
+            Log::warning('Fallo de una herramienta del asistente.', ['herramienta' => $nombre, 'error' => $e->getMessage()]);
+
+            return ['contenido' => 'La consulta no se pudo ejecutar. Revisa los parámetros.', 'error' => true];
         }
     }
 
@@ -282,7 +295,9 @@ final class HerramientasAsistente
             }
         }
 
-        return $fragmentos !== [] ? $fragmentos : [mb_substr($texto, 0, self::FRAGMENTO * 2)];
+        $fragmentos = $fragmentos !== [] ? $fragmentos : [mb_substr($texto, 0, self::FRAGMENTO * 2)];
+
+        return array_map(fn (string $fragmento) => DatosSensibles::redactar($fragmento), $fragmentos);
     }
 
     private function estacionPorNombre(mixed $nombre): ?Estacion

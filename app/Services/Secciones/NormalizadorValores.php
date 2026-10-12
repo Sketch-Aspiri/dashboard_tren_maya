@@ -55,7 +55,9 @@ final class NormalizadorValores
             return $valor ? 'Sí' : 'No';
         }
 
-        $texto = trim(preg_replace('/[ \t]+/u', ' ', (string) $valor) ?? '');
+        // UTF-8 inválido (texto de PDF/Word) haría fallar preg_replace y json_encode.
+        $texto = mb_convert_encoding((string) $valor, 'UTF-8', 'UTF-8');
+        $texto = trim(preg_replace('/[ \t]+/u', ' ', $texto) ?? $texto);
 
         return mb_substr($texto, 0, self::MAX_TEXTO);
     }

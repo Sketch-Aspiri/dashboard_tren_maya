@@ -142,6 +142,30 @@ class SeccionTablaTest extends TestCase
             ->assertSeeInOrder(['Nueve', 'Diez', 'Cien']);
     }
 
+    public function test_sorting_puts_empty_values_last_and_ignores_case_and_accents(): void
+    {
+        $this->comoAdministrador();
+        $seccion = $this->seccionPersonal();
+        $this->filaEn($seccion, ['nombre' => 'zeta', 'edad' => 0]);
+        $this->filaEn($seccion, ['nombre' => 'Álvaro', 'edad' => null]);
+        $this->filaEn($seccion, ['nombre' => 'beto', 'edad' => 5]);
+        $this->filaEn($seccion, ['nombre' => null, 'edad' => 2]);
+
+        $this->get(route('secciones.show', [$seccion, 'sort' => 'nombre', 'direction' => 'asc']))
+            ->assertSeeInOrder(['Álvaro', 'beto', 'zeta']);
+        $this->get(route('secciones.show', [$seccion, 'sort' => 'edad', 'direction' => 'asc']))
+            ->assertSeeInOrder(['zeta', 'beto', 'Álvaro']);
+    }
+
+    public function test_exported_headers_are_never_formulas(): void
+    {
+        $seccion = $this->seccionConColumnas(['=HYPERLINK("http://x","clic")' => TipoColumna::Texto]);
+
+        $libro = app(ExportacionService::class)->libro($seccion, ['q' => null, 'sort' => null, 'direction' => 'asc']);
+
+        $this->assertSame(DataType::TYPE_STRING, $libro->getActiveSheet()->getCell('A1')->getDataType());
+    }
+
     public function test_invalid_listing_parameters_are_rejected(): void
     {
         $this->comoAdministrador();

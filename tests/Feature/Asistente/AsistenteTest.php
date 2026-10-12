@@ -9,6 +9,7 @@ use App\Models\Estacion;
 use App\Models\RegistroDiario;
 use App\Services\Asistente\HerramientasAsistente;
 use App\Services\Asistente\ModeloLenguaje;
+use App\Support\DatosSensibles;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Activitylog\Models\Activity;
 use Tests\Concerns\InteractsWithSecciones;
@@ -182,6 +183,67 @@ class AsistenteTest extends TestCase
         $this->assertSame(['Pagado' => 1, 'Pendiente' => 1], $consulta(['operacion' => 'contar_por_valor', 'columna_objetivo' => 'Estatus'])['resultado']);
         $this->assertSame(0, $consulta(['filtros' => [['columna' => 'Monto', 'operador' => 'mayor', 'valor' => '1000']]])['resultado']);
         $this->assertSame(1, $consulta(['filtros' => [['columna' => 'Monto', 'operador' => 'menor', 'valor' => '60']]])['resultado']);
+    }
+
+    public function test_sensitive_columns_never_reach_the_assistant(): void
+    {
+        $seccion = $this->seccionConColumnas(['Nombre' => TipoColumna::Texto, 'CURP' => TipoColumna::Texto, 'Teléfono celular' => TipoColumna::Texto]);
+        $this->filaEn($seccion, ['nombre' => 'Ana', 'curp' => 'LOPA800101MQRPZN09', 'telefono_celular' => '9831234567']);
+
+        $listado = $this->herramientas()->ejecutar('consultar_seccion', [
+            'seccion' => $seccion->slug, 'filtros' => [], 'operacion' => 'listar', 'columna_objetivo' => null, 'limite' => 10,
+        ]);
+        $porCurp = $this->herramientas()->ejecutar('consultar_seccion', [
+            'seccion' => $seccion->slug, 'filtros' => [['columna' => 'CURP', 'operador' => 'contiene', 'valor' => 'LOPA']], 'operacion' => 'contar',
+            'columna_objetivo' => null, 'limite' => null,
+        ]);
+
+        $this->assertStringNotContainsString('LOPA800101', $listado['contenido']);
+        $this->assertStringNotContainsString('9831234567', $listado['contenido']);
+        $this->assertStringContainsString('Ana', $listado['contenido']);
+        $this->assertTrue($porCurp['error']);
+    }
+
+    public function test_personal_data_patterns_are_redacted_from_any_value(): void
+    {
+        $texto = DatosSensibles::redactar('CURP LOPA800101MQRPZN09, RFC LOPA800101AB1, NSS 12345678901, tel. 983 123 4567, correo ana@example.com, folio A-12');
+
+        $this->assertStringNotContainsString('LOPA800101', $texto);
+        $this->assertStringNotContainsString('12345678901', $texto);
+        $this->assertStringNotContainsString('123 4567', $texto);
+        $this->assertStringNotContainsString('ana@example.com', $texto);
+        $this->assertStringContainsString('folio A-12', $texto);
+        $this->assertTrue(DatosSensibles::esColumnaSensible('Fecha de nacimiento'));
+        $this->assertFalse(DatosSensibles::esColumnaSensible('Estación'));
+    }
+
+    public function test_counting_by_value_keeps_zero_and_numbers_compare_as_numbers(): void
+    {
+        $seccion = $this->seccionConColumnas(['Fallas' => TipoColumna::Numero]);
+        $this->filaEn($seccion, ['fallas' => 0]);
+        $this->filaEn($seccion, ['fallas' => 5.0]);
+        $this->filaEn($seccion, ['fallas' => null]);
+
+        $porValor = json_decode($this->herramientas()->ejecutar('consultar_seccion', [
+            'seccion' => $seccion->slug, 'filtros' => [], 'operacion' => 'contar_por_valor', 'columna_objetivo' => 'Fallas', 'limite' => null,
+        ])['contenido'], true);
+        $cinco = json_decode($this->herramientas()->ejecutar('consultar_seccion', [
+            'seccion' => $seccion->slug, 'filtros' => [['columna' => 'Fallas', 'operador' => 'igual', 'valor' => '5']], 'operacion' => 'contar',
+            'columna_objetivo' => null, 'limite' => null,
+        ])['contenido'], true);
+
+        $this->assertSame(1, $porValor['resultado']['0']);
+        $this->assertSame(1, $porValor['resultado']['(vacío)']);
+        $this->assertSame(1, $cinco['resultado']);
+    }
+
+    public function test_question_is_logged_even_when_the_api_fails(): void
+    {
+        $this->comoAdministrador();
+
+        $this->postJson(route('dashboard.asistente'), ['pregunta' => '¿Cuántos?'])->streamedContent();
+
+        $this->assertSame('error', Activity::query()->where('event', 'asistente_pregunta')->sole()->properties['estado']);
     }
 
     public function test_section_tool_reports_unknown_columns_as_errors(): void

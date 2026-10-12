@@ -37,7 +37,7 @@ class MenuGrupoController extends Controller
 
         $this->menu->moverGrupo($grupo, $request->validated('direccion'));
 
-        return $this->volver();
+        return redirect()->to(route('secciones.administrar').'#grupo-'.$grupo->id);
     }
 
     public function destroy(MenuGrupo $grupo): RedirectResponse

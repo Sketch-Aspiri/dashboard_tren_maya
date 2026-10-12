@@ -53,7 +53,9 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
 
         // Importar el Excel de la base de datos arrastrándolo (vista previa
         // y luego aplicar). Antes de '/{empleado}' para no chocar con él.
-        Route::get('/importar', [PersonalImportacionController::class, 'show'])->name('importar.show');
+        Route::get('/importar', [PersonalImportacionController::class, 'show'])
+            ->middleware('throttle:secciones-write')
+            ->name('importar.show');
         Route::post('/importar', [PersonalImportacionController::class, 'store'])
             ->middleware('throttle:secciones-archivos')
             ->name('importar.store');

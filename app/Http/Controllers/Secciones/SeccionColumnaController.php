@@ -50,7 +50,7 @@ class SeccionColumnaController extends Controller
 
         $this->columnas->mover($columna, $request->validated('direccion'));
 
-        return $this->volver($seccion);
+        return redirect()->to(route('secciones.columnas.index', $seccion).'#columna-'.$columna->id);
     }
 
     public function destroy(Seccion $seccion, SeccionColumna $columna): RedirectResponse

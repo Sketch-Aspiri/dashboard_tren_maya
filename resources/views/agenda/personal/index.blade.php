@@ -15,6 +15,7 @@
 
             @can('importar', \App\Models\Empleado::class)
                 <x-zona-arrastre id="zona-personal" :url="route('agenda.personal.importar.store')"
+                                 :compacta="$empleados->total() > 0" accept=".xlsx"
                                  :titulo="__('Arrastra aquí el Excel de la Base de datos Zona Oriente')"
                                  :ayuda="__('Se actualizan por número de empleado las personas que ya existen y se agregan las nuevas. Verás cuántos cambios habrá antes de aplicar.')" />
             @endcan

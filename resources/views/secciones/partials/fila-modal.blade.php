@@ -14,7 +14,7 @@
      @keydown.escape.window="cerrar()">
     <div x-show="abierta" x-cloak class="fixed inset-0 z-50 flex items-end justify-center bg-gray-900/50 p-0 sm:items-center sm:p-4"
          role="dialog" aria-modal="true" aria-labelledby="titulo-fila-modal">
-        <div @click.outside="cerrar()" class="flex max-h-[92vh] w-full max-w-2xl flex-col rounded-t-2xl bg-white shadow-xl sm:rounded-2xl">
+        <div class="flex max-h-[92dvh] w-full max-w-2xl flex-col rounded-t-2xl bg-white shadow-xl sm:rounded-2xl">
             <div class="flex items-center justify-between border-b border-gray-100 px-5 py-4">
                 <h3 id="titulo-fila-modal" class="font-heading text-lg font-semibold text-brand-green"
                     x-text="id ? @js(__('Editar registro')) : @js(__('Nuevo registro'))"></h3>

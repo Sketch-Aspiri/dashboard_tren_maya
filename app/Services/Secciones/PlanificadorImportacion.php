@@ -190,13 +190,26 @@ final class PlanificadorImportacion
      */
     private function iguales(array $a, array $b): bool
     {
-        $limpiar = function (array $datos): array {
-            $datos = array_filter($datos, fn ($valor) => $valor !== null);
-            ksort($datos);
+        foreach (array_unique([...array_keys($a), ...array_keys($b)]) as $clave) {
+            if (! self::mismoValor($a[$clave] ?? null, $b[$clave] ?? null)) {
+                return false;
+            }
+        }
 
-            return array_map(fn ($valor) => is_float($valor) && floor($valor) === $valor ? (int) $valor : $valor, $datos);
-        };
+        return true;
+    }
 
-        return $limpiar($a) === $limpiar($b);
+    /**
+     * Igualdad de dos valores guardados: estricta, salvo que 5 y 5.0 son el
+     * mismo número. La usan el plan y la muestra de la vista previa, para
+     * que "N actualizadas" y los ejemplos mostrados siempre coincidan.
+     */
+    public static function mismoValor(mixed $a, mixed $b): bool
+    {
+        if ((is_int($a) || is_float($a)) && (is_int($b) || is_float($b))) {
+            return (float) $a === (float) $b;
+        }
+
+        return $a === $b;
     }
 }

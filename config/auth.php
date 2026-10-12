@@ -34,7 +34,8 @@ return [
     */
 
     'two_factor' => [
-        'enabled' => (bool) env('TWO_FACTOR_ENABLED', true),
+        // Valor vacío o inválido = encendido (falla del lado seguro).
+        'enabled' => filter_var(env('TWO_FACTOR_ENABLED', true), FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? true,
     ],
 
     /*

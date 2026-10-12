@@ -9,6 +9,7 @@ use App\Http\Requests\Secciones\MoverElementoRequest;
 use App\Http\Requests\Secciones\StoreSeccionRequest;
 use App\Http\Requests\Secciones\UpdateSeccionRequest;
 use App\Models\Seccion;
+use App\Models\SeccionImportacion;
 use App\Services\Asistente\ModeloLenguaje;
 use App\Services\Secciones\ConsultaSeccionService;
 use App\Services\Secciones\ImportacionService;
@@ -45,11 +46,25 @@ class SeccionController extends Controller
             'filas' => $this->consulta->filas($seccion, $filtros),
             'documentos' => $this->consulta->documentos($seccion, $filtros['q']),
             'cargas' => $cargas,
-            'cargaDeshacible' => $cargas->first(fn ($carga) => $this->importaciones->puedeDeshacerse($carga)),
+            'cargaDeshacible' => $this->cargaDeshacible($seccion),
+            'cargaPendiente' => $cargas->first(fn ($carga) => $carga->isVistaPrevia()),
             'normalizador' => $normalizador,
             'tiposColumna' => TipoColumna::cases(),
             'iaDisponible' => $claude->disponible(),
         ]);
+    }
+
+    /**
+     * Solo la última carga aplicada es candidata; si no se puede deshacer
+     * se muestra el motivo en lugar del botón.
+     *
+     * @return array{carga: SeccionImportacion, motivo: ?string}|null
+     */
+    private function cargaDeshacible(Seccion $seccion): ?array
+    {
+        $ultima = $this->importaciones->ultimaAplicada($seccion);
+
+        return $ultima === null ? null : ['carga' => $ultima, 'motivo' => $this->importaciones->motivoParaNoDeshacer($ultima)];
     }
 
     public function store(StoreSeccionRequest $request): RedirectResponse
@@ -77,7 +92,8 @@ class SeccionController extends Controller
 
         $this->menu->moverSeccion($seccion, $request->validated('direccion'));
 
-        return redirect()->route('secciones.administrar');
+        // Vuelve a la misma sección de la página, no al inicio.
+        return redirect()->to(route('secciones.administrar').'#seccion-'.$seccion->id);
     }
 
     public function destroy(Seccion $seccion): RedirectResponse

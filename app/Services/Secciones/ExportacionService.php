@@ -50,7 +50,9 @@ final class ExportacionService
         $columnas = $seccion->columnas;
 
         foreach ($columnas->values() as $indice => $columna) {
-            $hoja->setCellValue([$indice + 1, 1], $columna->nombre);
+            // Texto explícito: un encabezado "=..." venido de un documento no
+            // debe convertirse en fórmula al abrir el archivo.
+            $hoja->setCellValueExplicit([$indice + 1, 1], $columna->nombre, DataType::TYPE_STRING);
         }
 
         $hoja->getStyle([1, 1, max(1, $columnas->count()), 1])->getFont()->setBold(true);

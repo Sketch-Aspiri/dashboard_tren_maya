@@ -15,17 +15,23 @@
             <div class="rounded-xl border border-brand-green/10 bg-white p-5 shadow-sm shadow-brand-green/5">
                 <p class="text-sm text-gray-700">
                     {{ __('Documento:') }} <span class="font-semibold">{{ $importacion->archivo?->nombre_original ?? __('(sin archivo)') }}</span>
-                    @if ($importacion->origen === \App\Models\SeccionImportacion::ORIGEN_IA)
-                        <span class="ms-1 rounded-full bg-brand-mist px-2 py-0.5 text-xs text-brand-green">{{ __('Extraído con IA — revisa los valores') }}</span>
-                    @endif
                 </p>
-                <p class="mt-1 text-xs text-gray-500">{{ __('Nada se guarda en la tabla hasta que presiones "Aplicar". Revisa abajo qué columnas se importan y cómo.') }}</p>
+                @if ($importacion->origen === \App\Models\SeccionImportacion::ORIGEN_IA)
+                    <div class="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" role="note">
+                        {{ __('Estos datos los leyó una inteligencia artificial y pueden tener errores. Compáralos con el documento original antes de aplicar.') }}
+                        @if ($importacion->archivo)
+                            <a href="{{ route('secciones.archivos.show', [$seccion, $importacion->archivo, 'ver' => $importacion->archivo->admiteVistaPrevia() ? 1 : null]) }}"
+                               target="_blank" rel="noopener" class="font-semibold underline">{{ __('Ver documento original') }}</a>
+                        @endif
+                    </div>
+                @endif
+                <p class="mt-2 text-xs text-gray-600">{{ __('Nada se guarda en la tabla hasta que presiones "Aplicar". Revisa abajo qué columnas se importan y cómo.') }}</p>
 
                 {{-- 1. Tabla del documento y fila de encabezados (recarga la página) --}}
                 <form method="GET" action="{{ route('secciones.importaciones.show', [$seccion, $importacion]) }}" class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div>
                         <label for="tabla" class="block text-sm font-medium text-gray-700">{{ __('Tabla / hoja del documento') }}</label>
-                        <select id="tabla" name="tabla" onchange="this.form.submit()" class="mt-1 block min-h-[44px] w-full rounded-md border-gray-300 text-sm shadow-sm">
+                        <select id="tabla" name="tabla" class="mt-1 block min-h-[44px] w-full rounded-md border-gray-300 text-sm shadow-sm">
                             @foreach ($importacion->tablas as $indice => $tabla)
                                 <option value="{{ $indice }}" @selected($propuesta['tabla'] === $indice)>
                                     {{ $tabla['nombre'] }} ({{ count($tabla['filas']) }} {{ __('renglones') }})
@@ -35,7 +41,7 @@
                     </div>
                     <div>
                         <label for="fila_encabezado" class="block text-sm font-medium text-gray-700">{{ __('Renglón con los títulos de columna') }}</label>
-                        <select id="fila_encabezado" name="fila_encabezado" onchange="this.form.submit()" class="mt-1 block min-h-[44px] w-full rounded-md border-gray-300 text-sm shadow-sm">
+                        <select id="fila_encabezado" name="fila_encabezado" class="mt-1 block min-h-[44px] w-full rounded-md border-gray-300 text-sm shadow-sm">
                             @foreach ($propuesta['primeras_filas'] as $indice => $fila)
                                 <option value="{{ $indice }}" @selected($propuesta['fila_encabezado'] === $indice)>
                                     {{ $indice + 1 }}: {{ \Illuminate\Support\Str::limit(implode(' | ', array_filter(array_map('strval', $fila), 'strlen')), 70) }}
@@ -43,8 +49,11 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="flex items-end">
-                        <p class="text-sm text-gray-600">{{ __(':n filas de datos detectadas.', ['n' => number_format($propuesta['total_filas'])]) }}</p>
+                    <div class="flex flex-col justify-end gap-2">
+                        <button type="submit" class="inline-flex min-h-[44px] items-center justify-center rounded-md border border-brand-green/20 bg-white px-4 text-sm font-medium text-brand-green hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">
+                            {{ __('Actualizar vista') }}
+                        </button>
+                        <p class="text-xs text-gray-600">{{ __(':n filas de datos detectadas. Si cambias la hoja o el renglón de títulos, el mapeo se vuelve a calcular.', ['n' => number_format($propuesta['total_filas'])]) }}</p>
                     </div>
                 </form>
             </div>
@@ -63,6 +72,7 @@
                       columnas: @js($columnasExistentes),
                   })"
                   x-init="calcular()"
+                  @submit="if (! puedeAplicar()) { $event.preventDefault() } else { aplicando = true }"
                   class="space-y-5">
                 @csrf
                 <input type="hidden" name="tabla" :value="tabla">
@@ -90,7 +100,7 @@
                                         <td class="px-4 py-2">
                                             <label class="sr-only" for="mapeo-{{ $indice }}">{{ __('Destino de :col', ['col' => $encabezado]) }}</label>
                                             <select id="mapeo-{{ $indice }}" name="mapeo[{{ $indice }}]" x-model="mapeo[{{ $indice }}]" @change="calcular()"
-                                                    class="min-h-[40px] w-full min-w-[12rem] rounded-md border-gray-300 text-sm shadow-sm">
+                                                    class="min-h-[44px] w-full min-w-[12rem] rounded-md border-gray-300 text-sm shadow-sm">
                                                 <option value="nueva">{{ __('+ Columna nueva') }}</option>
                                                 <option value="ignorar">{{ __('No importar') }}</option>
                                                 @foreach ($seccion->columnas as $columna)
@@ -100,9 +110,10 @@
                                         </td>
                                         <td class="px-4 py-2">
                                             <label class="sr-only" for="tipo-{{ $indice }}">{{ __('Tipo de :col', ['col' => $encabezado]) }}</label>
+                                            <span x-show="mapeo[{{ $indice }}] !== 'nueva'" class="text-xs text-gray-500">{{ __('— (usa el de la columna)') }}</span>
                                             <select id="tipo-{{ $indice }}" name="tipos[{{ $indice }}]" x-model="tipos[{{ $indice }}]" @change="calcular()"
-                                                    :disabled="mapeo[{{ $indice }}] !== 'nueva'"
-                                                    class="min-h-[40px] rounded-md border-gray-300 text-sm shadow-sm disabled:bg-gray-50 disabled:text-gray-400">
+                                                    x-show="mapeo[{{ $indice }}] === 'nueva'" :disabled="mapeo[{{ $indice }}] !== 'nueva'"
+                                                    class="min-h-[44px] rounded-md border-gray-300 text-sm shadow-sm">
                                                 @foreach ($tiposColumna as $tipo)
                                                     @continue($tipo === \App\Enums\TipoColumna::Lista)
                                                     <option value="{{ $tipo->value }}">{{ $tipo->label() }}</option>
@@ -123,8 +134,9 @@
                     <h3 class="font-heading text-base font-semibold text-brand-green">{{ __('¿Cómo se aplica?') }}</h3>
                     <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
                         @foreach ($modos as $modo)
-                            <label class="flex cursor-pointer gap-3 rounded-lg border p-3"
-                                   :class="modo === @js($modo->value) ? 'border-brand-teal bg-brand-mist' : 'border-gray-200 hover:bg-gray-50'">
+                            @php $esReemplazo = $modo === \App\Enums\ModoImportacion::Reemplazar; @endphp
+                            <label class="flex cursor-pointer gap-3 rounded-lg border p-3 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-teal"
+                                   :class="modo === @js($modo->value) ? @js($esReemplazo ? 'border-red-400 bg-red-50' : 'border-brand-teal bg-brand-mist') : 'border-gray-200 hover:bg-gray-50'">
                                 <input type="radio" name="modo" value="{{ $modo->value }}" x-model="modo" @change="calcular()" class="mt-1 text-brand-teal focus:ring-brand-teal">
                                 <span>
                                     <span class="block text-sm font-semibold text-gray-900">{{ $modo->label() }}</span>
@@ -132,7 +144,7 @@
                                         @switch($modo)
                                             @case(\App\Enums\ModoImportacion::Agregar) {{ __('Todas las filas del documento se suman a las que ya están.') }} @break
                                             @case(\App\Enums\ModoImportacion::Actualizar) {{ __('Las filas que coinciden por la columna llave se actualizan; las demás se agregan. No se borra nada.') }} @break
-                                            @case(\App\Enums\ModoImportacion::Reemplazar) {{ __('Se quitan todas las filas actuales y quedan solo las del documento.') }} @break
+                                            @case(\App\Enums\ModoImportacion::Reemplazar) <span class="font-medium text-red-800">{{ __('Borra los registros actuales y deja solo los del documento. Se puede deshacer desde la pestaña Cargas.') }}</span> @break
                                         @endswitch
                                     </span>
                                 </span>
@@ -152,10 +164,11 @@
                 </div>
 
                 {{-- 3. Resultado calculado por el servidor --}}
-                <div class="rounded-xl border border-brand-green/10 bg-white p-5 shadow-sm shadow-brand-green/5" aria-live="polite">
+                <div class="rounded-xl border border-brand-green/10 bg-white p-5 shadow-sm shadow-brand-green/5">
                     <h3 class="font-heading text-base font-semibold text-brand-green">{{ __('Lo que va a pasar') }}</h3>
-                    <p x-show="calculando" class="mt-2 text-sm text-gray-500">{{ __('Calculando…') }}</p>
-                    <p x-show="error" x-cloak class="mt-2 rounded-md bg-red-50 p-3 text-sm text-red-800" x-text="error"></p>
+                    <p class="sr-only" role="status" x-text="anuncio()"></p>
+                    <p x-show="calculando" x-cloak class="mt-2 text-sm text-gray-600">{{ __('Calculando…') }}</p>
+                    <p x-show="error" x-cloak role="alert" class="mt-2 rounded-md bg-red-50 p-3 text-sm text-red-800" x-text="'{{ __('No se pudo calcular:') }} ' + error"></p>
 
                     <template x-if="resumen && ! calculando && ! error">
                         <div class="mt-3 space-y-3">
@@ -186,21 +199,31 @@
                     </template>
                 </div>
 
-                <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
-                    <button type="submit" form="descartar-carga" class="min-h-[44px] rounded-md px-4 text-sm font-medium text-red-700 hover:bg-red-50">
-                        {{ __('Descartar carga') }}
+                <div x-show="modo === 'reemplazar' && resumen && resumen.eliminadas > 0" x-cloak
+                     class="space-y-3 rounded-md border border-red-300 bg-red-50 p-4 text-sm text-red-900" role="alert">
+                    <p class="font-semibold" x-text="`{{ __('Se van a eliminar') }} ${resumen?.eliminadas ?? 0} {{ __('registros que hoy están en la tabla.') }}`"></p>
+                    <label class="flex min-h-[44px] items-center gap-2">
+                        <input type="checkbox" name="confirma_reemplazo" value="1" x-model="confirmaReemplazo" class="rounded border-red-400 text-red-700 focus:ring-red-500">
+                        <span>{{ __('Entiendo que se eliminarán esos registros y quiero reemplazar la tabla.') }}</span>
+                    </label>
+                </div>
+
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                    <p class="text-xs text-gray-600 sm:me-auto">{{ __('Si eliges "Decidir después", la carga queda guardada en la pestaña Cargas.') }}</p>
+                    <a href="{{ route('secciones.show', $seccion) }}" class="inline-flex min-h-[44px] items-center justify-center rounded-md px-4 text-sm font-medium text-gray-700 hover:bg-gray-100">{{ __('Decidir después') }}</a>
+                    <button type="submit" :disabled="! puedeAplicar()"
+                            :class="modo === 'reemplazar' ? 'bg-red-700 hover:bg-red-800 focus:ring-red-500' : 'bg-brand-green hover:bg-brand-green-dark focus:ring-brand-teal'"
+                            class="inline-flex min-h-[44px] items-center justify-center rounded-md px-5 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                        <span x-text="textoBoton()">{{ __('Aplicar a la tabla') }}</span>
                     </button>
-                    <div class="flex flex-col gap-2 sm:flex-row">
-                        <a href="{{ route('secciones.show', $seccion) }}" class="inline-flex min-h-[44px] items-center justify-center rounded-md px-4 text-sm font-medium text-gray-700 hover:bg-gray-100">{{ __('Decidir después') }}</a>
-                        <x-primary-button x-bind:disabled="calculando || !! error || ! resumen">{{ __('Aplicar a la tabla') }}</x-primary-button>
-                    </div>
                 </div>
             </form>
 
-            <form id="descartar-carga" method="POST" action="{{ route('secciones.importaciones.destroy', [$seccion, $importacion]) }}" class="hidden">
-                @csrf
-                @method('DELETE')
-            </form>
+            <div class="flex justify-start border-t border-gray-200 pt-4">
+                <x-confirmar-eliminar :action="route('secciones.importaciones.destroy', [$seccion, $importacion])"
+                                      :etiqueta="__('Descartar carga')" :confirmar="__('Sí, descartar')"
+                                      :pregunta="__('¿Descartar? El documento seguirá guardado en Documentos.')" />
+            </div>
         </div>
     </div>
 </x-app-layout>

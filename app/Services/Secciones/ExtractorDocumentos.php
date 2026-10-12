@@ -32,14 +32,45 @@ final class ExtractorDocumentos
 
     private const MIN_FILAS_TABLA = 2;
 
+    /** Formatos Office que son contenedores ZIP (se revisan antes de abrirlos). */
+    private const EXTENSIONES_ZIP = ['xlsx', 'docx', 'pptx'];
+
+    /** Defensa contra "bombas zip": entradas y tamaño descomprimido máximos. */
+    private const MAX_ENTRADAS_ZIP = 3000;
+
+    private const MAX_DESCOMPRIMIDO_BYTES = 200 * 1024 * 1024;
+
+    /**
+     * Resultado de tablas() por archivo dentro de la misma petición: al
+     * subir un Excel se necesita para el texto indexado y para la
+     * importación, y no debe leerse dos veces (el servicio es "scoped").
+     *
+     * @var array<string, list<array{nombre: string, filas: list<list<mixed>>}>>
+     */
+    private array $cacheTablas = [];
+
     /**
      * @return list<array{nombre: string, filas: list<list<string|int|float|bool|null>>}>
      */
     public function tablas(string $ruta, string $extension): array
     {
+        $llave = $ruta.'|'.(@filesize($ruta) ?: 0).'|'.(@filemtime($ruta) ?: 0);
+
+        return $this->cacheTablas[$llave] ??= $this->leerTablas($ruta, $extension);
+    }
+
+    /**
+     * @return list<array{nombre: string, filas: list<list<mixed>>}>
+     */
+    private function leerTablas(string $ruta, string $extension): array
+    {
+        if (! $this->contenedorSeguro($ruta, $extension)) {
+            return [];
+        }
+
         try {
             $tablas = match (true) {
-                in_array($extension, self::EXTENSIONES_HOJA, true) => $this->tablasDeHojaDeCalculo($ruta),
+                in_array($extension, self::EXTENSIONES_HOJA, true) => $this->tablasDeHojaDeCalculo($ruta, $extension),
                 $extension === 'csv' => $this->tablasDeCsv($ruta),
                 in_array($extension, ['docx', 'doc'], true) => $this->tablasDeWord($ruta, $extension),
                 default => [],
@@ -58,6 +89,10 @@ final class ExtractorDocumentos
 
     public function texto(string $ruta, string $extension): ?string
     {
+        if (! $this->contenedorSeguro($ruta, $extension)) {
+            return null;
+        }
+
         try {
             $texto = match (true) {
                 $extension === 'pdf' => (new PdfParser)->parseFile($ruta)->getText(),
@@ -84,9 +119,44 @@ final class ExtractorDocumentos
     /**
      * @return list<array{nombre: string, filas: list<list<mixed>>}>
      */
-    private function tablasDeHojaDeCalculo(string $ruta): array
+    /**
+     * Revisa un contenedor ZIP (xlsx/docx/pptx) sin descomprimirlo: si trae
+     * demasiadas entradas o descomprimido pesaría demasiado, no se lee (el
+     * archivo de todos modos queda guardado como documento).
+     */
+    private function contenedorSeguro(string $ruta, string $extension): bool
     {
-        $reader = SpreadsheetIOFactory::createReaderForFile($ruta);
+        if (! in_array($extension, self::EXTENSIONES_ZIP, true)) {
+            return true;
+        }
+
+        $zip = new ZipArchive;
+
+        if ($zip->open($ruta, ZipArchive::RDONLY) !== true) {
+            return false;
+        }
+
+        $total = 0;
+        $seguro = $zip->numFiles <= self::MAX_ENTRADAS_ZIP;
+
+        for ($i = 0; $seguro && $i < $zip->numFiles; $i++) {
+            $total += (int) ($zip->statIndex($i)['size'] ?? 0);
+            $seguro = $total <= self::MAX_DESCOMPRIMIDO_BYTES;
+        }
+
+        $zip->close();
+
+        if (! $seguro) {
+            Log::warning('Documento omitido de la lectura: contenedor ZIP demasiado grande descomprimido.', ['extension' => $extension]);
+        }
+
+        return $seguro;
+    }
+
+    private function tablasDeHojaDeCalculo(string $ruta, string $extension): array
+    {
+        // Lector explícito por extensión (no adivinar el formato por el contenido).
+        $reader = SpreadsheetIOFactory::createReader($extension === 'xls' ? 'Xls' : 'Xlsx');
         $reader->setReadEmptyCells(false);
         $libro = $reader->load($ruta);
 

@@ -31,15 +31,9 @@
                     <a href="{{ route('secciones.archivos.show', [$seccion, $documento]) }}"
                        class="min-h-[36px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Descargar') }}</a>
                     @if ($puedeGestionar && $iaDisponible && in_array($documento->extension, $extensionesIa, true))
-                        <form method="POST" action="{{ route('secciones.archivos.ia', [$seccion, $documento]) }}" x-data="{ enviando: false }" @submit="enviando = true">
-                            @csrf
-                            <button type="submit" :disabled="enviando"
-                                    class="min-h-[36px] rounded-md px-2 text-sm font-medium text-brand-green hover:bg-brand-mist disabled:opacity-50"
-                                    title="{{ __('Envía el documento a la IA (Claude) para extraer sus tablas. Revisarás el resultado antes de guardarlo.') }}">
-                                <span x-show="! enviando">✨ {{ __('Extraer con IA') }}</span>
-                                <span x-show="enviando" x-cloak>{{ __('Leyendo con IA…') }}</span>
-                            </button>
-                        </form>
+                        <x-confirmar-eliminar :action="route('secciones.archivos.ia', [$seccion, $documento])" metodo="POST" tono="neutro"
+                                              :etiqueta="__('Extraer con IA')" :confirmar="__('Sí, enviar')"
+                                              :pregunta="__('El documento completo se enviará a Claude (Anthropic) para leer sus tablas. Revisarás el resultado antes de guardarlo. ¿Continuar?')" />
                     @endif
                     @if ($puedeGestionar)
                         <x-confirmar-eliminar :action="route('secciones.archivos.destroy', [$seccion, $documento])" />

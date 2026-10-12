@@ -38,7 +38,12 @@
         @endforeach
     </div>
 
-    <div class="mt-4 space-y-4" aria-live="polite">
+    <p class="sr-only" role="status" x-text="anuncio"></p>
+    <p class="mt-2 text-xs text-gray-600">
+        {{ __('La IA puede equivocarse: verifica las cifras importantes en la sección indicada. Para responder, se envían a Anthropic (Claude) solo los resultados de las consultas, sin datos personales sensibles.') }}
+    </p>
+
+    <div class="mt-4 space-y-4" aria-live="off" :aria-busy="pensando.toString()">
         <template x-for="(turno, indice) in conversacion" :key="indice">
             <div class="space-y-2">
                 <p class="text-sm font-semibold text-gray-900" x-text="turno.pregunta"></p>

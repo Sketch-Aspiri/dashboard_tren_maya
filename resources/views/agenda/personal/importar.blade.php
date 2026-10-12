@@ -19,15 +19,20 @@
                     <x-kpi-card :label="__('Total después')" :value="number_format($resumen['total_despues'])" />
                 </div>
 
-                <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                    <form method="POST" action="{{ route('agenda.personal.importar.destroy') }}">
+                <p class="mt-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" role="note">
+                    {{ __('Esta importación no se puede deshacer automáticamente: revisa las cifras antes de aplicar. Las correcciones posteriores se hacen en cada ficha de Personal.') }}
+                </p>
+
+                <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <x-confirmar-eliminar :action="route('agenda.personal.importar.destroy')"
+                                          :etiqueta="__('Descartar importación')" :confirmar="__('Sí, descartar')"
+                                          :pregunta="__('¿Descartar? No se cambiará nada.')" />
+                    <form method="POST" action="{{ route('agenda.personal.importar.aplicar') }}" x-data="{ enviando: false }" @submit="if (enviando) { $event.preventDefault() } enviando = true">
                         @csrf
-                        @method('DELETE')
-                        <button type="submit" class="min-h-[44px] w-full rounded-md px-4 text-sm font-medium text-gray-700 hover:bg-gray-100 sm:w-auto">{{ __('Cancelar') }}</button>
-                    </form>
-                    <form method="POST" action="{{ route('agenda.personal.importar.aplicar') }}">
-                        @csrf
-                        <x-primary-button class="w-full sm:w-auto">{{ __('Aplicar importación') }}</x-primary-button>
+                        <x-primary-button class="w-full sm:w-auto" x-bind:disabled="enviando">
+                            <span x-show="! enviando">{{ __('Aplicar importación') }}</span>
+                            <span x-show="enviando" x-cloak>{{ __('Aplicando…') }}</span>
+                        </x-primary-button>
                     </form>
                 </div>
             </div>
