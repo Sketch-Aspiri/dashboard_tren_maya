@@ -9,7 +9,8 @@ use App\Services\Secciones\ExportacionService;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Descarga la tabla de una sección en Excel (respeta la búsqueda activa).
+ * Descarga una tabla de la sección en Excel (?tabla=; respeta la búsqueda
+ * activa). Una tabla por exportación.
  */
 class SeccionExportacionController extends Controller
 {
@@ -17,13 +18,15 @@ class SeccionExportacionController extends Controller
     {
         $this->authorize('view', $seccion);
 
+        $tabla = $request->tabla();
+
         activity('seccion')
             ->causedBy($request->user())
             ->performedOn($seccion)
             ->event('exportacion_excel')
-            ->withProperties(['q' => $request->validated('q')])
-            ->log('Exportación de la tabla de la sección a Excel.');
+            ->withProperties(['q' => $request->validated('q'), 'tabla_id' => $tabla->id])
+            ->log('Exportación de una tabla de la sección a Excel.');
 
-        return $exportacion->descargar($seccion, $request->filtros());
+        return $exportacion->descargar($tabla, $request->filtros());
     }
 }

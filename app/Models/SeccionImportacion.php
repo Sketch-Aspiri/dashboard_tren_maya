@@ -16,7 +16,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * "tablas": list<array{nombre: string, filas: list<list<string|null>>}>
  * — tal como se detectaron en el documento, sin encabezados elegidos.
  * "cambios": registro para deshacer — ['actualizadas' => [id => datos
- * anteriores], 'eliminadas' => [ids], 'columnas_creadas' => [ids]].
+ * anteriores], 'eliminadas' => [ids], 'columnas_creadas' => [ids],
+ * 'tablas_creadas' => [ids]] (las cargas de libro anteriores a las tablas
+ * por sección guardan 'secciones_creadas').
  */
 class SeccionImportacion extends Model
 {
@@ -73,6 +75,17 @@ class SeccionImportacion extends Model
     public function seccion(): BelongsTo
     {
         return $this->belongsTo(Seccion::class);
+    }
+
+    /**
+     * Tabla que recibe la carga de un solo documento (null: la tabla
+     * activa de la sección). Las cargas de libro eligen o crean una por hoja.
+     *
+     * @return BelongsTo<SeccionTabla, $this>
+     */
+    public function tablaDestino(): BelongsTo
+    {
+        return $this->belongsTo(SeccionTabla::class, 'seccion_tabla_id');
     }
 
     /**

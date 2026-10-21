@@ -1,5 +1,5 @@
 @php
-    $columnasExistentes = $seccion->columnas->map(fn ($columna) => ['clave' => $columna->clave, 'nombre' => $columna->nombre])->values();
+    $columnasExistentes = $destino->columnas->map(fn ($columna) => ['clave' => $columna->clave, 'nombre' => $columna->nombre])->values();
 @endphp
 
 <x-app-layout>
@@ -15,6 +15,9 @@
             <div class="rounded-xl border border-brand-green/10 bg-white p-5 shadow-sm shadow-brand-green/5">
                 <p class="text-sm text-gray-700">
                     {{ __('Documento:') }} <span class="font-semibold">{{ $importacion->archivo?->nombre_original ?? __('(sin archivo)') }}</span>
+                </p>
+                <p class="mt-1 text-sm text-gray-700">
+                    {{ __('Se carga en la tabla:') }} <span class="font-semibold">{{ $destino->nombre }}</span>
                 </p>
                 @if ($importacion->origen === \App\Models\SeccionImportacion::ORIGEN_IA)
                     <div class="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" role="note">
@@ -110,7 +113,7 @@
                                                     class="min-h-[44px] w-full min-w-[12rem] rounded-md border-gray-300 text-sm shadow-sm">
                                                 <option value="nueva">{{ __('+ Columna nueva') }}</option>
                                                 <option value="ignorar">{{ __('No importar') }}</option>
-                                                @foreach ($seccion->columnas as $columna)
+                                                @foreach ($destino->columnas as $columna)
                                                     <option value="{{ $columna->clave }}">{{ $columna->nombre }}</option>
                                                 @endforeach
                                             </select>

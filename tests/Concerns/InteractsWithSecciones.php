@@ -6,6 +6,7 @@ use App\Enums\TipoColumna;
 use App\Models\Seccion;
 use App\Models\SeccionColumna;
 use App\Models\SeccionFila;
+use App\Models\SeccionTabla;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;
@@ -64,6 +65,39 @@ trait InteractsWithSecciones
     {
         $fila = new SeccionFila(['datos' => $datos]);
         $fila->forceFill(['seccion_id' => $seccion->id])->save();
+
+        return $fila;
+    }
+
+    /**
+     * Tabla adicional de una sección, con sus columnas.
+     *
+     * @param  array<string, TipoColumna>  $columnas  nombre => tipo
+     */
+    protected function tablaConColumnas(Seccion $seccion, string $nombre, array $columnas = []): SeccionTabla
+    {
+        $tabla = $seccion->tablas()->create(['nombre' => $nombre, 'orden' => (int) $seccion->tablas()->max('orden') + 1]);
+
+        foreach (array_keys($columnas) as $orden => $columna) {
+            $tabla->columnas()->create([
+                'seccion_id' => $seccion->id,
+                'nombre' => $columna,
+                'clave' => Str::slug($columna, '_'),
+                'tipo' => $columnas[$columna],
+                'orden' => $orden + 1,
+            ]);
+        }
+
+        return $tabla;
+    }
+
+    /**
+     * @param  array<string, mixed>  $datos
+     */
+    protected function filaEnTabla(SeccionTabla $tabla, array $datos): SeccionFila
+    {
+        $fila = new SeccionFila(['datos' => $datos]);
+        $fila->forceFill(['seccion_id' => $tabla->seccion_id, 'seccion_tabla_id' => $tabla->id])->save();
 
         return $fila;
     }

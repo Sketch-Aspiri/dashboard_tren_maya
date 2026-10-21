@@ -12,6 +12,8 @@ use Illuminate\Validation\Rule;
  */
 class ListarSeccionRequest extends FormRequest
 {
+    use ConTablaDeSeccion;
+
     public function authorize(): bool
     {
         return $this->user()?->can('view', $this->route('seccion')) ?? false;
@@ -22,7 +24,7 @@ class ListarSeccionRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        return $this->reglaTabla() + [
             'q' => ['nullable', 'string', 'max:200'],
             'sort' => ['nullable', 'string', 'max:64'],
             'direction' => ['nullable', Rule::in(['asc', 'desc'])],

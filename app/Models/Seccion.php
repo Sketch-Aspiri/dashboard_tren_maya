@@ -8,13 +8,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
- * Sección dinámica del menú: una tabla configurable por el usuario
- * (columnas + filas) más un repositorio de documentos. Sustituye a los
- * módulos fijos por concepto del PPT "Dashboard Tren Maya".
+ * Sección dinámica del menú: una o varias tablas configurables por el
+ * usuario (cada una con sus columnas y filas) más un repositorio de
+ * documentos. Sustituye a los módulos fijos por concepto del PPT
+ * "Dashboard Tren Maya".
  */
 class Seccion extends Model
 {
@@ -60,6 +62,43 @@ class Seccion extends Model
     }
 
     /**
+     * @return HasMany<SeccionTabla, $this>
+     */
+    public function tablas(): HasMany
+    {
+        return $this->hasMany(SeccionTabla::class)->orderBy('orden')->orderBy('id');
+    }
+
+    /**
+     * La tabla pedida (si es de esta sección) o la primera; si la sección
+     * aún no tiene ninguna, crea la tabla por defecto.
+     */
+    public function tablaActiva(?int $id = null): SeccionTabla
+    {
+        if ($id !== null && ($tabla = $this->tablas()->whereKey($id)->first()) !== null) {
+            return $tabla;
+        }
+
+        if (($primera = $this->tablas()->first()) !== null) {
+            return $primera;
+        }
+
+        // Dos peticiones simultáneas a una sección sin tablas no deben crear dos "Principal".
+        return DB::transaction(function (): SeccionTabla {
+            self::query()->whereKey($this->getKey())->lockForUpdate()->first();
+
+            return $this->tablas()->first() ?? $this->tablas()->create([
+                'nombre' => SeccionTabla::NOMBRE_POR_DEFECTO,
+                'orden' => 1,
+            ]);
+        });
+    }
+
+    /**
+     * Columnas de TODAS las tablas de la sección. Solo para agregados
+     * (conteos, catálogo); para pintar o editar una tabla usar
+     * SeccionTabla::columnas().
+     *
      * @return HasMany<SeccionColumna, $this>
      */
     public function columnas(): HasMany
@@ -68,6 +107,8 @@ class Seccion extends Model
     }
 
     /**
+     * Filas de TODAS las tablas de la sección (seccion_id denormalizado).
+     *
      * @return HasMany<SeccionFila, $this>
      */
     public function filas(): HasMany

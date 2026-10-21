@@ -9,7 +9,7 @@ use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
- * Columna de la tabla de una sección. "clave" es inmutable una vez creada:
+ * Columna de una tabla de una sección. "clave" es inmutable una vez creada:
  * es la llave del valor dentro de seccion_filas.datos.
  */
 class SeccionColumna extends Model
@@ -23,6 +23,7 @@ class SeccionColumna extends Model
      */
     protected $fillable = [
         'seccion_id',
+        'seccion_tabla_id',
         'nombre',
         'clave',
         'tipo',
@@ -42,12 +43,25 @@ class SeccionColumna extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::creating(fn (SeccionColumna $columna) => SeccionTabla::completarOrigen($columna));
+    }
+
     /**
      * @return BelongsTo<Seccion, $this>
      */
     public function seccion(): BelongsTo
     {
         return $this->belongsTo(Seccion::class);
+    }
+
+    /**
+     * @return BelongsTo<SeccionTabla, $this>
+     */
+    public function tabla(): BelongsTo
+    {
+        return $this->belongsTo(SeccionTabla::class, 'seccion_tabla_id')->withTrashed();
     }
 
     /**
@@ -64,7 +78,7 @@ class SeccionColumna extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['seccion_id', 'nombre', 'clave', 'tipo', 'opciones', 'orden'])
+            ->logOnly(['seccion_id', 'seccion_tabla_id', 'nombre', 'clave', 'tipo', 'opciones', 'orden'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->useLogName('seccion');

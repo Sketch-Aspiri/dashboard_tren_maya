@@ -4,15 +4,15 @@ namespace App\Services\Secciones;
 
 use App\Enums\ModoImportacion;
 use App\Enums\TipoColumna;
-use App\Models\Seccion;
 use App\Models\SeccionColumna;
 use App\Models\SeccionFila;
+use App\Models\SeccionTabla;
 use App\Support\Texto;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Calcula, SIN escribir nada, qué le haría una importación a la tabla de
+ * Calcula, SIN escribir nada, qué le haría una importación a una tabla de
  * una sección: columnas nuevas, filas nuevas, actualizadas, sin cambios y
  * eliminadas. Lo usan tanto la vista previa como la aplicación real (la
  * misma lógica en ambos casos: lo que se ve es lo que se aplica).
@@ -36,7 +36,7 @@ final class PlanificadorImportacion
      *     no_vienen: int,
      * }
      */
-    public function planear(Seccion $seccion, array $tablas, OpcionesImportacion $opciones): array
+    public function planear(SeccionTabla $tabla, array $tablas, OpcionesImportacion $opciones): array
     {
         $filasCrudas = $tablas[$opciones->tabla]['filas'] ?? throw ValidationException::withMessages(['tabla' => __('La tabla elegida no existe en el documento.')]);
 
@@ -51,8 +51,8 @@ final class PlanificadorImportacion
             throw ValidationException::withMessages(['tabla' => __('El documento trae más de :max filas.', ['max' => config('secciones.max_filas_importacion')])]);
         }
 
-        $existentes = $seccion->columnas()->get()->keyBy('clave');
-        [$destinos, $columnasNuevas] = $this->resolverDestinos($seccion, $encabezados, $opciones, $existentes);
+        $existentes = $tabla->columnas()->get()->keyBy('clave');
+        [$destinos, $columnasNuevas] = $this->resolverDestinos($tabla, $encabezados, $opciones, $existentes);
 
         $tipoDe = fn (int $indice): TipoColumna => isset($columnasNuevas[$indice])
             ? $columnasNuevas[$indice]['tipo']
@@ -72,7 +72,7 @@ final class PlanificadorImportacion
 
         $llave = $opciones->modo === ModoImportacion::Actualizar ? $destinos[$opciones->llave] : null;
 
-        return ['columnas_nuevas' => $columnasNuevas] + $this->comparar($seccion, $entrantes, $opciones->modo, $llave);
+        return ['columnas_nuevas' => $columnasNuevas] + $this->comparar($tabla, $entrantes, $opciones->modo, $llave);
     }
 
     /**
@@ -80,7 +80,7 @@ final class PlanificadorImportacion
      * @param  Collection<string, SeccionColumna>  $existentes
      * @return array{0: array<int, string>, 1: array<int, array{nombre: string, clave: string, tipo: TipoColumna}>}
      */
-    private function resolverDestinos(Seccion $seccion, array $encabezados, OpcionesImportacion $opciones, Collection $existentes): array
+    private function resolverDestinos(SeccionTabla $tabla, array $encabezados, OpcionesImportacion $opciones, Collection $existentes): array
     {
         $destinos = [];
         $columnasNuevas = [];
@@ -94,7 +94,7 @@ final class PlanificadorImportacion
             }
 
             if ($destino === OpcionesImportacion::DESTINO_NUEVA) {
-                $clave = $this->columnas->claveUnica($seccion, $nombre, $reservadas);
+                $clave = $this->columnas->claveUnica($tabla, $nombre, $reservadas);
                 $reservadas[] = $clave;
                 $columnasNuevas[$indice] = ['nombre' => $nombre, 'clave' => $clave, 'tipo' => $opciones->tipos[$indice] ?? TipoColumna::Texto];
                 $destinos[$indice] = $clave;
@@ -128,7 +128,7 @@ final class PlanificadorImportacion
      * @param  list<array<string, mixed>>  $entrantes
      * @return array{nuevas: list<array<string, mixed>>, actualizadas: array<int, array{antes: array<string, mixed>, despues: array<string, mixed>}>, sin_cambios: int, eliminadas: list<int>, no_vienen: int}
      */
-    private function comparar(Seccion $seccion, array $entrantes, ModoImportacion $modo, ?string $llave): array
+    private function comparar(SeccionTabla $tabla, array $entrantes, ModoImportacion $modo, ?string $llave): array
     {
         $resultado = ['nuevas' => [], 'actualizadas' => [], 'sin_cambios' => 0, 'eliminadas' => [], 'no_vienen' => 0];
 
@@ -137,13 +137,13 @@ final class PlanificadorImportacion
         }
 
         if ($modo === ModoImportacion::Reemplazar) {
-            return ['nuevas' => $entrantes, 'eliminadas' => SeccionFila::query()->where('seccion_id', $seccion->id)->pluck('id')->all()] + $resultado;
+            return ['nuevas' => $entrantes, 'eliminadas' => SeccionFila::query()->where('seccion_tabla_id', $tabla->id)->pluck('id')->all()] + $resultado;
         }
 
         $actuales = [];
         $porLlave = [];
 
-        SeccionFila::query()->where('seccion_id', $seccion->id)->select(['id', 'datos'])->orderBy('id')
+        SeccionFila::query()->where('seccion_tabla_id', $tabla->id)->select(['id', 'datos'])->orderBy('id')
             ->each(function (SeccionFila $fila) use (&$actuales, &$porLlave, $llave): void {
                 $actuales[$fila->id] = $fila->datos ?? [];
                 $valorLlave = Texto::normalizar($fila->datos[$llave] ?? null);

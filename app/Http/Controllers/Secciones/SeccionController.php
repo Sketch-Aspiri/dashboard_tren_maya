@@ -34,16 +34,26 @@ class SeccionController extends Controller
     {
         $this->authorize('view', $seccion);
 
-        $seccion->load(['grupo', 'columnas']);
+        $seccion->load('grupo');
         $filtros = $request->filtros();
+        $tabla = $request->tabla();
 
-        $cargas = $seccion->importaciones()->with('usuario:id,name', 'archivo:id,nombre_original')->latest()->limit(30)->get();
+        // Sin las columnas JSON enormes (tablas, cambios) y ordenado solo por id: con
+        // ellas MySQL falla con "Out of sort memory" (1038) en secciones con cargas grandes.
+        $cargas = $seccion->importaciones()
+            ->select(['id', 'seccion_id', 'seccion_tabla_id', 'seccion_archivo_id', 'usuario_id', 'origen', 'estado', 'modo', 'resumen', 'aplicada_at', 'deshecha_at', 'created_at', 'updated_at'])
+            ->with('usuario:id,name', 'archivo:id,nombre_original')
+            ->orderByDesc('id')
+            ->limit(30)
+            ->get();
 
         return view('secciones.show', [
             'seccion' => $seccion,
+            'tablaActiva' => $tabla,
+            'tablas' => $seccion->tablas()->withCount('filas')->get(),
             'filtros' => $filtros,
             'tab' => $request->validated('tab') ?? 'tabla',
-            'filas' => $this->consulta->filas($seccion, $filtros),
+            'filas' => $this->consulta->filas($tabla, $filtros),
             'documentos' => $this->consulta->documentos($seccion, $filtros['q']),
             'cargas' => $cargas,
             'cargaDeshacible' => $this->cargaDeshacible($seccion),

@@ -7,6 +7,7 @@ use App\Models\Seccion;
 use App\Models\SeccionArchivo;
 use App\Models\SeccionColumna;
 use App\Models\SeccionFila;
+use App\Models\SeccionTabla;
 use App\Support\Texto;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,9 +25,9 @@ final class ConsultaSeccionService
      * @param  array{q: ?string, sort: ?string, direction: string, per_page: int}  $filtros
      * @return LengthAwarePaginator<int, SeccionFila>
      */
-    public function filas(Seccion $seccion, array $filtros): LengthAwarePaginator
+    public function filas(SeccionTabla $tabla, array $filtros): LengthAwarePaginator
     {
-        return $this->consultaFilas($seccion, $filtros)
+        return $this->consultaFilas($tabla, $filtros)
             ->with('archivos:id,seccion_fila_id,nombre_original,extension')
             ->paginate($filtros['per_page'])
             ->withQueryString();
@@ -39,16 +40,16 @@ final class ConsultaSeccionService
      * @param  array{q: ?string, sort: ?string, direction: string}  $filtros
      * @return Builder<SeccionFila>
      */
-    public function consultaFilas(Seccion $seccion, array $filtros): Builder
+    public function consultaFilas(SeccionTabla $tabla, array $filtros): Builder
     {
-        $consulta = $seccion->filas()->getQuery();
+        $consulta = $tabla->filas()->getQuery();
         $termino = Texto::normalizar($filtros['q'] ?? null);
 
         if ($termino !== '') {
             $consulta->where('texto_busqueda', 'like', '%'.$this->escaparLike($termino).'%');
         }
 
-        $columna = $filtros['sort'] ? $seccion->columnas->firstWhere('clave', $filtros['sort']) : null;
+        $columna = $filtros['sort'] ? $tabla->columnas->firstWhere('clave', $filtros['sort']) : null;
         $direccion = ($filtros['direction'] ?? 'asc') === 'desc' ? 'desc' : 'asc';
 
         if ($columna instanceof SeccionColumna) {
@@ -85,7 +86,7 @@ final class ConsultaSeccionService
 
     /**
      * JSON_EXTRACT con la ruta como parámetro enlazado; la clave ya se
-     * validó contra las columnas de la sección y la dirección es asc/desc.
+     * validó contra las columnas de la tabla y la dirección es asc/desc.
      *
      * @param  Builder<SeccionFila>  $consulta
      */

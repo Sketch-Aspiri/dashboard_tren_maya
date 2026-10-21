@@ -5,7 +5,7 @@
             {{ __('Arrastra arriba un Excel, CSV, Word o PDF que contenga una tabla: el sistema crea las columnas automáticamente. O define las columnas a mano.') }}
         </p>
         @if ($puedeEditarSeccion)
-            <a href="{{ route('secciones.columnas.index', $seccion) }}"
+            <a href="{{ route('secciones.columnas.index', array_merge([$seccion], $parametroTabla)) }}"
                class="mt-4 inline-flex min-h-[44px] items-center rounded-md border border-brand-green/20 px-4 text-sm font-medium text-brand-green hover:bg-brand-mist">
                 {{ __('Definir columnas a mano') }}
             </a>
@@ -79,6 +79,9 @@
 
         <div class="flex flex-col gap-3 border-t border-gray-200 bg-brand-mist/50 px-4 py-3 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between">
             <form method="GET" action="{{ route('secciones.show', $seccion) }}" class="flex items-center gap-2">
+                @isset($parametroTabla['tabla'])
+                    <input type="hidden" name="tabla" value="{{ $parametroTabla['tabla'] }}">
+                @endisset
                 <input type="hidden" name="q" value="{{ $filtros['q'] }}">
                 <input type="hidden" name="sort" value="{{ $filtros['sort'] }}">
                 <input type="hidden" name="direction" value="{{ $filtros['direction'] }}">

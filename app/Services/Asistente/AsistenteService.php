@@ -9,6 +9,7 @@ use App\Models\Estacion;
 use App\Models\MenuGrupo;
 use App\Models\Seccion;
 use App\Models\SeccionColumna;
+use App\Models\SeccionTabla;
 use App\Models\User;
 use App\Support\DatosSensibles;
 use Carbon\CarbonImmutable;
@@ -26,6 +27,9 @@ final class AsistenteService
     private const MAX_TOKENS = 16000;
 
     private const MAX_COLUMNAS_CATALOGO = 30;
+
+    /** Con varias tablas por sección el catálogo recorta más para no crecer sin tope. */
+    private const MAX_COLUMNAS_CATALOGO_MULTI = 12;
 
     private const ETIQUETAS = [
         'consultar_seccion' => 'Consultando la tabla de la sección…',
@@ -186,7 +190,9 @@ final class AsistenteService
      */
     private function contextoVariable(): string
     {
-        $grupos = MenuGrupo::query()->orderBy('orden')->with(['secciones' => fn ($q) => $q->with('columnas')->withCount(['filas', 'archivos'])])->get();
+        $grupos = MenuGrupo::query()->orderBy('orden')->with(['secciones' => fn ($q) => $q
+            ->with(['tablas' => fn ($t) => $t->with('columnas')->withCount('filas')])
+            ->withCount(['filas', 'archivos'])])->get();
         $lineas = [];
 
         foreach ($grupos as $grupo) {
@@ -207,12 +213,24 @@ final class AsistenteService
 
     private function lineaCatalogo(string $grupo, Seccion $seccion): string
     {
-        $columnas = $seccion->columnas
+        $encabezado = "- {$seccion->slug} | {$grupo} > {$seccion->nombre} | {$seccion->filas_count} reg., {$seccion->archivos_count} doc. | ";
+
+        // Una sola tabla: sin ceremonia, como siempre.
+        if ($seccion->tablas->count() <= 1) {
+            return $encabezado.($this->columnasCatalogo($seccion->tablas->first(), self::MAX_COLUMNAS_CATALOGO) ?: 'sin columnas');
+        }
+
+        $tablas = $seccion->tablas->map(fn (SeccionTabla $tabla) => "[{$tabla->nombre}] ({$tabla->filas_count} reg.): ".($this->columnasCatalogo($tabla, self::MAX_COLUMNAS_CATALOGO_MULTI) ?: 'sin columnas'));
+
+        return $encabezado.'varias tablas, indica "tabla" al consultar → '.$tablas->implode(' / ');
+    }
+
+    private function columnasCatalogo(?SeccionTabla $tabla, int $maximo): string
+    {
+        return $tabla === null ? '' : $tabla->columnas
             ->reject(fn (SeccionColumna $columna) => DatosSensibles::esColumnaSensible($columna->nombre))
-            ->take(self::MAX_COLUMNAS_CATALOGO)
+            ->take($maximo)
             ->map(fn (SeccionColumna $columna) => "{$columna->nombre} [{$columna->tipo->value}]")
             ->implode('; ');
-
-        return "- {$seccion->slug} | {$grupo} > {$seccion->nombre} | {$seccion->filas_count} reg., {$seccion->archivos_count} doc. | ".($columnas ?: 'sin columnas');
     }
 }

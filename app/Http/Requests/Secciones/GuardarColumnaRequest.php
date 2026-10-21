@@ -13,6 +13,8 @@ use Illuminate\Validation\Rule;
  */
 class GuardarColumnaRequest extends FormRequest
 {
+    use ConTablaDeSeccion;
+
     private const MAX_OPCIONES = 100;
 
     public function authorize(): bool
@@ -34,7 +36,7 @@ class GuardarColumnaRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        return $this->reglaTabla() + [
             'nombre' => ['required', 'string', 'max:120'],
             'tipo' => ['required', Rule::enum(TipoColumna::class)],
             'opciones' => ['array', 'max:'.self::MAX_OPCIONES, Rule::requiredIf(fn () => $this->input('tipo') === TipoColumna::Lista->value)],

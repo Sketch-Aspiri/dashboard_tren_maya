@@ -161,7 +161,7 @@ class SeccionTablaTest extends TestCase
     {
         $seccion = $this->seccionConColumnas(['=HYPERLINK("http://x","clic")' => TipoColumna::Texto]);
 
-        $libro = app(ExportacionService::class)->libro($seccion, ['q' => null, 'sort' => null, 'direction' => 'asc']);
+        $libro = app(ExportacionService::class)->libro($seccion->tablaActiva(), ['q' => null, 'sort' => null, 'direction' => 'asc']);
 
         $this->assertSame(DataType::TYPE_STRING, $libro->getActiveSheet()->getCell('A1')->getDataType());
     }
@@ -214,7 +214,7 @@ class SeccionTablaTest extends TestCase
         $libro = (new ExportacionService(
             app(ConsultaSeccionService::class),
             app(NormalizadorValores::class),
-        ))->libro($seccion, ['q' => null, 'sort' => null, 'direction' => 'asc']);
+        ))->libro($seccion->tablaActiva(), ['q' => null, 'sort' => null, 'direction' => 'asc']);
         $celda = $libro->getActiveSheet()->getCell('A2');
         $this->assertSame('=HYPERLINK("http://x")', $celda->getValue());
         $this->assertSame(DataType::TYPE_STRING, $celda->getDataType());

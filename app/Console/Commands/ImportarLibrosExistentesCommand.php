@@ -10,7 +10,7 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Carga retroactiva: los Excel que ya están en los repositorios de
- * documentos de las secciones generan una tabla por cada hoja con datos
+ * documentos de las secciones generan una tabla (dentro de esa misma sección) por cada hoja con datos
  * (mismo servicio que la carga de libros desde la pantalla). Es idempotente:
  * una hoja ya cargada de un archivo no se vuelve a cargar, y cada carga
  * puede deshacerse desde la pestaña Cargas de la sección. Transaccional por
@@ -29,7 +29,7 @@ class ImportarLibrosExistentesCommand extends Command
     /**
      * @var string
      */
-    protected $description = 'Crea las tablas de todas las hojas de los Excel ya guardados en las secciones (idempotente).';
+    protected $description = 'Crea, dentro de cada sección, una tabla por hoja de los Excel ya guardados (idempotente).';
 
     public function handle(LibroImportacionService $libros): int
     {

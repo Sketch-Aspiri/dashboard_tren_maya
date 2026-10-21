@@ -6,6 +6,7 @@ use App\Enums\TipoColumna;
 use App\Models\Seccion;
 use App\Models\SeccionColumna;
 use App\Models\SeccionFila;
+use App\Models\SeccionTabla;
 use App\Services\Secciones\NormalizadorValores;
 use App\Support\DatosSensibles;
 use App\Support\Texto;
@@ -37,10 +38,12 @@ final class ConsultaFilasSeccion
      * @param  list<array{columna: string, operador: string, valor: ?string}>  $filtros
      * @return array<string, mixed>
      */
-    public function ejecutar(Seccion $seccion, array $filtros, string $operacion, ?string $columnaObjetivo, int $limite): array
+    public function ejecutar(Seccion $seccion, array $filtros, string $operacion, ?string $columnaObjetivo, int $limite, ?string $nombreTabla = null): array
     {
+        $tabla = $this->resolverTabla($seccion, $nombreTabla);
+
         // Las columnas con datos personales sensibles no existen para el asistente.
-        $columnas = $seccion->columnas()->get()->reject(fn (SeccionColumna $columna) => DatosSensibles::esColumnaSensible($columna->nombre))->values();
+        $columnas = $tabla->columnas()->get()->reject(fn (SeccionColumna $columna) => DatosSensibles::esColumnaSensible($columna->nombre))->values();
         $condiciones = array_map(fn (array $filtro) => [...$filtro, 'columna' => $this->resolverColumna($columnas, $filtro['columna'])], $filtros);
         $objetivo = $columnaObjetivo !== null ? $this->resolverColumna($columnas, $columnaObjetivo) : null;
 
@@ -48,10 +51,10 @@ final class ConsultaFilasSeccion
             throw new \InvalidArgumentException("La operación {$operacion} requiere columna_objetivo.");
         }
 
-        $total = SeccionFila::query()->where('seccion_id', $seccion->id)->count();
+        $total = SeccionFila::query()->where('seccion_tabla_id', $tabla->id)->count();
 
         $coincidentes = SeccionFila::query()
-            ->where('seccion_id', $seccion->id)
+            ->where('seccion_tabla_id', $tabla->id)
             ->select(['id', 'datos'])
             ->orderBy('id')
             ->lazy(1000)
@@ -62,11 +65,37 @@ final class ConsultaFilasSeccion
 
         return [
             'seccion' => $seccion->nombre,
+            'tabla' => $tabla->nombre,
             'filas_que_cumplen' => $coincidentes->count(),
             // Si la sección es más grande que el tope evaluado, el resultado es parcial.
             'parcial' => $total > self::MAX_FILAS_EVALUADAS,
             'resultado' => $this->operar($coincidentes, $operacion, $objetivo, $columnas, min(max($limite, 1), self::MAX_LISTAR)),
         ];
+    }
+
+    /**
+     * La tabla pedida por nombre, o la única de la sección. Con varias
+     * tablas el nombre es obligatorio (el error las lista para que el
+     * modelo corrija la consulta).
+     */
+    private function resolverTabla(Seccion $seccion, ?string $nombre): SeccionTabla
+    {
+        $tablas = $seccion->tablas()->get();
+
+        if ($tablas->isEmpty()) {
+            throw new \InvalidArgumentException('Esta sección todavía no tiene tablas; su información solo puede estar en documentos.');
+        }
+
+        if ($nombre === null || trim($nombre) === '') {
+            return $tablas->count() === 1
+                ? $tablas->first()
+                : throw new \InvalidArgumentException('Esta sección tiene varias tablas; indica "tabla": '.$tablas->pluck('nombre')->implode(', ').'.');
+        }
+
+        $buscada = Texto::normalizar($nombre);
+
+        return $tablas->first(fn (SeccionTabla $tabla) => Texto::normalizar($tabla->nombre) === $buscada)
+            ?? throw new \InvalidArgumentException("No existe la tabla \"{$nombre}\" en esta sección. Tablas: ".$tablas->pluck('nombre')->implode(', ').'.');
     }
 
     /**

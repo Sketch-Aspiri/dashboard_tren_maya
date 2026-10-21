@@ -4,7 +4,6 @@ namespace App\Http\Requests\Secciones;
 
 use App\Enums\ModoImportacion;
 use App\Enums\TipoColumna;
-use App\Models\Seccion;
 use App\Services\Secciones\OpcionesLibro;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -12,19 +11,15 @@ use Illuminate\Validation\Rule;
 
 /**
  * Decisiones de la vista previa de un libro con varias hojas (calcular y
- * aplicar). Aplicar crea secciones, así que además de gestionar los datos
- * exige poder crear secciones. La coherencia con las tablas reales la valida
- * PlanificadorImportacion.
+ * aplicar). Cada hoja se vuelve una tabla dentro de la misma sección, así
+ * que basta con poder gestionar sus datos. La coherencia con las tablas
+ * reales la valida PlanificadorImportacion.
  */
 class OpcionesLibroRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $usuario = $this->user();
-
-        return $usuario !== null
-            && $usuario->can('gestionarDatos', $this->route('seccion'))
-            && $usuario->can('create', Seccion::class);
+        return $this->user()?->can('gestionarDatos', $this->route('seccion')) ?? false;
     }
 
     /**

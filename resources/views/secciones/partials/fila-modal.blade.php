@@ -25,6 +25,7 @@
                 @csrf
                 <template x-if="id"><input type="hidden" name="_method" value="PUT"></template>
                 <input type="hidden" name="_modal_fila" :value="id ?? 'nueva'">
+                <input type="hidden" name="tabla" value="{{ $tablaActiva->id }}">
 
                 <div class="grid flex-1 grid-cols-1 gap-4 overflow-y-auto px-5 py-4 sm:grid-cols-2">
                     @foreach ($columnas as $columna)

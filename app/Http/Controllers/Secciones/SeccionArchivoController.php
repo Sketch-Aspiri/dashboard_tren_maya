@@ -34,12 +34,14 @@ class SeccionArchivoController extends Controller
         $this->authorize('gestionarDatos', $seccion);
 
         $fila = $request->validated('seccion_fila_id') ? SeccionFila::query()->find($request->validated('seccion_fila_id')) : null;
+        // Tabla en pantalla al soltar el archivo: recibirá la carga de una sola tabla.
+        $destino = $request->filled('tabla') ? $request->tabla() : null;
         $resultados = [];
 
         foreach ($request->file('archivos') as $subido) {
             $archivo = $this->archivos->guardar($seccion, $subido, $request->user(), $fila);
             // Un adjunto de fila nunca dispara importación: solo se guarda.
-            $importacion = $fila ? null : $this->importaciones->desdeArchivo($seccion, $archivo, $request->user());
+            $importacion = $fila ? null : $this->importaciones->desdeArchivo($seccion, $archivo, $request->user(), $destino);
 
             $resultados[] = [
                 'id' => $archivo->id,

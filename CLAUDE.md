@@ -116,7 +116,7 @@ php artisan asistencia:importar-orden-oficio
 # Personal también se importa arrastrando el Excel en RR.HH. > Personal; por consola:
 php artisan app:import-agenda-zona-oriente
 
-# Carga retroactiva: crea una tabla por cada hoja con datos de los Excel (xlsx/xls) ya
+# Carga retroactiva: crea, dentro de la sección, una tabla por cada hoja con datos de los Excel (xlsx/xls) ya
 # guardados en los documentos de las secciones. Idempotente (no repite hojas ya
 # cargadas), transaccional por archivo, deshacible desde la pestaña Cargas.
 # --dry-run solo lista lo que haría; --seccion=<slug> limita a una sección
@@ -154,10 +154,18 @@ concepto, cada concepto del menú es una **sección dinámica**
   define el catálogo inicial (`MenuSeeder`) y los módulos fijos con ruta
   propia (Personal y Asistencia, que dependen de modelos estructurados y
   generan oficios).
-- Cada sección tiene una tabla configurable (`seccion_columnas`: texto,
-  número, fecha, sí/no, lista; valores en `seccion_filas.datos` JSON) con
-  alta/edición/baja manual, búsqueda, orden y exportación a Excel, más un
-  repositorio de documentos privado.
+- Cada sección tiene una o varias tablas (`seccion_tablas`; la primera se
+  crea sola con el nombre "Principal"). Cada tabla es configurable
+  (`seccion_columnas`: texto, número, fecha, sí/no, lista; valores en
+  `seccion_filas.datos` JSON) con alta/edición/baja manual, búsqueda, orden
+  y exportación a Excel (una tabla por archivo), más un repositorio de
+  documentos privado por sección. La tabla se elige con `?tabla=<id>` (o el
+  campo oculto `tabla` de los formularios); sin él se usa la primera
+  (`Seccion::tablaActiva()`). Con más de una, la pestaña *Tabla* muestra
+  sub-pestañas con el conteo de filas. `seccion_id` se conserva
+  denormalizado en columnas y filas (asistente, dashboard, documentos).
+  `Seccion::columnas()` y `filas()` son agregados de todas las tablas: para
+  pintar o editar usar `SeccionTabla::columnas()` / `filas()`.
 - Arrastrar un documento: Excel/CSV/tablas de Word se leen sin IA
   (`ExtractorDocumentos`); se abre una vista previa con mapeo de columnas y
   modo (agregar / actualizar por columna llave / reemplazar). Si la tabla no
@@ -166,7 +174,7 @@ concepto, cada concepto del menú es una **sección dinámica**
 - "Extraer con IA" (PDF escaneado, foto, Word sin tablas) usa la Claude API
   con salidas estructuradas y entra a la misma vista previa. Opcional:
   apagado si `ANTHROPIC_API_KEY` está vacío.
-- Un Excel con varias hojas se sube una sola vez: la vista previa muestra todas las hojas (desmarcables, con mapeo por hoja) y crea una tabla por hoja como sección hermana en el mismo grupo (si ya existe una con el nombre de la hoja, carga en ella). Una carga = una importación, un evento resumen y un solo deshacer (`LibroImportacionService`, máx. `secciones.max_hojas_importacion`).
+- Un Excel con varias hojas se sube una sola vez: la vista previa muestra todas las hojas (desmarcables, con mapeo por hoja) y crea una tabla por hoja DENTRO de la misma sección, sin crear entradas de menú (si la sección ya tiene una tabla con el nombre de la hoja, carga en ella; la tabla "Principal" vacía se reutiliza para la primera hoja). Una carga = una importación, un evento resumen y un solo deshacer, que da de baja las tablas creadas que sigan vacías (`LibroImportacionService`, `cambios.tablas_creadas`, `resumen.hojas[].tabla_id`; máx. `secciones.max_hojas_importacion`). La carga de un solo documento va a la tabla elegida al soltarlo (`?tabla=`) o a la primera. El asistente recibe el catálogo por tabla y `consultar_seccion` acepta `tabla`.
 - Las importaciones masivas registran un evento resumen en la bitácora
   (`importacion_aplicada` / `importacion_deshecha`), no una entrada por fila.
 

@@ -1,7 +1,9 @@
 @php
     $puedeGestionar = auth()->user()->can('gestionarDatos', $seccion);
     $puedeEditarSeccion = auth()->user()->can('update', $seccion);
-    $columnas = $seccion->columnas;
+    $columnas = $tablaActiva->columnas;
+    // Solo con varias tablas se arrastra ?tabla= (URLs limpias en secciones de una tabla).
+    $parametroTabla = $tablas->count() > 1 ? ['tabla' => $tablaActiva->id] : [];
     $enlaceOrden = function (string $clave) use ($filtros): string {
         $direccion = ($filtros['sort'] === $clave && $filtros['direction'] === 'asc') ? 'desc' : 'asc';
 
@@ -32,7 +34,7 @@
             @endif
 
             @if ($puedeGestionar)
-                <x-zona-arrastre id="zona-seccion" :url="route('secciones.archivos.store', $seccion)"
+                <x-zona-arrastre id="zona-seccion" :url="route('secciones.archivos.store', array_merge([$seccion], $parametroTabla))"
                                  :compacta="$filas->total() > 0"
                                  :titulo="__('Arrastra aquí Excel, Word, PDF o imágenes')"
                                  :ayuda="__('Si el archivo trae una tabla, el sistema la detecta y te muestra una vista previa antes de crear o actualizar la tabla de esta sección. Todo archivo queda guardado en Documentos.')" />
@@ -42,6 +44,9 @@
             <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <form method="GET" action="{{ route('secciones.show', $seccion) }}" class="flex w-full gap-2 lg:max-w-md" role="search">
                     <input type="hidden" name="tab" :value="tab">
+                    @isset($parametroTabla['tabla'])
+                        <input type="hidden" name="tabla" value="{{ $parametroTabla['tabla'] }}">
+                    @endisset
                     <label for="buscar-seccion" class="sr-only">{{ __('Buscar en esta sección') }}</label>
                     <input id="buscar-seccion" type="search" name="q" value="{{ $filtros['q'] }}"
                            placeholder="{{ __('Buscar en la tabla y en los documentos…') }}"
@@ -57,13 +62,13 @@
                         </button>
                     @endif
                     @if ($puedeEditarSeccion)
-                        <a href="{{ route('secciones.columnas.index', $seccion) }}"
+                        <a href="{{ route('secciones.columnas.index', array_merge([$seccion], $parametroTabla)) }}"
                            class="inline-flex min-h-[44px] items-center rounded-md border border-brand-green/20 bg-white px-4 text-sm font-medium text-brand-green hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">
                             {{ __('Columnas') }}
                         </a>
                     @endif
                     @if ($columnas->isNotEmpty())
-                        <a href="{{ route('secciones.exportar', [$seccion, 'q' => $filtros['q']]) }}"
+                        <a href="{{ route('secciones.exportar', array_merge([$seccion, 'q' => $filtros['q']], $parametroTabla)) }}"
                            class="inline-flex min-h-[44px] items-center rounded-md border border-brand-green/20 bg-white px-4 text-sm font-medium text-brand-green hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">
                             {{ __('Exportar a Excel') }}
                         </a>
@@ -89,6 +94,22 @@
             </div>
 
             <div x-show="tab === 'tabla'" role="tabpanel">
+                {{-- Una sub-pestaña por tabla de la sección (p. ej. las hojas de un libro de Excel). --}}
+                @if ($tablas->count() > 1)
+                    <nav class="mb-4 flex gap-2 overflow-x-auto pb-1" aria-label="{{ __('Tablas de la sección') }}">
+                        @foreach ($tablas as $tablaItem)
+                            @php $esActiva = $tablaItem->id === $tablaActiva->id; @endphp
+                            <a href="{{ route('secciones.show', [$seccion, 'tabla' => $tablaItem->id, 'tab' => 'tabla', 'q' => $filtros['q']]) }}"
+                               @if ($esActiva) aria-current="page" @endif
+                               @class([
+                                   'inline-flex min-h-[44px] items-center whitespace-nowrap rounded-full border px-4 text-sm',
+                                   'border-brand-green bg-brand-green font-semibold text-white' => $esActiva,
+                                   'border-brand-green/20 bg-white text-brand-green hover:bg-brand-mist' => ! $esActiva,
+                               ])>{{ $tablaItem->nombre }} ({{ $tablaItem->filas_count }})</a>
+                        @endforeach
+                    </nav>
+                @endif
+
                 @include('secciones.partials.tabla')
             </div>
 

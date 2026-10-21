@@ -3,9 +3,11 @@
 namespace Tests\Feature\Secciones;
 
 use App\Enums\EstadoImportacion;
+use App\Enums\TipoColumna;
 use App\Models\Seccion;
 use App\Models\SeccionFila;
 use App\Models\SeccionImportacion;
+use App\Models\SeccionTabla;
 use App\Services\Secciones\ImportacionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -21,8 +23,8 @@ use Tests\TestCase;
 
 /**
  * Un Excel con varias hojas se sube UNA vez: cada hoja con datos se vuelve
- * una tabla (sección hermana con el nombre de la hoja), con vista previa
- * por hoja y deshacer de toda la carga junta.
+ * una tabla DENTRO de la misma sección (con el nombre de la hoja), con vista
+ * previa por hoja y deshacer de toda la carga junta.
  */
 class ImportacionLibroTest extends TestCase
 {
@@ -110,7 +112,7 @@ class ImportacionLibroTest extends TestCase
             ->assertSee('todas las hojas');
     }
 
-    public function test_a_single_upload_creates_one_table_per_sheet_with_rows_and_one_audit_event(): void
+    public function test_a_single_upload_creates_one_table_per_sheet_inside_the_section_with_one_audit_event(): void
     {
         $usuario = $this->comoAdministrador();
         $seccion = Seccion::factory()->create();
@@ -120,13 +122,16 @@ class ImportacionLibroTest extends TestCase
             ->assertRedirect(route('secciones.show', $seccion));
 
         foreach (['Escaleras' => 2, 'Elevadores' => 3, 'Andenes' => 2] as $nombre => $filas) {
-            $hija = Seccion::query()->where('nombre', $nombre)->sole();
-            $this->assertSame($seccion->menu_grupo_id, $hija->menu_grupo_id);
-            $this->assertSame($filas, $hija->filas()->count());
-            $this->assertSame(2, $hija->columnas()->count());
+            $tabla = $seccion->tablas()->where('nombre', $nombre)->sole();
+            $this->assertSame($filas, $tabla->filas()->count());
+            $this->assertSame(2, $tabla->columnas()->count());
+            // seccion_id denormalizado: el conteo por sección sigue funcionando.
+            $this->assertSame($seccion->id, $tabla->filas()->first()->seccion_id);
         }
 
-        $this->assertSame(['equipo', 'piso'], Seccion::query()->where('nombre', 'Elevadores')->sole()->columnas()->pluck('clave')->all());
+        $this->assertSame(1, Seccion::query()->count(), 'las hojas no crean secciones ni entradas de menú');
+        $this->assertSame(7, $seccion->filas()->count());
+        $this->assertSame(['equipo', 'piso'], $seccion->tablas()->where('nombre', 'Elevadores')->sole()->columnas()->pluck('clave')->all());
         $this->assertSame(EstadoImportacion::Aplicada, $importacion->fresh()->estado);
         $this->assertSame(1, Activity::query()->where('event', 'importacion_aplicada')->where('causer_id', $usuario->id)->count());
         $this->assertSame(7, $importacion->fresh()->resumen['nuevas']);
@@ -143,9 +148,9 @@ class ImportacionLibroTest extends TestCase
         $this->post(route('secciones.importaciones.libro.aplicar', [$seccion, $importacion]), $this->opciones(count($importacion->tablas)))
             ->assertRedirect();
 
-        $this->assertNull(Seccion::query()->where('nombre', 'Vacía')->first());
-        $this->assertNull(Seccion::query()->where('nombre', 'Solo títulos')->first());
-        $this->assertNotNull(Seccion::query()->where('nombre', 'Andenes')->first());
+        $this->assertNull($seccion->tablas()->where('nombre', 'Vacía')->first());
+        $this->assertNull($seccion->tablas()->where('nombre', 'Solo títulos')->first());
+        $this->assertNotNull($seccion->tablas()->where('nombre', 'Andenes')->first());
     }
 
     public function test_unchecked_sheets_are_not_loaded(): void
@@ -157,8 +162,8 @@ class ImportacionLibroTest extends TestCase
         $this->post(route('secciones.importaciones.libro.aplicar', [$seccion, $importacion]), $this->opciones(3, [1 => ['incluir' => 0]]))
             ->assertRedirect();
 
-        $this->assertNull(Seccion::query()->where('nombre', 'Elevadores')->first());
-        $this->assertNotNull(Seccion::query()->where('nombre', 'Escaleras')->first());
+        $this->assertNull($seccion->tablas()->where('nombre', 'Elevadores')->first());
+        $this->assertNotNull($seccion->tablas()->where('nombre', 'Escaleras')->first());
         $this->assertSame(4, SeccionFila::query()->count());
     }
 
@@ -178,17 +183,63 @@ class ImportacionLibroTest extends TestCase
         $this->assertSame(1, Seccion::query()->count());
     }
 
-    public function test_sheet_with_the_name_of_an_existing_section_loads_into_it(): void
+    public function test_sheet_with_the_name_of_an_existing_table_loads_into_it(): void
     {
         $this->comoAdministrador();
         $seccion = Seccion::factory()->create();
-        $existente = Seccion::factory()->create(['menu_grupo_id' => $seccion->menu_grupo_id, 'nombre' => 'Escaleras', 'slug' => 'escaleras']);
+        $existente = $seccion->tablas()->create(['nombre' => 'Escaleras', 'orden' => 1]);
         $importacion = $this->cargar($seccion, $this->tresHojas());
 
         $this->post(route('secciones.importaciones.libro.aplicar', [$seccion, $importacion]), $this->opciones(3))->assertRedirect();
 
-        $this->assertSame(1, Seccion::query()->where('nombre', 'Escaleras')->count());
+        $this->assertSame(1, $seccion->tablas()->where('nombre', 'Escaleras')->count());
         $this->assertSame(2, $existente->filas()->count());
+        $this->assertNotContains($existente->id, $importacion->fresh()->cambios['tablas_creadas']);
+        $this->assertCount(2, $importacion->fresh()->cambios['tablas_creadas']);
+    }
+
+    public function test_the_empty_default_table_is_reused_by_the_first_new_sheet(): void
+    {
+        $this->comoAdministrador();
+        $seccion = Seccion::factory()->create();
+        $principal = $seccion->tablaActiva();
+        $importacion = $this->cargar($seccion, $this->tresHojas());
+
+        $this->post(route('secciones.importaciones.libro.aplicar', [$seccion, $importacion]), $this->opciones(3))->assertRedirect();
+
+        $this->assertSame(3, $seccion->tablas()->count());
+        $this->assertSame([], $seccion->tablas()->where('nombre', 'Principal')->pluck('id')->all());
+        $this->assertSame('Escaleras', $principal->fresh()->nombre);
+
+        // Deshacer también quita la tabla reutilizada: la sección vuelve a nacer con su tabla por defecto.
+        $this->post(route('secciones.importaciones.deshacer', [$seccion, $importacion]))->assertRedirect();
+        $this->assertSame(0, $seccion->tablas()->count());
+        $this->assertSame('Principal', $seccion->tablaActiva()->nombre);
+    }
+
+    public function test_a_default_table_with_data_is_kept_and_sheets_become_extra_tables(): void
+    {
+        $this->comoAdministrador();
+        $seccion = $this->seccionConColumnas(['Nombre' => TipoColumna::Texto]);
+        $this->filaEn($seccion, ['nombre' => 'Ana']);
+        $importacion = $this->cargar($seccion, $this->tresHojas());
+
+        $this->post(route('secciones.importaciones.libro.aplicar', [$seccion, $importacion]), $this->opciones(3))->assertRedirect();
+
+        $this->assertSame(4, $seccion->tablas()->count());
+        $this->assertSame(1, $seccion->tablas()->where('nombre', 'Principal')->sole()->filas()->count());
+    }
+
+    public function test_book_load_only_needs_permission_over_the_section_data_not_to_create_sections(): void
+    {
+        $this->comoAdministrador();
+        $seccion = Seccion::factory()->create();
+        $importacion = $this->cargar($seccion, $this->tresHojas());
+        Gate::before(fn ($usuario, string $habilidad) => $habilidad === 'create' ? false : null);
+
+        $this->post(route('secciones.importaciones.libro.aplicar', [$seccion, $importacion]), $this->opciones(3))->assertRedirect();
+
+        $this->assertSame(3, $seccion->tablas()->count());
     }
 
     public function test_undo_reverts_every_sheet_of_the_load_together(): void
@@ -201,7 +252,8 @@ class ImportacionLibroTest extends TestCase
         $this->post(route('secciones.importaciones.deshacer', [$seccion, $importacion]))->assertRedirect();
 
         $this->assertSame(0, SeccionFila::query()->count());
-        $this->assertSame(0, Seccion::query()->whereIn('nombre', ['Escaleras', 'Elevadores', 'Andenes'])->count());
+        $this->assertSame(0, $seccion->tablas()->count(), 'deshacer quita las tablas que la carga creó y siguen vacías');
+        $this->assertSame(3, SeccionTabla::onlyTrashed()->count());
         $this->assertDatabaseCount('seccion_columnas', 0);
         $this->assertSame(EstadoImportacion::Deshecha, $importacion->fresh()->estado);
         $this->assertTrue(Activity::query()->where('event', 'importacion_deshecha')->exists());
@@ -274,7 +326,7 @@ class ImportacionLibroTest extends TestCase
         $this->postJson(route('secciones.importaciones.libro.calcular', [$seccion, $importacion]), $this->opciones(1))->assertForbidden();
     }
 
-    public function test_undo_is_blocked_when_a_later_load_was_applied_to_any_destination_section(): void
+    public function test_undo_is_blocked_when_a_later_load_was_applied_to_any_destination_table(): void
     {
         $this->comoAdministrador();
         $seccion = Seccion::factory()->create();
@@ -282,9 +334,9 @@ class ImportacionLibroTest extends TestCase
         $this->post(route('secciones.importaciones.libro.aplicar', [$seccion, $importacion]), $this->opciones(3));
         $this->assertTrue(app(ImportacionService::class)->puedeDeshacerse($importacion->fresh()));
 
-        $elevadores = Seccion::query()->where('nombre', 'Elevadores')->sole();
-        $posterior = new SeccionImportacion(['origen' => 'archivo', 'estado' => EstadoImportacion::Aplicada, 'tablas' => [], 'resumen' => [], 'cambios' => []]);
-        $posterior->forceFill(['seccion_id' => $elevadores->id, 'aplicada_at' => now()->addMinute()])->save();
+        $elevadores = $seccion->tablas()->where('nombre', 'Elevadores')->sole();
+        $posterior = new SeccionImportacion(['origen' => 'archivo', 'estado' => EstadoImportacion::Aplicada, 'tablas' => [], 'resumen' => ['tabla_id' => $elevadores->id], 'cambios' => []]);
+        $posterior->forceFill(['seccion_id' => $seccion->id, 'aplicada_at' => now()->addMinute()])->save();
 
         $this->assertFalse(app(ImportacionService::class)->puedeDeshacerse($importacion->fresh()));
         $this->post(route('secciones.importaciones.deshacer', [$seccion, $importacion]))->assertSessionHasErrors('importacion');
@@ -343,11 +395,11 @@ class ImportacionLibroTest extends TestCase
         $this->assertSame(1, Seccion::query()->count());
     }
 
-    public function test_sheets_resolving_to_the_same_existing_section_are_rejected(): void
+    public function test_sheets_resolving_to_the_same_existing_table_are_rejected(): void
     {
         $this->comoAdministrador();
         $seccion = Seccion::factory()->create();
-        Seccion::factory()->create(['menu_grupo_id' => $seccion->menu_grupo_id, 'nombre' => 'Estación', 'slug' => 'estacion']);
+        $seccion->tablas()->create(['nombre' => 'Estación', 'orden' => 1]);
         $importacion = $this->cargar($seccion, [
             'Estación' => [['Equipo', 'Estado'], ['E-1', 'Ok']],
             'ESTACION' => [['Equipo', 'Estado'], ['E-2', 'Ok']],
@@ -358,19 +410,30 @@ class ImportacionLibroTest extends TestCase
         $this->assertDatabaseCount('seccion_filas', 0);
     }
 
-    public function test_each_existing_destination_section_is_authorized(): void
+    public function test_the_section_data_permission_is_required_and_nothing_is_created_without_it(): void
     {
         $this->comoAdministrador();
         $seccion = Seccion::factory()->create();
-        Seccion::factory()->create(['menu_grupo_id' => $seccion->menu_grupo_id, 'nombre' => 'Elevadores', 'slug' => 'elevadores']);
         $importacion = $this->cargar($seccion, $this->tresHojas());
 
-        Gate::before(fn ($usuario, string $habilidad, array $argumentos) => $habilidad === 'gestionarDatos' && ($argumentos[0]->nombre ?? null) === 'Elevadores' ? false : null);
+        Gate::before(fn ($usuario, string $habilidad) => $habilidad === 'gestionarDatos' ? false : null);
 
         $this->postJson(route('secciones.importaciones.libro.calcular', [$seccion, $importacion]), $this->opciones(3))->assertForbidden();
         $this->post(route('secciones.importaciones.libro.aplicar', [$seccion, $importacion]), $this->opciones(3))->assertForbidden();
         $this->assertDatabaseCount('seccion_filas', 0);
-        $this->assertNull(Seccion::query()->where('nombre', 'Escaleras')->first());
+        $this->assertSame(0, $seccion->tablas()->count());
+    }
+
+    public function test_a_load_cannot_be_applied_through_another_sections_url(): void
+    {
+        $this->comoAdministrador();
+        $seccion = Seccion::factory()->create();
+        $otra = Seccion::factory()->create();
+        $importacion = $this->cargar($seccion, $this->tresHojas());
+
+        $this->post(route('secciones.importaciones.libro.aplicar', [$otra, $importacion]), $this->opciones(3))->assertNotFound();
+        $this->assertSame(0, $otra->tablas()->count());
+        $this->assertDatabaseCount('seccion_filas', 0);
     }
 
     public function test_sheets_not_included_do_not_need_a_mapping(): void

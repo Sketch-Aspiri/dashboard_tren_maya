@@ -51,7 +51,7 @@ final class MenuService
      */
     public function crearSeccion(array $datos): Seccion
     {
-        return Seccion::query()->create([
+        $seccion = Seccion::query()->create([
             'menu_grupo_id' => $datos['menu_grupo_id'],
             'nombre' => $datos['nombre'],
             'descripcion' => $datos['descripcion'] ?? null,
@@ -59,6 +59,11 @@ final class MenuService
             'orden' => (int) Seccion::query()->where('menu_grupo_id', $datos['menu_grupo_id'])->max('orden') + 1,
             'is_visible' => true,
         ]);
+
+        // Toda sección nace con su tabla por defecto.
+        $seccion->tablaActiva();
+
+        return $seccion;
     }
 
     /**

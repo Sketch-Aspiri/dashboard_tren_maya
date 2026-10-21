@@ -3,16 +3,16 @@
 namespace App\Services\Secciones;
 
 use App\Enums\TipoColumna;
-use App\Models\Seccion;
 use App\Models\SeccionColumna;
 use App\Models\SeccionFila;
+use App\Models\SeccionTabla;
 use App\Support\Reordenador;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Definición de columnas de la tabla de una sección.
+ * Definición de columnas de una tabla de una sección.
  */
 final class ColumnaService
 {
@@ -23,20 +23,21 @@ final class ColumnaService
     /**
      * @param  list<string>  $opciones
      */
-    public function crear(Seccion $seccion, string $nombre, TipoColumna $tipo, array $opciones = []): SeccionColumna
+    public function crear(SeccionTabla $tabla, string $nombre, TipoColumna $tipo, array $opciones = []): SeccionColumna
     {
-        if ($seccion->columnas()->count() >= (int) config('secciones.max_columnas')) {
+        if ($tabla->columnas()->count() >= (int) config('secciones.max_columnas')) {
             throw ValidationException::withMessages([
                 'nombre' => __('La tabla ya tiene el máximo de :max columnas.', ['max' => config('secciones.max_columnas')]),
             ]);
         }
 
-        return $seccion->columnas()->create([
+        return $tabla->columnas()->create([
+            'seccion_id' => $tabla->seccion_id,
             'nombre' => $nombre,
-            'clave' => $this->claveUnica($seccion, $nombre),
+            'clave' => $this->claveUnica($tabla, $nombre),
             'tipo' => $tipo,
             'opciones' => $tipo === TipoColumna::Lista ? array_values($opciones) : null,
-            'orden' => (int) $seccion->columnas()->max('orden') + 1,
+            'orden' => (int) $tabla->columnas()->max('orden') + 1,
         ]);
     }
 
@@ -78,18 +79,18 @@ final class ColumnaService
 
     public function mover(SeccionColumna $columna, string $direccion): void
     {
-        Reordenador::mover($columna->seccion->columnas()->get(), $columna, $direccion);
+        Reordenador::mover($columna->tabla->columnas()->get(), $columna, $direccion);
     }
 
     /**
-     * Clave interna snake_case única dentro de la sección.
+     * Clave interna snake_case única dentro de la tabla.
      *
      * @param  list<string>  $reservadas  claves ya planeadas pero aún no guardadas
      */
-    public function claveUnica(Seccion $seccion, string $nombre, array $reservadas = []): string
+    public function claveUnica(SeccionTabla $tabla, string $nombre, array $reservadas = []): string
     {
         $base = Str::limit(Str::slug($nombre, '_'), 50, '') ?: 'columna';
-        $existentes = array_merge($seccion->columnas()->pluck('clave')->all(), $reservadas);
+        $existentes = array_merge($tabla->columnas()->pluck('clave')->all(), $reservadas);
 
         $clave = $base;
         $sufijo = 2;
@@ -110,7 +111,7 @@ final class ColumnaService
     private function reescribirValores(SeccionColumna $columna, ?callable $transformar): void
     {
         SeccionFila::query()
-            ->where('seccion_id', $columna->seccion_id)
+            ->where('seccion_tabla_id', $columna->seccion_tabla_id)
             ->select(['id', 'datos'])
             ->chunkById(self::CHUNK, function ($filas) use ($columna, $transformar): void {
                 foreach ($filas as $fila) {

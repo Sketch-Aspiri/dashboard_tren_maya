@@ -55,7 +55,8 @@ class SeccionImportacionController extends Controller
         $filaEncabezado = $request->filled('fila_encabezado') ? max(0, (int) $request->query('fila_encabezado')) : null;
 
         return view('secciones.importacion', [
-            'seccion' => $seccion->load('grupo', 'columnas'),
+            'seccion' => $seccion->load('grupo'),
+            'destino' => $this->importaciones->tablaDestino($importacion),
             'importacion' => $importacion->load('archivo'),
             'propuesta' => $this->importaciones->propuesta($importacion, $tabla, $filaEncabezado),
             'tiposColumna' => TipoColumna::cases(),
@@ -82,7 +83,10 @@ class SeccionImportacionController extends Controller
         $importacion = $this->importaciones->aplicar($importacion, $request->opciones(), $request->user());
         $resumen = $importacion->resumen;
 
-        return redirect()->route('secciones.show', $seccion)->with('status', __(
+        // Con varias tablas se vuelve a la que recibió la carga.
+        $tabla = $seccion->tablas()->count() > 1 ? ['tabla' => $resumen['tabla_id']] : [];
+
+        return redirect()->route('secciones.show', [$seccion, ...$tabla])->with('status', __(
             'Carga aplicada: :nuevas nuevas, :actualizadas actualizadas, :eliminadas eliminadas. Puedes deshacerla desde la pestaña "Cargas".',
             ['nuevas' => $resumen['nuevas'], 'actualizadas' => $resumen['actualizadas'], 'eliminadas' => $resumen['eliminadas']],
         ));
@@ -103,7 +107,6 @@ class SeccionImportacionController extends Controller
     public function aplicarLibro(OpcionesLibroRequest $request, Seccion $seccion, SeccionImportacion $importacion): RedirectResponse
     {
         $this->authorize('gestionarDatos', $seccion);
-        $this->authorize('create', Seccion::class);
 
         $resumen = $this->libros->aplicar($importacion, $request->opciones(), $request->user())->resumen;
 

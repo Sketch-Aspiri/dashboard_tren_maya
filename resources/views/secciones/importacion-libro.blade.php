@@ -14,7 +14,7 @@
                     · {{ trans_choice('{1} :n hoja|[2,*] :n hojas', count($hojas), ['n' => count($hojas)]) }}
                 </p>
                 <p class="mt-2 text-xs text-gray-600">
-                    {{ __('Cada hoja marcada se carga como su propia tabla, con el nombre de la hoja y las columnas de su renglón de títulos. Nada se guarda hasta que presiones "Aplicar".') }}
+                    {{ __('Cada hoja marcada se carga como una tabla propia dentro de esta sección, con el nombre de la hoja y las columnas de su renglón de títulos. Nada se guarda hasta que presiones "Aplicar".') }}
                     {{ __('Si ya existe una sección con el nombre de la hoja en este grupo, los datos se cargan en ella; si no, se crea.') }}
                 </p>
                 <p class="mt-2 text-xs text-gray-600">

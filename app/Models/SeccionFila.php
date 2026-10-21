@@ -11,7 +11,7 @@ use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
- * Fila de la tabla de una sección. Los valores viven en "datos" indexados
+ * Fila de una tabla de una sección. Los valores viven en "datos" indexados
  * por SeccionColumna::clave.
  */
 class SeccionFila extends Model
@@ -46,6 +46,8 @@ class SeccionFila extends Model
 
     protected static function booted(): void
     {
+        static::creating(fn (SeccionFila $fila) => SeccionTabla::completarOrigen($fila));
+
         static::saving(function (SeccionFila $fila): void {
             $fila->texto_busqueda = self::textoBusqueda($fila->datos ?? []);
         });
@@ -75,6 +77,14 @@ class SeccionFila extends Model
     }
 
     /**
+     * @return BelongsTo<SeccionTabla, $this>
+     */
+    public function tabla(): BelongsTo
+    {
+        return $this->belongsTo(SeccionTabla::class, 'seccion_tabla_id')->withTrashed();
+    }
+
+    /**
      * @return HasMany<SeccionArchivo, $this>
      */
     public function archivos(): HasMany
@@ -85,7 +95,7 @@ class SeccionFila extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['seccion_id', 'datos'])
+            ->logOnly(['seccion_id', 'seccion_tabla_id', 'datos'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->useLogName('seccion');

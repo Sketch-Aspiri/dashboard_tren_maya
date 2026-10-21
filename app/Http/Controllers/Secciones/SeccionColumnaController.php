@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Secciones;
 use App\Enums\TipoColumna;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Secciones\GuardarColumnaRequest;
+use App\Http\Requests\Secciones\ListarSeccionRequest;
 use App\Http\Requests\Secciones\MoverElementoRequest;
 use App\Models\Seccion;
 use App\Models\SeccionColumna;
+use App\Models\SeccionTabla;
 use App\Services\Secciones\ColumnaService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -16,12 +18,16 @@ class SeccionColumnaController extends Controller
 {
     public function __construct(private readonly ColumnaService $columnas) {}
 
-    public function index(Seccion $seccion): View
+    public function index(ListarSeccionRequest $request, Seccion $seccion): View
     {
         $this->authorize('update', $seccion);
 
+        $tabla = $request->tabla();
+
         return view('secciones.columnas', [
-            'seccion' => $seccion->load('grupo', 'columnas'),
+            'seccion' => $seccion->load('grupo'),
+            'tablaActiva' => $tabla,
+            'columnas' => $tabla->columnas()->get(),
             'tiposColumna' => TipoColumna::cases(),
         ]);
     }
@@ -30,9 +36,10 @@ class SeccionColumnaController extends Controller
     {
         $this->authorize('update', $seccion);
 
-        $columna = $this->columnas->crear($seccion, $request->validated('nombre'), $request->tipo(), $request->opciones());
+        $tabla = $request->tabla();
+        $columna = $this->columnas->crear($tabla, $request->validated('nombre'), $request->tipo(), $request->opciones());
 
-        return $this->volver($seccion, __('Columna ":nombre" agregada.', ['nombre' => $columna->nombre]));
+        return $this->volver($tabla, __('Columna ":nombre" agregada.', ['nombre' => $columna->nombre]));
     }
 
     public function update(GuardarColumnaRequest $request, Seccion $seccion, SeccionColumna $columna): RedirectResponse
@@ -41,7 +48,7 @@ class SeccionColumnaController extends Controller
 
         $this->columnas->actualizar($columna, $request->validated('nombre'), $request->tipo(), $request->opciones());
 
-        return $this->volver($seccion, __('Columna actualizada.'));
+        return $this->volver($columna->tabla, __('Columna actualizada.'));
     }
 
     public function mover(MoverElementoRequest $request, Seccion $seccion, SeccionColumna $columna): RedirectResponse
@@ -50,7 +57,7 @@ class SeccionColumnaController extends Controller
 
         $this->columnas->mover($columna, $request->validated('direccion'));
 
-        return redirect()->to(route('secciones.columnas.index', $seccion).'#columna-'.$columna->id);
+        return redirect()->to(route('secciones.columnas.index', $this->parametrosTabla($columna->tabla)).'#columna-'.$columna->id);
     }
 
     public function destroy(Seccion $seccion, SeccionColumna $columna): RedirectResponse
@@ -59,11 +66,21 @@ class SeccionColumnaController extends Controller
 
         $this->columnas->eliminar($columna);
 
-        return $this->volver($seccion, __('Columna ":nombre" eliminada.', ['nombre' => $columna->nombre]));
+        return $this->volver($columna->tabla, __('Columna ":nombre" eliminada.', ['nombre' => $columna->nombre]));
     }
 
-    private function volver(Seccion $seccion, ?string $mensaje = null): RedirectResponse
+    private function volver(SeccionTabla $tabla, ?string $mensaje = null): RedirectResponse
     {
-        return redirect()->route('secciones.columnas.index', $seccion)->with('status', $mensaje);
+        return redirect()->route('secciones.columnas.index', $this->parametrosTabla($tabla))->with('status', $mensaje);
+    }
+
+    /**
+     * Ruta de la sección y, solo si tiene varias tablas, cuál se estaba editando.
+     *
+     * @return array<int|string, mixed>
+     */
+    private function parametrosTabla(SeccionTabla $tabla): array
+    {
+        return $tabla->seccion->tablas()->count() > 1 ? [$tabla->seccion, 'tabla' => $tabla->id] : [$tabla->seccion];
     }
 }

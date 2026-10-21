@@ -7,6 +7,7 @@ use App\Enums\TipoColumna;
 use App\Models\Empleado;
 use App\Models\Estacion;
 use App\Models\RegistroDiario;
+use App\Models\SeccionFila;
 use App\Services\Asistente\HerramientasAsistente;
 use App\Services\Asistente\ModeloLenguaje;
 use App\Support\DatosSensibles;
@@ -286,5 +287,58 @@ class AsistenteTest extends TestCase
         $this->assertSame(2, $resultado['por_estacion']['Chetumal'][EstatusAsistencia::Presente->label()]);
         $this->assertSame(1, $resultado['por_estacion']['Chetumal'][EstatusAsistencia::Vacaciones->label()]);
         $this->assertContains($tulum->nombre, $resultado['estaciones_sin_captura']);
+    }
+
+    public function test_section_tool_requires_the_table_name_when_the_section_has_several(): void
+    {
+        $seccion = $this->seccionConColumnas(['Nombre' => TipoColumna::Texto, 'CURP' => TipoColumna::Texto]);
+        $playa = $seccion->tablaActiva();
+        $playa->update(['nombre' => 'Playa del Carmen']);
+        $tulum = $seccion->tablas()->create(['nombre' => 'Tulum', 'orden' => 2]);
+        $tulum->columnas()->create(['seccion_id' => $seccion->id, 'nombre' => 'Nombre', 'clave' => 'nombre', 'tipo' => TipoColumna::Texto, 'orden' => 1]);
+        $this->filaEn($seccion, ['nombre' => 'Ana', 'curp' => 'LOPA800101MQRPZN09']);
+        $this->filaEn($seccion, ['nombre' => 'Beto']);
+        $fila = new SeccionFila(['datos' => ['nombre' => 'Carla']]);
+        $fila->forceFill(['seccion_id' => $seccion->id, 'seccion_tabla_id' => $tulum->id])->save();
+
+        $consulta = fn (?string $tabla) => $this->herramientas()->ejecutar('consultar_seccion', [
+            'seccion' => $seccion->slug, 'tabla' => $tabla, 'filtros' => [], 'operacion' => 'listar', 'columna_objetivo' => null, 'limite' => 10,
+        ]);
+
+        $sinTabla = $consulta(null);
+        $this->assertTrue($sinTabla['error']);
+        $this->assertStringContainsString('Playa del Carmen', $sinTabla['contenido']);
+        $this->assertStringContainsString('Tulum', $sinTabla['contenido']);
+
+        $deTulum = $consulta('tulum');
+        $this->assertFalse($deTulum['error']);
+        $this->assertStringContainsString('Carla', $deTulum['contenido']);
+        $this->assertStringNotContainsString('Ana', $deTulum['contenido']);
+
+        $dePlaya = $consulta('Playa del Carmen');
+        $this->assertStringContainsString('Beto', $dePlaya['contenido']);
+        $this->assertStringNotContainsString('Carla', $dePlaya['contenido']);
+        // Sigue sin exponer columnas sensibles al consultar por tabla.
+        $this->assertStringNotContainsString('LOPA800101', $dePlaya['contenido']);
+
+        $this->assertTrue($consulta('Inexistente')['error']);
+    }
+
+    public function test_the_catalog_lists_every_table_of_a_section_with_its_own_columns(): void
+    {
+        $this->comoAdministrador();
+        $seccion = $this->seccionConColumnas(['Equipo' => TipoColumna::Texto]);
+        $seccion->tablaActiva()->update(['nombre' => 'Escaleras']);
+        $elevadores = $seccion->tablas()->create(['nombre' => 'Elevadores', 'orden' => 2]);
+        $elevadores->columnas()->create(['seccion_id' => $seccion->id, 'nombre' => 'Piso', 'clave' => 'piso', 'tipo' => TipoColumna::Numero, 'orden' => 1]);
+        $this->modelo->encolarTexto('Listo.');
+
+        $this->postJson(route('dashboard.asistente'), ['pregunta' => 'Hola'])->streamedContent();
+
+        $contexto = $this->modelo->peticiones[0]['system'][1]['text'];
+        $this->assertStringContainsString('[Escaleras]', $contexto);
+        $this->assertStringContainsString('[Elevadores]', $contexto);
+        $this->assertStringContainsString('Equipo [texto]', $contexto);
+        $this->assertStringContainsString('Piso [numero]', $contexto);
     }
 }

@@ -53,7 +53,7 @@ class ImportarLibrosExistentesCommandTest extends TestCase
         return $archivo;
     }
 
-    public function test_existing_workbook_generates_one_table_per_sheet_with_data(): void
+    public function test_existing_workbook_generates_one_table_per_sheet_inside_the_section(): void
     {
         $seccion = Seccion::factory()->create();
         $this->archivoExistente($seccion);
@@ -61,9 +61,10 @@ class ImportarLibrosExistentesCommandTest extends TestCase
         $this->artisan('secciones:importar-libros-existentes', ['--force' => true])->assertSuccessful();
 
         foreach (['Escaleras' => 2, 'Elevadores' => 1, 'Andenes' => 2] as $nombre => $filas) {
-            $this->assertSame($filas, Seccion::query()->where('nombre', $nombre)->sole()->filas()->count());
+            $this->assertSame($filas, $seccion->tablas()->where('nombre', $nombre)->sole()->filas()->count());
         }
-        $this->assertNull(Seccion::query()->where('nombre', 'Vacía')->first());
+        $this->assertNull($seccion->tablas()->where('nombre', 'Vacía')->first());
+        $this->assertSame(1, Seccion::query()->count(), 'las hojas no crean secciones nuevas');
         $this->assertSame(1, Activity::query()->where('event', 'importacion_libros_existentes')->count());
     }
 
@@ -76,7 +77,8 @@ class ImportarLibrosExistentesCommandTest extends TestCase
         $this->artisan('secciones:importar-libros-existentes', ['--force' => true])->assertSuccessful();
 
         $this->assertSame(5, SeccionFila::query()->count());
-        $this->assertSame(4, Seccion::query()->count());
+        $this->assertSame(1, Seccion::query()->count());
+        $this->assertSame(3, $seccion->tablas()->count());
     }
 
     public function test_dry_run_writes_nothing(): void

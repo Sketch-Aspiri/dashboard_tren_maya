@@ -14,6 +14,8 @@ use Illuminate\Validation\Rule;
  */
 class StoreSeccionArchivoRequest extends FormRequest
 {
+    use ConTablaDeSeccion;
+
     private const MAX_ARCHIVOS = 20;
 
     /**
@@ -37,7 +39,7 @@ class StoreSeccionArchivoRequest extends FormRequest
     {
         $extensiones = config('secciones.extensiones');
 
-        return [
+        return $this->reglaTabla() + [
             'archivos' => ['required', 'array', 'min:1', 'max:'.self::MAX_ARCHIVOS],
             'archivos.*' => [
                 'required',

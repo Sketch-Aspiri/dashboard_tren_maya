@@ -54,6 +54,7 @@ final class HerramientasAsistente
                 'strict' => true,
                 'inputSchema' => $this->esquema([
                     'seccion' => ['type' => 'string', 'description' => 'slug de la sección, del catálogo'],
+                    'tabla' => $nulable(['type' => 'string', 'description' => 'nombre de la tabla, solo si la sección tiene varias (se indican en el catálogo)']),
                     'filtros' => ['type' => 'array', 'items' => $this->esquema([
                         'columna' => ['type' => 'string'],
                         'operador' => ['type' => 'string', 'enum' => ConsultaFilasSeccion::OPERADORES],
@@ -160,6 +161,7 @@ final class HerramientasAsistente
             in_array($entrada['operacion'] ?? null, ConsultaFilasSeccion::OPERACIONES, true) ? $entrada['operacion'] : 'contar',
             isset($entrada['columna_objetivo']) ? (string) $entrada['columna_objetivo'] : null,
             (int) ($entrada['limite'] ?? 20),
+            isset($entrada['tabla']) ? (string) $entrada['tabla'] : null,
         );
     }
 

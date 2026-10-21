@@ -8,23 +8,24 @@ use App\Enums\TipoColumna;
 use App\Models\Seccion;
 use App\Models\SeccionArchivo;
 use App\Models\SeccionImportacion;
+use App\Models\SeccionTabla;
 use App\Models\User;
 use App\Support\Texto;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
  * Carga de un libro con varias hojas en una sola operación: cada hoja con
- * datos se vuelve una tabla propia (una sección en el mismo grupo, con el
- * nombre de la hoja; si ya existe una con ese nombre se carga en ella).
+ * datos se vuelve una tabla propia DENTRO de la misma sección, con el
+ * nombre de la hoja (si la sección ya tiene una tabla con ese nombre se
+ * carga en ella). No se crean secciones ni entradas de menú.
  *
  * Toda la carga es una sola importación: una transacción, un evento
  * resumen en la bitácora y un solo "deshacer" para todas las hojas
  * (ImportacionService::deshacer lee el registro de cambios que se guarda
- * aquí, incluidas las secciones creadas).
+ * aquí, incluidas las tablas creadas).
  */
 final class LibroImportacionService
 {
@@ -34,7 +35,6 @@ final class LibroImportacionService
         private readonly ImportacionService $importaciones,
         private readonly PlanificadorImportacion $planificador,
         private readonly PreparadorTabla $preparador,
-        private readonly MenuService $menu,
         private readonly ExtractorDocumentos $extractor,
         private readonly ArchivoService $archivos,
     ) {}
@@ -69,7 +69,7 @@ final class LibroImportacionService
 
         foreach ($importacion->tablas as $indice => $tabla) {
             $destino = $this->destinoExistente($importacion->seccion, $tabla['nombre']);
-            $propuesta = $this->importaciones->propuesta($importacion, $indice, null, $destino ?? new Seccion);
+            $propuesta = $this->importaciones->propuesta($importacion, $indice, null, $destino ?? new SeccionTabla);
 
             $propuestas[] = $propuesta + [
                 'nombre' => $tabla['nombre'],
@@ -141,8 +141,7 @@ final class LibroImportacionService
                 );
             }
 
-            // Operación de consola: no hay sesión que autorizar.
-            return $this->aplicar($importacion, new OpcionesLibro(ModoImportacion::Agregar, $hojas), $usuario, false);
+            return $this->aplicar($importacion, new OpcionesLibro(ModoImportacion::Agregar, $hojas), $usuario);
         });
     }
 
@@ -174,7 +173,7 @@ final class LibroImportacionService
     {
         $this->importaciones->exigirVistaPrevia($importacion);
         $this->exigirHojas($importacion, $opciones);
-        $destinos = $this->resolverDestinos($importacion, $opciones, true);
+        $destinos = $this->resolverDestinos($importacion, $opciones);
 
         $total = ['nuevas' => 0, 'actualizadas' => 0, 'sin_cambios' => 0, 'eliminadas' => 0];
         $hojas = [];
@@ -189,7 +188,7 @@ final class LibroImportacionService
             }
 
             $destino = $destinos[$indice];
-            $plan = $this->planificador->planear($destino ?? new Seccion, $importacion->tablas, $hoja);
+            $plan = $this->planificador->planear($destino ?? new SeccionTabla, $importacion->tablas, $hoja);
 
             $linea = [
                 'nuevas' => count($plan['nuevas']),
@@ -210,14 +209,14 @@ final class LibroImportacionService
     }
 
     /**
-     * @param  bool  $autorizar  false solo en la carga retroactiva por consola
-     *                           (sin usuario de sesión que autorizar).
+     * La autorización (gestionar los datos de la sección) la exige el
+     * controlador; todas las hojas caen dentro de esa misma sección.
      */
-    public function aplicar(SeccionImportacion $importacion, OpcionesLibro $opciones, ?User $usuario, bool $autorizar = true): SeccionImportacion
+    public function aplicar(SeccionImportacion $importacion, OpcionesLibro $opciones, ?User $usuario): SeccionImportacion
     {
         $this->importaciones->exigirVistaPrevia($importacion);
         $this->exigirHojas($importacion, $opciones);
-        $destinos = $this->resolverDestinos($importacion, $opciones, $autorizar);
+        $destinos = $this->resolverDestinos($importacion, $opciones);
 
         return DB::transaction(function () use ($importacion, $opciones, $usuario, $destinos): SeccionImportacion {
             // Bloqueo de fila: un doble clic en "Aplicar" no puede aplicar dos veces.
@@ -225,7 +224,7 @@ final class LibroImportacionService
             $this->importaciones->exigirVistaPrevia($importacion);
             $ahora = now();
 
-            $cambios = ['actualizadas' => [], 'eliminadas' => [], 'columnas_creadas' => [], 'secciones_creadas' => []];
+            $cambios = ['actualizadas' => [], 'eliminadas' => [], 'columnas_creadas' => [], 'tablas_creadas' => []];
             $resumen = ['nuevas' => 0, 'actualizadas' => 0, 'sin_cambios' => 0, 'eliminadas' => 0, 'columnas_nuevas' => 0, 'tabla' => null, 'hojas' => [], 'omitidas' => []];
 
             foreach ($opciones->hojas as $indice => $hoja) {
@@ -267,13 +266,13 @@ final class LibroImportacionService
      * @param  array<string, mixed>  $cambios
      * @param  array<string, mixed>  $resumen
      */
-    private function aplicarHoja(SeccionImportacion $importacion, OpcionesImportacion $hoja, ?Seccion $destino, ?User $usuario, CarbonInterface $ahora, array &$cambios, array &$resumen): void
+    private function aplicarHoja(SeccionImportacion $importacion, OpcionesImportacion $hoja, ?SeccionTabla $destino, ?User $usuario, CarbonInterface $ahora, array &$cambios, array &$resumen): void
     {
         $nombre = $importacion->tablas[$hoja->tabla]['nombre'];
 
         if ($destino === null) {
-            $destino = $this->menu->crearSeccion(['menu_grupo_id' => $importacion->seccion->menu_grupo_id, 'nombre' => Str::limit($nombre, self::MAX_NOMBRE, '')]);
-            $cambios['secciones_creadas'][] = $destino->id;
+            $destino = $this->crearTabla($importacion->seccion, Str::limit($nombre, self::MAX_NOMBRE, ''));
+            $cambios['tablas_creadas'][] = $destino->id;
         }
 
         $plan = $this->planificador->planear($destino, $importacion->tablas, $hoja);
@@ -294,7 +293,7 @@ final class LibroImportacionService
             $resumen[$clave] += $valor;
         }
 
-        $resumen['hojas'][] = ['nombre' => $nombre, 'seccion_id' => $destino->id] + $linea;
+        $resumen['hojas'][] = ['nombre' => $nombre, 'tabla_id' => $destino->id] + $linea;
         $cambios['columnas_creadas'] = [...$cambios['columnas_creadas'], ...$columnas];
         $cambios['eliminadas'] = [...$cambios['eliminadas'], ...$plan['eliminadas']];
         $cambios['actualizadas'] += array_map(fn (array $cambio) => $cambio['antes'], $plan['actualizadas']);
@@ -302,13 +301,12 @@ final class LibroImportacionService
 
     /**
      * Tabla destino de cada hoja con datos que se va a cargar (índice de la
-     * hoja => sección existente o null si se creará); las hojas sin datos no
-     * aparecen. Rechaza dos hojas que caerían en la misma tabla y exige
-     * poder gestionar los datos de cada sección existente.
+     * hoja => tabla existente de la sección o null si se creará); las hojas
+     * sin datos no aparecen. Rechaza dos hojas que caerían en la misma tabla.
      *
-     * @return array<int, ?Seccion>
+     * @return array<int, ?SeccionTabla>
      */
-    private function resolverDestinos(SeccionImportacion $importacion, OpcionesLibro $opciones, bool $autorizar): array
+    private function resolverDestinos(SeccionImportacion $importacion, OpcionesLibro $opciones): array
     {
         $destinos = [];
         $vistos = [];
@@ -329,11 +327,6 @@ final class LibroImportacionService
             }
 
             $vistos[$llave] = $tabla['nombre'];
-
-            if ($destino !== null && $autorizar) {
-                Gate::authorize('gestionarDatos', $destino);
-            }
-
             $destinos[$indice] = $destino;
         }
 
@@ -341,15 +334,32 @@ final class LibroImportacionService
     }
 
     /**
-     * La tabla destino de una hoja: la sección del mismo grupo que ya se
-     * llama como la hoja, o null si hay que crearla.
+     * La tabla destino de una hoja: la tabla de la sección que ya se llama
+     * como la hoja, o null si hay que crearla.
      */
-    private function destinoExistente(Seccion $base, string $nombreHoja): ?Seccion
+    private function destinoExistente(Seccion $seccion, string $nombreHoja): ?SeccionTabla
     {
-        return Seccion::query()
-            ->where('menu_grupo_id', $base->menu_grupo_id)
-            ->where('nombre', Str::limit($nombreHoja, self::MAX_NOMBRE, ''))
-            ->first();
+        return $seccion->tablas()->where('nombre', Str::limit($nombreHoja, self::MAX_NOMBRE, ''))->first();
+    }
+
+    /**
+     * Tabla nueva para una hoja. Si la sección solo tiene la tabla por
+     * defecto vacía (la que se crea sola al abrir una sección sin datos),
+     * se reutiliza con el nombre de la hoja en lugar de dejarla sobrando.
+     */
+    private function crearTabla(Seccion $seccion, string $nombre): SeccionTabla
+    {
+        $vacia = $seccion->tablas()->where('nombre', SeccionTabla::NOMBRE_POR_DEFECTO)->get()
+            // Filas dadas de baja cuentan: una carga previa podría restaurarlas en la tabla renombrada.
+            ->first(fn (SeccionTabla $tabla) => $tabla->filas()->withTrashed()->doesntExist() && $tabla->columnas()->doesntExist());
+
+        if ($vacia !== null) {
+            $vacia->update(['nombre' => $nombre]);
+
+            return $vacia;
+        }
+
+        return $seccion->tablas()->create(['nombre' => $nombre, 'orden' => (int) $seccion->tablas()->max('orden') + 1]);
     }
 
     /**

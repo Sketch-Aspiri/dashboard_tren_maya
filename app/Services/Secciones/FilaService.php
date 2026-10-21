@@ -2,13 +2,13 @@
 
 namespace App\Services\Secciones;
 
-use App\Models\Seccion;
 use App\Models\SeccionColumna;
 use App\Models\SeccionFila;
+use App\Models\SeccionTabla;
 use App\Models\User;
 
 /**
- * Alta, edición y baja manual de filas de la tabla de una sección. Cada
+ * Alta, edición y baja manual de filas de una tabla de una sección. Cada
  * operación queda en la bitácora vía LogsActivity de SeccionFila.
  */
 final class FilaService
@@ -18,11 +18,12 @@ final class FilaService
     /**
      * @param  array<string, mixed>  $valores  indexado por clave de columna (ya validado)
      */
-    public function crear(Seccion $seccion, array $valores, User $usuario): SeccionFila
+    public function crear(SeccionTabla $tabla, array $valores, User $usuario): SeccionFila
     {
-        $fila = new SeccionFila(['datos' => $this->normalizar($seccion, $valores, [])]);
+        $fila = new SeccionFila(['datos' => $this->normalizar($tabla, $valores, [])]);
         $fila->forceFill([
-            'seccion_id' => $seccion->id,
+            'seccion_id' => $tabla->seccion_id,
+            'seccion_tabla_id' => $tabla->id,
             'creado_por' => $usuario->id,
             'actualizado_por' => $usuario->id,
         ])->save();
@@ -35,7 +36,7 @@ final class FilaService
      */
     public function actualizar(SeccionFila $fila, array $valores, User $usuario): SeccionFila
     {
-        $fila->datos = $this->normalizar($fila->seccion, $valores, $fila->datos ?? []);
+        $fila->datos = $this->normalizar($fila->tabla, $valores, $fila->datos ?? []);
         $fila->forceFill(['actualizado_por' => $usuario->id])->save();
 
         return $fila;
@@ -54,11 +55,11 @@ final class FilaService
      * @param  array<string, mixed>  $actuales
      * @return array<string, mixed>
      */
-    private function normalizar(Seccion $seccion, array $valores, array $actuales): array
+    private function normalizar(SeccionTabla $tabla, array $valores, array $actuales): array
     {
         $datos = $actuales;
 
-        $seccion->columnas->each(function (SeccionColumna $columna) use ($valores, &$datos): void {
+        $tabla->columnas->each(function (SeccionColumna $columna) use ($valores, &$datos): void {
             if (array_key_exists($columna->clave, $valores)) {
                 $datos[$columna->clave] = $this->normalizador->normalizar($valores[$columna->clave], $columna->tipo);
             }
