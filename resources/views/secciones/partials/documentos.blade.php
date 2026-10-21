@@ -24,10 +24,10 @@
                     </div>
                 </div>
                 <div class="flex flex-wrap items-center gap-1 sm:justify-end">
-                    @if ($documento->admiteVistaPrevia())
-                        <a href="{{ route('secciones.archivos.show', [$seccion, $documento, 'ver' => 1]) }}" target="_blank" rel="noopener"
-                           class="min-h-[36px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Ver') }}</a>
-                    @endif
+                    <button type="button"
+                            x-data
+                            @click="$dispatch('vista-previa', { url: @js(route('secciones.archivos.vista-previa', [$seccion, $documento])), nombre: @js($documento->nombre_original) })"
+                            class="min-h-[36px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Ver') }}</button>
                     <a href="{{ route('secciones.archivos.show', [$seccion, $documento]) }}"
                        class="min-h-[36px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Descargar') }}</a>
                     @if ($puedeGestionar && $iaDisponible && in_array($documento->extension, $extensionesIa, true))
@@ -42,4 +42,6 @@
             </li>
         @endforeach
     </ul>
+
+    @include('secciones.partials.vista-previa-modal')
 @endif

@@ -27,6 +27,13 @@
                 @endif
                 <p class="mt-2 text-xs text-gray-600">{{ __('Nada se guarda en la tabla hasta que presiones "Aplicar". Revisa abajo qué columnas se importan y cómo.') }}</p>
 
+                @if (count($importacion->tablas) >= 2)
+                    <p class="mt-2 text-xs text-gray-600">
+                        {{ __('Este documento tiene varias hojas.') }}
+                        <a href="{{ route('secciones.importaciones.show', [$seccion, $importacion, 'libro' => 1]) }}" class="font-semibold text-brand-teal underline">{{ __('Cargar todas las hojas de una vez') }}</a>
+                    </p>
+                @endif
+
                 {{-- 1. Tabla del documento y fila de encabezados (recarga la página) --}}
                 <form method="GET" action="{{ route('secciones.importaciones.show', [$seccion, $importacion]) }}" class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div>

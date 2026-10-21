@@ -20,11 +20,17 @@ class SeccionArchivo extends Model
     protected $table = 'seccion_archivos';
 
     /**
-     * Extensiones que el navegador puede mostrar en línea (vista previa).
+     * Extensiones que el navegador puede mostrar en línea (vista previa) y
+     * su Content-Type: fuente única de ambas reglas.
      *
-     * @var list<string>
+     * @var array<string, string>
      */
-    private const EXTENSIONES_VISTA_PREVIA = ['pdf', 'jpg', 'jpeg', 'png'];
+    private const MIME_EN_LINEA = [
+        'pdf' => 'application/pdf',
+        'jpg' => 'image/jpeg',
+        'jpeg' => 'image/jpeg',
+        'png' => 'image/png',
+    ];
 
     /**
      * Todo lo asigna el servidor (ArchivoSeccionService); nada viene del
@@ -86,7 +92,16 @@ class SeccionArchivo extends Model
 
     public function admiteVistaPrevia(): bool
     {
-        return in_array($this->extension, self::EXTENSIONES_VISTA_PREVIA, true);
+        return $this->mimeEnLinea() !== null;
+    }
+
+    /**
+     * Content-Type con el que se sirve en línea. Lo decide el servidor por la
+     * extensión validada al subir, nunca el valor guardado ni el del cliente.
+     */
+    public function mimeEnLinea(): ?string
+    {
+        return self::MIME_EN_LINEA[$this->extension] ?? null;
     }
 
     public function tamanoLegible(): string

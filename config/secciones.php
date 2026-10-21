@@ -24,8 +24,22 @@ return [
     'max_filas_importacion' => 20000,
     'max_columnas' => 100,
 
+    // Hojas que se cargan de una vez al subir un libro de Excel.
+    'max_hojas_importacion' => 30,
+
     // Texto máximo que se indexa por documento (caracteres).
     'max_texto_indexado' => 1000000,
+
+    // Límites de la vista previa de documentos (PrevisualizadorArchivos).
+    'vista_previa_filas' => 500,
+    'vista_previa_columnas' => 30,
+    'vista_previa_caracteres' => 100000,
+
+    // Defensa contra "bombas zip" al previsualizar xlsx/docx/pptx: tope por
+    // entrada y total descomprimido (MB) y razón de compresión máxima.
+    'vista_previa_zip_entrada_mb' => 50,
+    'vista_previa_zip_total_mb' => 100,
+    'vista_previa_zip_ratio' => 100,
 
     'filas_por_pagina' => [25, 50, 100],
 

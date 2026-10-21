@@ -256,10 +256,73 @@ function vistaPreviaImportacion(inicial) {
 }
 
 /**
+ * Vista previa de un libro con varias hojas: cualquier cambio (hoja marcada,
+ * mapeo, modo, llave) invalida el resumen y pide al servidor el cálculo por
+ * hoja (POST .../libro/calcular), el mismo que se usa al aplicar.
+ *
+ * @param {Object} inicial
+ */
+function vistaPreviaLibro(inicial) {
+    return {
+        ...inicial,
+        resumen: null,
+        error: '',
+        calculando: false,
+        aplicando: false,
+        confirmaReemplazo: false,
+        consulta: 0,
+        temporizador: null,
+        puedeAplicar() {
+            const confirmado = this.modo !== 'reemplazar' || (this.resumen?.eliminadas ?? 0) === 0 || this.confirmaReemplazo;
+            return !this.aplicando && !this.calculando && !this.error && this.resumen !== null && confirmado;
+        },
+        calcular() {
+            this.calculando = true;
+            this.resumen = null;
+            this.confirmaReemplazo = false;
+            clearTimeout(this.temporizador);
+            this.temporizador = setTimeout(() => this.pedirCalculo(), 250);
+        },
+        async pedirCalculo() {
+            const consulta = ++this.consulta;
+            this.error = '';
+            try {
+                const respuesta = await fetch(this.urlCalcular, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { Accept: 'application/json', 'X-CSRF-TOKEN': tokenCsrf(), 'X-Requested-With': 'XMLHttpRequest' },
+                    body: new FormData(this.$refs.formulario),
+                });
+                const cuerpo = await respuesta.json().catch(() => null);
+                if (consulta !== this.consulta) {
+                    return;
+                }
+                if (respuesta.ok && cuerpo?.success) {
+                    this.resumen = cuerpo.data;
+                } else {
+                    this.resumen = null;
+                    this.error = mensajesDeError(respuesta.status, cuerpo).join(' ');
+                }
+            } catch {
+                if (consulta === this.consulta) {
+                    this.resumen = null;
+                    this.error = 'Revisa tu conexión e intenta de nuevo.';
+                }
+            } finally {
+                if (consulta === this.consulta) {
+                    this.calculando = false;
+                }
+            }
+        },
+    };
+}
+
+/**
  * @param {import('alpinejs').Alpine} Alpine
  */
 export function registrarSecciones(Alpine) {
     Alpine.data('zonaArrastre', zonaArrastre);
     Alpine.data('filaFormulario', filaFormulario);
     Alpine.data('vistaPreviaImportacion', vistaPreviaImportacion);
+    Alpine.data('vistaPreviaLibro', vistaPreviaLibro);
 }

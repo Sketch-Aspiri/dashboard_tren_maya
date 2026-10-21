@@ -3,6 +3,7 @@
 namespace App\Services\Secciones;
 
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory as SpreadsheetIOFactory;
 use PhpOffice\PhpSpreadsheet\RichText\RichText;
@@ -81,10 +82,18 @@ final class ExtractorDocumentos
             return [];
         }
 
-        return array_values(array_filter(
+        $tablas = array_values(array_filter(
             array_map(fn (array $tabla) => ['nombre' => $tabla['nombre'], 'filas' => $this->recortar($tabla['filas'])], $tablas),
             fn (array $tabla) => count($tabla['filas']) >= self::MIN_FILAS_TABLA,
         ));
+
+        $maximo = (int) config('secciones.max_hojas_importacion');
+
+        if (count($tablas) > $maximo) {
+            throw ValidationException::withMessages(['archivos' => __('El documento tiene :n hojas o tablas con datos y el máximo es :max. Divídelo en varios archivos.', ['n' => count($tablas), 'max' => $maximo])]);
+        }
+
+        return $tablas;
     }
 
     public function texto(string $ruta, string $extension): ?string

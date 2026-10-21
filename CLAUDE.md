@@ -116,6 +116,12 @@ php artisan asistencia:importar-orden-oficio
 # Personal también se importa arrastrando el Excel en RR.HH. > Personal; por consola:
 php artisan app:import-agenda-zona-oriente
 
+# Carga retroactiva: crea una tabla por cada hoja con datos de los Excel (xlsx/xls) ya
+# guardados en los documentos de las secciones. Idempotente (no repite hojas ya
+# cargadas), transaccional por archivo, deshacible desde la pestaña Cargas.
+# --dry-run solo lista lo que haría; --seccion=<slug> limita a una sección
+php artisan secciones:importar-libros-existentes [--dry-run] [--seccion=slug]
+
 # Generar recursos
 php artisan make:model NombreModelo -mcr
 php artisan make:request NombreRequest
@@ -160,6 +166,7 @@ concepto, cada concepto del menú es una **sección dinámica**
 - "Extraer con IA" (PDF escaneado, foto, Word sin tablas) usa la Claude API
   con salidas estructuradas y entra a la misma vista previa. Opcional:
   apagado si `ANTHROPIC_API_KEY` está vacío.
+- Un Excel con varias hojas se sube una sola vez: la vista previa muestra todas las hojas (desmarcables, con mapeo por hoja) y crea una tabla por hoja como sección hermana en el mismo grupo (si ya existe una con el nombre de la hoja, carga en ella). Una carga = una importación, un evento resumen y un solo deshacer (`LibroImportacionService`, máx. `secciones.max_hojas_importacion`).
 - Las importaciones masivas registran un evento resumen en la bitácora
   (`importacion_aplicada` / `importacion_deshecha`), no una entrada por fila.
 

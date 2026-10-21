@@ -117,6 +117,11 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
         });
 
+        // Vista previa de documentos (lee Excel/Word en el servidor).
+        RateLimiter::for('secciones-vista-previa', function (Request $request) {
+            return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
+        });
+
         // Todo lo que llama a la Claude API (asistente y "Extraer con IA"):
         // por minuto y tope diario, para acotar costo y abuso.
         RateLimiter::for('ia', function (Request $request) {

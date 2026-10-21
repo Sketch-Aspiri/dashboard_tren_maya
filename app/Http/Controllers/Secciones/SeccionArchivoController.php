@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Secciones;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Secciones\StoreSeccionArchivoRequest;
+use App\Http\Requests\Secciones\VistaPreviaArchivoRequest;
 use App\Models\Seccion;
 use App\Models\SeccionArchivo;
 use App\Models\SeccionFila;
 use App\Services\Secciones\ArchivoService;
 use App\Services\Secciones\ImportacionService;
+use App\Services\Secciones\PrevisualizadorArchivos;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,6 +26,7 @@ class SeccionArchivoController extends Controller
     public function __construct(
         private readonly ArchivoService $archivos,
         private readonly ImportacionService $importaciones,
+        private readonly PrevisualizadorArchivos $previsualizador,
     ) {}
 
     public function store(StoreSeccionArchivoRequest $request, Seccion $seccion): JsonResponse|RedirectResponse
@@ -67,7 +70,7 @@ class SeccionArchivoController extends Controller
     {
         $this->authorize('view', $seccion);
 
-        $enLinea = $request->boolean('ver') && $archivo->admiteVistaPrevia();
+        $enLinea = $request->boolean('ver') && $archivo->mimeEnLinea() !== null;
 
         activity('seccion')
             ->causedBy($request->user())
@@ -79,8 +82,41 @@ class SeccionArchivoController extends Controller
         $cabeceras = ['X-Content-Type-Options' => 'nosniff'];
 
         return $enLinea
-            ? $disco->response($archivo->ruta, $archivo->nombre_original, $cabeceras + ['Content-Type' => $archivo->mime])
+            ? $disco->response($archivo->ruta, $archivo->nombre_original, $cabeceras + ['Content-Type' => $archivo->mimeEnLinea()])
             : $disco->download($archivo->ruta, $archivo->nombre_original, $cabeceras);
+    }
+
+    /**
+     * Datos para la vista previa del modal. PDF e imágenes solo devuelven la
+     * URL en línea (esa ruta registra la consulta); el resto se lee aquí.
+     */
+    public function vistaPrevia(VistaPreviaArchivoRequest $request, Seccion $seccion, SeccionArchivo $archivo): JsonResponse
+    {
+        $this->authorize('view', $seccion);
+
+        $hoja = (int) $request->validated('hoja', 0);
+        $datos = $this->previsualizador->previsualizar($archivo, $hoja);
+
+        if (in_array($datos['tipo'], ['pdf', 'imagen'], true)) {
+            $datos['url'] = route('secciones.archivos.show', [$seccion, $archivo, 'ver' => 1]);
+        } elseif ($hoja === 0 && $datos['tipo'] !== 'no_soportado') {
+            // Una consulta por documento: cambiar de hoja o no poder mostrarlo no cuentan.
+            activity('seccion')
+                ->causedBy($request->user())
+                ->performedOn($archivo)
+                ->event('documento_visto')
+                ->log('Consulta de documento de sección.');
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $datos + [
+                'nombre' => $archivo->nombre_original,
+                'url_descarga' => route('secciones.archivos.show', [$seccion, $archivo]),
+            ],
+            'error' => null,
+            'meta' => null,
+        ]);
     }
 
     public function destroy(Seccion $seccion, SeccionArchivo $archivo): RedirectResponse

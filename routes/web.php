@@ -133,6 +133,9 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
 
         Route::scopeBindings()->group(function () {
             Route::get('/{seccion}/archivos/{archivo}', [SeccionArchivoController::class, 'show'])->name('archivos.show');
+            Route::get('/{seccion}/archivos/{archivo}/vista-previa', [SeccionArchivoController::class, 'vistaPrevia'])
+                ->middleware('throttle:secciones-vista-previa')
+                ->name('archivos.vista-previa');
             Route::get('/{seccion}/importaciones/{importacion}', [SeccionImportacionController::class, 'show'])->name('importaciones.show');
 
             Route::middleware('throttle:secciones-write')->group(function () {
@@ -153,6 +156,8 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
 
                 Route::post('/{seccion}/importaciones/{importacion}/calcular', [SeccionImportacionController::class, 'calcular'])->name('importaciones.calcular');
                 Route::post('/{seccion}/importaciones/{importacion}/aplicar', [SeccionImportacionController::class, 'aplicar'])->name('importaciones.aplicar');
+                Route::post('/{seccion}/importaciones/{importacion}/libro/calcular', [SeccionImportacionController::class, 'calcularLibro'])->name('importaciones.libro.calcular');
+                Route::post('/{seccion}/importaciones/{importacion}/libro/aplicar', [SeccionImportacionController::class, 'aplicarLibro'])->name('importaciones.libro.aplicar');
                 Route::post('/{seccion}/importaciones/{importacion}/deshacer', [SeccionImportacionController::class, 'deshacer'])->name('importaciones.deshacer');
                 Route::delete('/{seccion}/importaciones/{importacion}', [SeccionImportacionController::class, 'destroy'])->name('importaciones.destroy');
             });

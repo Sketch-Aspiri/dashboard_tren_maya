@@ -61,7 +61,7 @@ final class ImportacionService
     /**
      * @param  list<array{nombre: string, filas: list<list<mixed>>}>  $tablas
      */
-    public function desdeTablas(Seccion $seccion, ?SeccionArchivo $archivo, array $tablas, string $origen, User $usuario): SeccionImportacion
+    public function desdeTablas(Seccion $seccion, ?SeccionArchivo $archivo, array $tablas, string $origen, ?User $usuario): SeccionImportacion
     {
         $importacion = new SeccionImportacion([
             'seccion_archivo_id' => $archivo?->id,
@@ -70,7 +70,7 @@ final class ImportacionService
             'tablas' => $tablas,
         ]);
 
-        $importacion->forceFill(['seccion_id' => $seccion->id, 'usuario_id' => $usuario->id])->save();
+        $importacion->forceFill(['seccion_id' => $seccion->id, 'usuario_id' => $usuario?->id])->save();
 
         return $importacion;
     }
@@ -81,8 +81,9 @@ final class ImportacionService
      *
      * @return array<string, mixed>
      */
-    public function propuesta(SeccionImportacion $importacion, int $tabla, ?int $filaEncabezado = null): array
+    public function propuesta(SeccionImportacion $importacion, int $tabla, ?int $filaEncabezado = null, ?Seccion $destino = null): array
     {
+        $destino ??= $importacion->seccion;
         $filas = $importacion->tablas[$tabla]['filas'] ?? $importacion->tablas[0]['filas'] ?? [];
         $tabla = isset($importacion->tablas[$tabla]) ? $tabla : 0;
 
@@ -91,7 +92,7 @@ final class ImportacionService
 
         $encabezados = $this->preparador->encabezados($filas, $filaEncabezado);
         $datos = $this->preparador->datos($filas, $filaEncabezado);
-        $columnas = $importacion->seccion->columnas()->get();
+        $columnas = $destino->columnas()->get();
 
         $mapeo = [];
         $tipos = [];
@@ -110,7 +111,7 @@ final class ImportacionService
         }
 
         $llave = $this->llaveSugerida($encabezados, $datos);
-        $tieneFilas = $importacion->seccion->filas()->exists();
+        $tieneFilas = $destino->filas()->exists();
 
         return [
             'tabla' => $tabla,
@@ -240,7 +241,8 @@ final class ImportacionService
                 SeccionFila::withTrashed()->whereIn('id', $ids)->toBase()->update(['deleted_at' => null]);
             }
 
-            $this->quitarColumnasSinValores($importacion, $cambios['columnas_creadas'] ?? []);
+            $this->quitarColumnasSinValores($cambios['columnas_creadas'] ?? []);
+            $this->quitarSeccionesVacias($cambios['secciones_creadas'] ?? []);
 
             $importacion->update(['estado' => EstadoImportacion::Deshecha, 'deshecha_at' => now()]);
 
@@ -295,6 +297,10 @@ final class ImportacionService
             return __('Solo se puede deshacer la carga aplicada más reciente de esta sección.');
         }
 
+        if ($this->hayCargaPosteriorEnSeccionesDestino($importacion)) {
+            return __('Solo se puede deshacer la carga aplicada más reciente de cada tabla que ésta tocó: hay una carga posterior en una de sus hojas.');
+        }
+
         $aplicada = $importacion->aplicada_at;
         $actualizadas = array_map('intval', array_keys($importacion->cambios['actualizadas'] ?? []));
 
@@ -318,10 +324,38 @@ final class ImportacionService
     }
 
     /**
+     * Una carga de libro toca varias secciones: si en cualquiera de ellas
+     * (hojas de su resumen) hay una carga aplicada posterior, deshacerla
+     * pisaría esa carga.
+     */
+    private function hayCargaPosteriorEnSeccionesDestino(SeccionImportacion $importacion): bool
+    {
+        $destinos = array_map('intval', array_column($importacion->resumen['hojas'] ?? [], 'seccion_id'));
+
+        if ($destinos === []) {
+            return false;
+        }
+
+        return SeccionImportacion::query()
+            ->where('estado', EstadoImportacion::Aplicada->value)
+            ->whereKeyNot($importacion->id)
+            ->where(fn ($q) => $q->where('aplicada_at', '>', $importacion->aplicada_at)
+                ->orWhere(fn ($q) => $q->where('aplicada_at', $importacion->aplicada_at)->where('id', '>', $importacion->id)))
+            ->get(['id', 'seccion_id', 'resumen'])
+            ->contains(fn (SeccionImportacion $otra) => array_intersect(
+                $destinos,
+                [(int) $otra->seccion_id, ...array_map('intval', array_column($otra->resumen['hojas'] ?? [], 'seccion_id'))],
+            ) !== []);
+    }
+
+    /**
+     * Escritura en bloque de un plan (usada también por la carga de libros
+     * con varias hojas).
+     *
      * @param  array<int, array{nombre: string, clave: string, tipo: TipoColumna}>  $columnasNuevas
      * @return list<int>
      */
-    private function crearColumnas(Seccion $seccion, array $columnasNuevas): array
+    public function crearColumnas(Seccion $seccion, array $columnasNuevas): array
     {
         $orden = (int) $seccion->columnas()->max('orden');
         $ids = [];
@@ -341,7 +375,7 @@ final class ImportacionService
     /**
      * @param  list<array<string, mixed>>  $nuevas
      */
-    private function insertarFilas(Seccion $seccion, SeccionImportacion $importacion, array $nuevas, User $usuario, CarbonInterface $ahora): void
+    public function insertarFilas(Seccion $seccion, SeccionImportacion $importacion, array $nuevas, ?User $usuario, CarbonInterface $ahora): void
     {
         foreach (array_chunk($nuevas, self::CHUNK) as $bloque) {
             SeccionFila::query()->insert(array_map(fn (array $datos) => [
@@ -349,8 +383,8 @@ final class ImportacionService
                 'datos' => self::json($datos),
                 'texto_busqueda' => SeccionFila::textoBusqueda($datos),
                 'seccion_importacion_id' => $importacion->id,
-                'creado_por' => $usuario->id,
-                'actualizado_por' => $usuario->id,
+                'creado_por' => $usuario?->id,
+                'actualizado_por' => $usuario?->id,
                 'created_at' => $ahora,
                 'updated_at' => $ahora,
             ], $bloque));
@@ -360,13 +394,13 @@ final class ImportacionService
     /**
      * @param  array<int, array{antes: array<string, mixed>, despues: array<string, mixed>}>  $actualizadas
      */
-    private function actualizarFilas(array $actualizadas, User $usuario, CarbonInterface $ahora): void
+    public function actualizarFilas(array $actualizadas, ?User $usuario, CarbonInterface $ahora): void
     {
         foreach ($actualizadas as $id => $cambio) {
             SeccionFila::query()->whereKey($id)->toBase()->update([
                 'datos' => self::json($cambio['despues']),
                 'texto_busqueda' => SeccionFila::textoBusqueda($cambio['despues']),
-                'actualizado_por' => $usuario->id,
+                'actualizado_por' => $usuario?->id,
                 'updated_at' => $ahora,
             ]);
         }
@@ -386,7 +420,7 @@ final class ImportacionService
     /**
      * @param  list<int>  $ids
      */
-    private function eliminarFilas(array $ids, CarbonInterface $ahora): void
+    public function eliminarFilas(array $ids, CarbonInterface $ahora): void
     {
         foreach (array_chunk($ids, self::CHUNK) as $bloque) {
             SeccionFila::query()->whereIn('id', $bloque)->toBase()->update(['deleted_at' => $ahora]);
@@ -395,33 +429,50 @@ final class ImportacionService
 
     /**
      * Al deshacer, las columnas que creó la importación se quitan salvo que
-     * alguien ya haya capturado valores en ellas después.
+     * alguien ya haya capturado valores en ellas después. Pueden ser de
+     * varias secciones (carga de un libro con varias hojas).
      *
      * @param  list<int>  $ids
      */
-    private function quitarColumnasSinValores(SeccionImportacion $importacion, array $ids): void
+    private function quitarColumnasSinValores(array $ids): void
     {
-        $columnas = SeccionColumna::query()->whereIn('id', $ids)->where('seccion_id', $importacion->seccion_id)->get()->keyBy('clave');
+        $porSeccion = SeccionColumna::query()->whereIn('id', $ids)->get()->groupBy('seccion_id');
 
-        if ($columnas->isEmpty()) {
-            return;
-        }
+        foreach ($porSeccion as $seccionId => $columnas) {
+            $columnas = $columnas->keyBy('clave');
 
-        // Una sola pasada por las filas, anotando qué claves tienen valor.
-        $conValor = [];
+            // Una sola pasada por las filas, anotando qué claves tienen valor.
+            $conValor = [];
 
-        SeccionFila::query()->where('seccion_id', $importacion->seccion_id)->select(['id', 'datos'])
-            ->chunkById(self::CHUNK, function ($filas) use ($columnas, &$conValor): void {
-                foreach ($filas as $fila) {
-                    foreach ($columnas->keys() as $clave) {
-                        if (($fila->datos[$clave] ?? null) !== null) {
-                            $conValor[$clave] = true;
+            SeccionFila::query()->where('seccion_id', $seccionId)->select(['id', 'datos'])
+                ->chunkById(self::CHUNK, function ($filas) use ($columnas, &$conValor): void {
+                    foreach ($filas as $fila) {
+                        foreach ($columnas->keys() as $clave) {
+                            if (($fila->datos[$clave] ?? null) !== null) {
+                                $conValor[$clave] = true;
+                            }
                         }
                     }
-                }
-            });
+                });
 
-        $columnas->reject(fn (SeccionColumna $columna) => isset($conValor[$columna->clave]))->each->delete();
+            $columnas->reject(fn (SeccionColumna $columna) => isset($conValor[$columna->clave]))->each->delete();
+        }
+    }
+
+    /**
+     * Secciones que creó la carga de un libro: se dan de baja si siguen
+     * vacías (sin filas, columnas ni documentos); si alguien ya trabajó en
+     * ellas se conservan.
+     *
+     * @param  list<int>  $ids
+     */
+    private function quitarSeccionesVacias(array $ids): void
+    {
+        Seccion::query()->whereIn('id', $ids)->get()->each(function (Seccion $seccion): void {
+            if ($seccion->filas()->doesntExist() && $seccion->columnas()->doesntExist() && $seccion->archivos()->doesntExist()) {
+                $seccion->delete();
+            }
+        });
     }
 
     /**
@@ -469,7 +520,7 @@ final class ImportacionService
         return $cambios;
     }
 
-    private function exigirVistaPrevia(SeccionImportacion $importacion): void
+    public function exigirVistaPrevia(SeccionImportacion $importacion): void
     {
         if (! $importacion->isVistaPrevia()) {
             throw ValidationException::withMessages(['importacion' => __('Esta carga ya fue aplicada o descartada.')]);

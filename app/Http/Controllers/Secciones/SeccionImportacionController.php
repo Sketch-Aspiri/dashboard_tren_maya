@@ -6,11 +6,13 @@ use App\Enums\ModoImportacion;
 use App\Enums\TipoColumna;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Secciones\OpcionesImportacionRequest;
+use App\Http\Requests\Secciones\OpcionesLibroRequest;
 use App\Models\Seccion;
 use App\Models\SeccionArchivo;
 use App\Models\SeccionImportacion;
 use App\Services\Secciones\ExtractorIa;
 use App\Services\Secciones\ImportacionService;
+use App\Services\Secciones\LibroImportacionService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -23,7 +25,10 @@ use Illuminate\Http\Request;
  */
 class SeccionImportacionController extends Controller
 {
-    public function __construct(private readonly ImportacionService $importaciones) {}
+    public function __construct(
+        private readonly ImportacionService $importaciones,
+        private readonly LibroImportacionService $libros,
+    ) {}
 
     public function show(Request $request, Seccion $seccion, SeccionImportacion $importacion): View|RedirectResponse
     {
@@ -31,6 +36,19 @@ class SeccionImportacionController extends Controller
 
         if (! $importacion->isVistaPrevia()) {
             return redirect()->route('secciones.show', [$seccion, 'tab' => 'cargas']);
+        }
+
+        // Un Excel con varias hojas se revisa completo, salvo que se pida una sola.
+        // Word/IA mantienen el flujo de una tabla (con el enlace "cargar todas" = ?libro=1).
+        if ($this->libros->esLibro($importacion) && ! $request->has('tabla') && ($request->boolean('libro') || $this->libros->esExcel($importacion))) {
+            return view('secciones.importacion-libro', [
+                'seccion' => $seccion->load('grupo'),
+                'importacion' => $importacion->load('archivo'),
+                'hojas' => $this->libros->propuestas($importacion),
+                'tiposColumna' => TipoColumna::cases(),
+                'modos' => ModoImportacion::cases(),
+                'maxHojas' => (int) config('secciones.max_hojas_importacion'),
+            ]);
         }
 
         $tabla = max(0, (int) $request->query('tabla', 0));
@@ -67,6 +85,31 @@ class SeccionImportacionController extends Controller
         return redirect()->route('secciones.show', $seccion)->with('status', __(
             'Carga aplicada: :nuevas nuevas, :actualizadas actualizadas, :eliminadas eliminadas. Puedes deshacerla desde la pestaña "Cargas".',
             ['nuevas' => $resumen['nuevas'], 'actualizadas' => $resumen['actualizadas'], 'eliminadas' => $resumen['eliminadas']],
+        ));
+    }
+
+    public function calcularLibro(OpcionesLibroRequest $request, Seccion $seccion, SeccionImportacion $importacion): JsonResponse
+    {
+        $this->authorize('gestionarDatos', $seccion);
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->libros->calcular($importacion, $request->opciones()),
+            'error' => null,
+            'meta' => null,
+        ]);
+    }
+
+    public function aplicarLibro(OpcionesLibroRequest $request, Seccion $seccion, SeccionImportacion $importacion): RedirectResponse
+    {
+        $this->authorize('gestionarDatos', $seccion);
+        $this->authorize('create', Seccion::class);
+
+        $resumen = $this->libros->aplicar($importacion, $request->opciones(), $request->user())->resumen;
+
+        return redirect()->route('secciones.show', $seccion)->with('status', __(
+            'Libro cargado: :hojas tabla(s) con :nuevas filas nuevas y :actualizadas actualizadas. Puedes deshacerlo completo desde la pestaña "Cargas".',
+            ['hojas' => count($resumen['hojas']), 'nuevas' => $resumen['nuevas'], 'actualizadas' => $resumen['actualizadas']],
         ));
     }
 
