@@ -154,6 +154,23 @@ concepto, cada concepto del menú es una **sección dinámica**
   define el catálogo inicial (`MenuSeeder`) y los módulos fijos con ruta
   propia (Personal y Asistencia, que dependen de modelos estructurados y
   generan oficios).
+- Las secciones se anidan como carpetas (`secciones.parent_id`, máx.
+  `Seccion::PROFUNDIDAD_MAXIMA` = 6 niveles): p. ej. Sección > Estación >
+  Persona. Cada subsección es una sección completa (sus tablas, documentos y
+  cargas); hereda el grupo del menú de su raíz (`MenuService` lo mantiene al
+  mover) y se mueve con *Editar > Ubicación*. Quitar una sección quita también
+  sus subsecciones (baja lógica). El menú solo despliega la rama abierta; el
+  buscador las encuentra todas con su ruta.
+- *Editar > Solo documentos* (`secciones.solo_documentos`) quita la parte de
+  tabla de una sección: sin tabla, columnas, exportación ni cargas, y los
+  archivos que se suban solo se guardan (no se leen sus tablas). Los datos ya
+  capturados se conservan si se vuelve a desactivar.
+- Tipo de columna *Teléfono*: guarda el valor como `983 168 7870`
+  (10 dígitos; acepta guiones, puntos, paréntesis, +52/044/01 y extensión
+  "ext. 123"). En captura manual rechaza lo que no sea un teléfono de 10
+  dígitos; al importar o cambiar el tipo conserva el texto original si no
+  puede convertirlo. Al importar se sugiere por el encabezado (Teléfono,
+  Celular…) o por los separadores de los valores.
 - Cada sección tiene una o varias tablas (`seccion_tablas`; la primera se
   crea sola con el nombre "Principal"). Cada tabla es configurable
   (`seccion_columnas`: texto, número, fecha, sí/no, lista; valores en

@@ -49,6 +49,10 @@
                                         <option value="0">{{ __('No') }}</option>
                                     </select>
                                     @break
+                                @case(\App\Enums\TipoColumna::Telefono)
+                                    <input id="{{ $campo }}" type="tel" inputmode="tel" maxlength="40" placeholder="983 168 7870" name="datos[{{ $columna->clave }}]" x-model="valores[@js($columna->clave)]"
+                                           class="mt-1 block min-h-[44px] w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal">
+                                    @break
                                 @case(\App\Enums\TipoColumna::Lista)
                                     <select id="{{ $campo }}" name="datos[{{ $columna->clave }}]" x-model="valores[@js($columna->clave)]"
                                             class="mt-1 block min-h-[44px] w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal">

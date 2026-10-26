@@ -20,7 +20,8 @@ class StoreSeccionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'menu_grupo_id' => ['required', 'integer', Rule::exists('menu_grupos', 'id')],
+            'menu_grupo_id' => ['required_without:parent_id', 'nullable', 'integer', Rule::exists('menu_grupos', 'id')],
+            'parent_id' => ['nullable', 'integer', Rule::exists('secciones', 'id')->whereNull('deleted_at')],
             'nombre' => ['required', 'string', 'max:160'],
             'descripcion' => ['nullable', 'string', 'max:2000'],
         ];

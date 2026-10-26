@@ -1,6 +1,8 @@
 @php
     $puedeGestionar = auth()->user()->can('gestionarDatos', $seccion);
     $puedeEditarSeccion = auth()->user()->can('update', $seccion);
+    // "Solo documentos": sin tabla, columnas, exportación ni cargas.
+    $soloDocumentos = $seccion->solo_documentos;
     $columnas = $tablaActiva->columnas;
     // Solo con varias tablas se arrastra ?tabla= (URLs limpias en secciones de una tabla).
     $parametroTabla = $tablas->count() > 1 ? ['tabla' => $tablaActiva->id] : [];
@@ -13,7 +15,13 @@
 
 <x-app-layout>
     <x-slot name="header">
-        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">{{ $seccion->grupo->nombre }}</p>
+        <nav aria-label="{{ __('Ubicación') }}" class="flex flex-wrap items-center gap-x-1 text-xs font-medium uppercase tracking-wide text-gray-500">
+            <span>{{ $seccion->grupo->nombre }}</span>
+            @foreach ($ancestros as $ancestro)
+                <span aria-hidden="true">›</span>
+                <a href="{{ route('secciones.show', $ancestro) }}" class="hover:text-brand-teal hover:underline">{{ $ancestro->nombre }}</a>
+            @endforeach
+        </nav>
         <h2 class="font-heading text-xl font-semibold leading-tight text-brand-green">{{ $seccion->nombre }}</h2>
     </x-slot>
 
@@ -21,7 +29,7 @@
         <div class="mx-auto max-w-7xl space-y-5 px-4 sm:px-6 lg:px-8">
             @include('secciones.partials.mensajes')
 
-            @if ($cargaPendiente && $puedeGestionar)
+            @if ($cargaPendiente && $puedeGestionar && ! $soloDocumentos)
                 <div class="flex flex-col gap-2 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between" role="status">
                     <span>{{ __('Tienes una carga sin aplicar: :doc.', ['doc' => $cargaPendiente->archivo?->nombre_original ?? __('documento')]) }}</span>
                     <a href="{{ route('secciones.importaciones.show', [$seccion, $cargaPendiente]) }}"
@@ -33,11 +41,15 @@
                 <p class="text-sm text-gray-600">{{ $seccion->descripcion }}</p>
             @endif
 
+            @include('secciones.partials.subsecciones')
+
             @if ($puedeGestionar)
                 <x-zona-arrastre id="zona-seccion" :url="route('secciones.archivos.store', array_merge([$seccion], $parametroTabla))"
-                                 :compacta="$filas->total() > 0"
-                                 :titulo="__('Arrastra aquí Excel, Word, PDF o imágenes')"
-                                 :ayuda="__('Si el archivo trae una tabla, el sistema la detecta y te muestra una vista previa antes de crear o actualizar la tabla de esta sección. Todo archivo queda guardado en Documentos.')" />
+                                 :compacta="$soloDocumentos ? $documentos->isNotEmpty() : $filas->total() > 0"
+                                 :titulo="$soloDocumentos ? __('Arrastra aquí tus documentos') : __('Arrastra aquí Excel, Word, PDF o imágenes')"
+                                 :ayuda="$soloDocumentos
+                                     ? __('Esta sección solo guarda documentos: los archivos se guardan tal cual, sin leer sus tablas.')
+                                     : __('Si el archivo trae una tabla, el sistema la detecta y te muestra una vista previa antes de crear o actualizar la tabla de esta sección. Todo archivo queda guardado en Documentos.')" />
             @endif
 
             {{-- Barra: búsqueda + acciones --}}
@@ -49,11 +61,12 @@
                     @endisset
                     <label for="buscar-seccion" class="sr-only">{{ __('Buscar en esta sección') }}</label>
                     <input id="buscar-seccion" type="search" name="q" value="{{ $filtros['q'] }}"
-                           placeholder="{{ __('Buscar en la tabla y en los documentos…') }}"
+                           placeholder="{{ $soloDocumentos ? __('Buscar en los documentos…') : __('Buscar en la tabla y en los documentos…') }}"
                            class="min-h-[44px] w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal">
                     <button type="submit" class="min-h-[44px] rounded-md bg-brand-green px-4 text-sm font-semibold text-white hover:bg-brand-green-dark focus:outline-none focus:ring-2 focus:ring-brand-teal focus:ring-offset-2">{{ __('Buscar') }}</button>
                 </form>
 
+                @unless ($soloDocumentos)
                 <div class="flex flex-wrap gap-2">
                     @if ($puedeGestionar && $columnas->isNotEmpty())
                         <button type="button" x-data @click="$dispatch('fila-nueva')"
@@ -74,16 +87,19 @@
                         </a>
                     @endif
                 </div>
+                @endunless
             </div>
 
             {{-- Pestañas --}}
             <div class="border-b border-brand-green/15" role="tablist" aria-label="{{ __('Contenido de la sección') }}">
                 <nav class="-mb-px flex gap-4 overflow-x-auto">
-                    @foreach ([
-                        'tabla' => __('Tabla').' ('.$filas->total().')',
-                        'documentos' => __('Documentos').' ('.$documentos->count().')',
-                        'cargas' => __('Cargas').' ('.$cargas->count().')',
-                    ] as $clave => $etiqueta)
+                    @foreach ($soloDocumentos
+                        ? ['documentos' => __('Documentos').' ('.$documentos->count().')']
+                        : [
+                            'tabla' => __('Tabla').' ('.$filas->total().')',
+                            'documentos' => __('Documentos').' ('.$documentos->count().')',
+                            'cargas' => __('Cargas').' ('.$cargas->count().')',
+                        ] as $clave => $etiqueta)
                         <button type="button" role="tab" @click="tab = @js($clave)" :aria-selected="(tab === @js($clave)).toString()"
                                 :class="tab === @js($clave) ? 'border-brand-teal text-brand-green font-semibold' : 'border-transparent text-gray-600 hover:text-brand-green'"
                                 class="min-h-[44px] whitespace-nowrap border-b-4 px-1 text-sm">
@@ -93,6 +109,7 @@
                 </nav>
             </div>
 
+            @unless ($soloDocumentos)
             <div x-show="tab === 'tabla'" role="tabpanel">
                 {{-- Una sub-pestaña por tabla de la sección (p. ej. las hojas de un libro de Excel). --}}
                 @if ($tablas->count() > 1)
@@ -112,17 +129,20 @@
 
                 @include('secciones.partials.tabla')
             </div>
+            @endunless
 
             <div x-show="tab === 'documentos'" x-cloak role="tabpanel">
                 @include('secciones.partials.documentos')
             </div>
 
+            @unless ($soloDocumentos)
             <div x-show="tab === 'cargas'" x-cloak role="tabpanel">
                 @include('secciones.partials.cargas')
             </div>
+            @endunless
         </div>
 
-        @if ($puedeGestionar && $columnas->isNotEmpty())
+        @if ($puedeGestionar && $columnas->isNotEmpty() && ! $soloDocumentos)
             @include('secciones.partials.fila-modal')
         @endif
     </div>

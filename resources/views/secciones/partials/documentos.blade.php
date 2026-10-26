@@ -30,7 +30,7 @@
                             class="min-h-[36px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Ver') }}</button>
                     <a href="{{ route('secciones.archivos.show', [$seccion, $documento]) }}"
                        class="min-h-[36px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Descargar') }}</a>
-                    @if ($puedeGestionar && $iaDisponible && in_array($documento->extension, $extensionesIa, true))
+                    @if ($puedeGestionar && $iaDisponible && ! $seccion->solo_documentos && in_array($documento->extension, $extensionesIa, true))
                         <x-confirmar-eliminar :action="route('secciones.archivos.ia', [$seccion, $documento])" metodo="POST" tono="neutro"
                                               :etiqueta="__('Extraer con IA')" :confirmar="__('Sí, enviar')"
                                               :pregunta="__('El documento completo se enviará a Claude (Anthropic) para leer sus tablas. Revisarás el resultado antes de guardarlo. ¿Continuar?')" />

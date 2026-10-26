@@ -43,6 +43,7 @@ final class NormalizadorValores
             TipoColumna::Numero => $this->numero($valor),
             TipoColumna::Fecha => $this->fecha($valor),
             TipoColumna::Booleano => $this->booleano($valor),
+            TipoColumna::Telefono => $this->telefono($valor),
             TipoColumna::Texto, TipoColumna::Lista => null,
         };
 
@@ -128,6 +129,49 @@ final class NormalizadorValores
         return null;
     }
 
+    /**
+     * Teléfono mexicano de 10 dígitos como "983 168 7870" (más " ext. 123"
+     * si trae extensión). Acepta cualquier separador ("983-168-7870",
+     * "(983) 168 78 70"), el prefijo +52 / 52 / 044 / 045 / 01 y los números
+     * que Excel guarda como cifra. Si no es un teléfono de 10 dígitos
+     * devuelve null (quien llama conserva el texto original).
+     */
+    public function telefono(mixed $valor): ?string
+    {
+        if (is_int($valor) || is_float($valor)) {
+            $texto = number_format((float) $valor, 0, '', '');
+        } elseif (is_string($valor)) {
+            $texto = trim($valor);
+        } else {
+            return null;
+        }
+
+        $extension = null;
+
+        if (preg_match('/^(.*?)[\s,;]*(?:ext(?:ensi[oó]n)?\.?|x)\s*[:.]?\s*(\d{1,6})$/iu', $texto, $partes)) {
+            [, $texto, $extension] = $partes;
+        }
+
+        // Cualquier letra restante (p. ej. "llamar a Juan") no es un teléfono.
+        if ($texto === '' || preg_match('/\p{L}/u', $texto)) {
+            return null;
+        }
+
+        $digitos = preg_replace('/\D/', '', $texto) ?? '';
+        $digitos = match (true) {
+            strlen($digitos) === 13 && in_array(substr($digitos, 0, 3), ['521', '044', '045'], true) => substr($digitos, 3),
+            strlen($digitos) === 12 && in_array(substr($digitos, 0, 2), ['52', '01'], true) => substr($digitos, 2),
+            default => $digitos,
+        };
+
+        if (strlen($digitos) !== 10) {
+            return null;
+        }
+
+        return sprintf('%s %s %s', substr($digitos, 0, 3), substr($digitos, 3, 3), substr($digitos, 6))
+            .($extension !== null ? " ext. {$extension}" : '');
+    }
+
     public function booleano(mixed $valor): ?bool
     {
         if (is_bool($valor)) {
@@ -148,9 +192,13 @@ final class NormalizadorValores
      * 90% de sus valores no vacíos. Una columna con pocos valores
      * distintos sigue siendo "texto" (las listas se definen a mano).
      *
+     * Teléfono si el encabezado lo sugiere ("Teléfono", "Celular"…) o si los
+     * valores traen separadores (un número de 10 cifras sin más sigue siendo
+     * número: podría ser un folio).
+     *
      * @param  list<mixed>  $valores
      */
-    public function inferirTipo(array $valores): TipoColumna
+    public function inferirTipo(array $valores, ?string $encabezado = null): TipoColumna
     {
         $noVacios = array_values(array_filter(
             $valores,
@@ -167,7 +215,11 @@ final class NormalizadorValores
 
         // Fecha antes que número: un serial de Excel también es número, pero
         // los serial solo llegan como fecha si el extractor ya los convirtió.
+        $pareceTelefono = $encabezado !== null && preg_match('/tel[eé]f|tel\.?|celular|m[oó]vil|whats|fono|extensi/iu', $encabezado) === 1;
+        $telefonos = $cuenta(fn ($valor) => ($pareceTelefono || (is_string($valor) && preg_match('/\D/', $valor) === 1)) ? $this->telefono($valor) : null);
+
         return match (true) {
+            $telefonos >= $umbral => TipoColumna::Telefono,
             $cuenta(fn ($valor) => is_string($valor) ? $this->fecha($valor) : null) >= $umbral => TipoColumna::Fecha,
             $cuenta(fn ($valor) => $this->numero($valor)) >= $umbral => TipoColumna::Numero,
             $cuenta(fn ($valor) => in_array(Texto::normalizar($valor), ['si', 'no'], true) ? true : null) >= $umbral => TipoColumna::Booleano,

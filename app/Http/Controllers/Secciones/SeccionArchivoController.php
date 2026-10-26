@@ -40,8 +40,8 @@ class SeccionArchivoController extends Controller
 
         foreach ($request->file('archivos') as $subido) {
             $archivo = $this->archivos->guardar($seccion, $subido, $request->user(), $fila);
-            // Un adjunto de fila nunca dispara importación: solo se guarda.
-            $importacion = $fila ? null : $this->importaciones->desdeArchivo($seccion, $archivo, $request->user(), $destino);
+            // Un adjunto de fila o de una sección "solo documentos" nunca dispara importación: solo se guarda.
+            $importacion = ($fila || $seccion->solo_documentos) ? null : $this->importaciones->desdeArchivo($seccion, $archivo, $request->user(), $destino);
 
             $resultados[] = [
                 'id' => $archivo->id,

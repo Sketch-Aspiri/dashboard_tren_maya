@@ -45,7 +45,8 @@
                 $usuarioNav->hasRole('Estación') ? null : ['label' => __('Dashboard'), 'href' => route('dashboard')],
             ])->concat(
                 $gruposNav->flatMap(fn (array $grupo) => collect($grupo['items'])
-                    ->map(fn (array $item) => ['label' => $item['label'], 'href' => $item['href']]))
+                    ->reject(fn (array $item) => $item['esMas'] ?? false)
+                    ->map(fn (array $item) => ['label' => $item['busqueda'], 'href' => $item['href']]))
             )->push(
                 $usuarioNav->hasRole('Administrador') ? ['label' => __('Usuarios'), 'href' => route('usuarios.index')] : null
             )->filter()->values();

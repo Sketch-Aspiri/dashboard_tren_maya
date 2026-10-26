@@ -30,12 +30,17 @@ class Seccion extends Model
      */
     protected $fillable = [
         'menu_grupo_id',
+        'parent_id',
         'nombre',
         'slug',
         'descripcion',
         'orden',
         'is_visible',
+        'solo_documentos',
     ];
+
+    /** Niveles máximos del árbol (la raíz es el nivel 1). */
+    public const PROFUNDIDAD_MAXIMA = 6;
 
     /**
      * @return array<string, string>
@@ -45,6 +50,7 @@ class Seccion extends Model
         return [
             'orden' => 'integer',
             'is_visible' => 'boolean',
+            'solo_documentos' => 'boolean',
         ];
     }
 
@@ -59,6 +65,64 @@ class Seccion extends Model
     public function grupo(): BelongsTo
     {
         return $this->belongsTo(MenuGrupo::class, 'menu_grupo_id');
+    }
+
+    /**
+     * @return BelongsTo<Seccion, $this>
+     */
+    public function padre(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    /**
+     * @return HasMany<Seccion, $this>
+     */
+    public function hijas(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_id')->orderBy('orden')->orderBy('nombre');
+    }
+
+    /**
+     * Ancestros de la raíz a la más cercana (para migas de pan).
+     *
+     * @return list<Seccion>
+     */
+    public function ancestros(): array
+    {
+        $ruta = [];
+        $actual = $this->padre;
+
+        while ($actual !== null && count($ruta) < self::PROFUNDIDAD_MAXIMA) {
+            array_unshift($ruta, $actual);
+            $actual = $actual->padre;
+        }
+
+        return $ruta;
+    }
+
+    /** Nivel en el árbol: 1 para una sección raíz. */
+    public function nivel(): int
+    {
+        return count($this->ancestros()) + 1;
+    }
+
+    /**
+     * Ids de todas las descendientes (hijas, nietas…), recorrido por niveles.
+     *
+     * @return list<int>
+     */
+    public function descendientesIds(): array
+    {
+        $ids = [];
+        $nivel = [$this->getKey()];
+
+        while ($nivel !== [] && count($ids) < 10000) {
+            $nivel = self::query()->whereIn('parent_id', $nivel)->pluck('id')->all();
+            $ids = array_merge($ids, $nivel);
+        }
+
+        return $ids;
     }
 
     /**
@@ -148,7 +212,7 @@ class Seccion extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['menu_grupo_id', 'nombre', 'slug', 'descripcion', 'orden', 'is_visible'])
+            ->logOnly(['menu_grupo_id', 'parent_id', 'nombre', 'slug', 'descripcion', 'orden', 'is_visible', 'solo_documentos'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->useLogName('seccion');

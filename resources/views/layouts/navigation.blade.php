@@ -111,9 +111,11 @@
 
                     <x-slot name="content">
                         @foreach ($grupo['items'] as $item)
+                            @continue($item['oculto'])
                             <x-dropdown-link :href="$item['href']" :aria-current="$item['activo'] ? 'page' : null"
+                                             style="padding-inline-start: {{ 1 + $item['nivel'] * 1.25 }}rem"
                                              class="{{ $item['activo'] ? 'border-s-4 border-brand-teal bg-brand-mist font-semibold !text-brand-green' : 'border-s-4 border-transparent font-medium' }}">
-                                {{ $item['label'] }}
+                                @if ($item['nivel'] > 0)<span class="me-1 text-gray-400" aria-hidden="true">↳</span>@endif{{ $item['label'] }}
                             </x-dropdown-link>
                         @endforeach
                     </x-slot>
@@ -151,8 +153,10 @@
                     </button>
                     <div x-show="abierto" x-cloak class="ms-4 border-s border-brand-green/15 py-1 ps-2">
                         @foreach ($grupo['items'] as $item)
-                            <x-responsive-nav-link :href="$item['href']" :active="$item['activo']" class="text-sm">
-                                {{ $item['label'] }}
+                            @continue($item['oculto'])
+                            <x-responsive-nav-link :href="$item['href']" :active="$item['activo']" class="text-sm"
+                                                   style="margin-inline-start: {{ $item['nivel'] * 1 }}rem">
+                                @if ($item['nivel'] > 0)<span class="me-1 text-gray-400" aria-hidden="true">↳</span>@endif{{ $item['label'] }}
                             </x-responsive-nav-link>
                         @endforeach
                     </div>

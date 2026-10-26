@@ -6,6 +6,8 @@ use App\Enums\TipoColumna;
 use App\Models\Seccion;
 use App\Models\SeccionColumna;
 use App\Models\SeccionTabla;
+use App\Services\Secciones\NormalizadorValores;
+use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -71,6 +73,11 @@ class GuardarFilaRequest extends FormRequest
             TipoColumna::Fecha => ['nullable', 'date'],
             TipoColumna::Booleano => ['nullable', 'boolean'],
             TipoColumna::Lista => ['nullable', 'string', Rule::in($columna->listaOpciones())],
+            TipoColumna::Telefono => ['nullable', 'string', 'max:40', function (string $atributo, mixed $valor, Closure $falla): void {
+                if (app(NormalizadorValores::class)->telefono($valor) === null) {
+                    $falla(__('Escribe un teléfono de 10 dígitos, p. ej. 983 168 7870 (con ext. 123 si lleva extensión).'));
+                }
+            }],
             TipoColumna::Texto => ['nullable', 'string', 'max:5000'],
         };
     }

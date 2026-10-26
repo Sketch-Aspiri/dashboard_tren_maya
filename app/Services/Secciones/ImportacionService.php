@@ -108,7 +108,7 @@ final class ImportacionService
                 $sinDatos => OpcionesImportacion::DESTINO_IGNORAR,
                 default => OpcionesImportacion::DESTINO_NUEVA,
             };
-            $tipos[$indice] = $this->normalizador->inferirTipo($valores)->value;
+            $tipos[$indice] = $this->normalizador->inferirTipo($valores, (string) $nombre)->value;
         }
 
         $llave = $this->llaveSugerida($encabezados, $datos);

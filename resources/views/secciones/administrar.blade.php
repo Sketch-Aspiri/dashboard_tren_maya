@@ -73,64 +73,9 @@
                     </div>
 
                     <ul class="divide-y divide-gray-100">
-                        @forelse ($grupo->secciones as $seccion)
-                            <li id="seccion-{{ $seccion->id }}" class="scroll-mt-24 px-5 py-3" x-data="{ editando: false }">
-                                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between" x-show="! editando">
-                                    <div class="min-w-0">
-                                        <a href="{{ route('secciones.show', $seccion) }}" class="font-medium text-gray-900 hover:text-brand-teal">{{ $seccion->nombre }}</a>
-                                        @unless ($seccion->is_visible)
-                                            <span class="ms-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">{{ __('Oculta') }}</span>
-                                        @endunless
-                                        <p class="text-xs text-gray-500">{{ __(':f registros · :d documentos', ['f' => $seccion->filas_count, 'd' => $seccion->archivos_count]) }}</p>
-                                    </div>
-                                    <div class="flex flex-wrap items-center gap-1">
-                                        @foreach (['arriba' => '↑', 'abajo' => '↓'] as $direccion => $flecha)
-                                            <form method="POST" action="{{ route('secciones.mover', $seccion) }}">
-                                                @csrf
-                                                <input type="hidden" name="direccion" value="{{ $direccion }}">
-                                                <button type="submit" @disabled(($direccion === 'arriba' && $loop->parent->first) || ($direccion === 'abajo' && $loop->parent->last)) class="min-h-[44px] min-w-[44px] rounded-md text-gray-600 hover:bg-gray-100 disabled:opacity-30" aria-label="{{ __('Mover :nombre hacia :dir', ['nombre' => $seccion->nombre, 'dir' => $direccion]) }}"><span aria-hidden="true">{{ $flecha }}</span></button>
-                                            </form>
-                                        @endforeach
-                                        <form method="POST" action="{{ route('secciones.update', $seccion) }}">
-                                            @csrf
-                                            @method('PUT')
-                                            <input type="hidden" name="is_visible" value="{{ $seccion->is_visible ? 0 : 1 }}">
-                                            <button type="submit" class="min-h-[36px] rounded-md px-2 text-sm font-medium text-gray-700 hover:bg-gray-100">
-                                                {{ $seccion->is_visible ? __('Ocultar') : __('Mostrar') }}
-                                            </button>
-                                        </form>
-                                        <button type="button" @click="editando = true" class="min-h-[36px] rounded-md px-2 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Editar') }}</button>
-                                        <x-confirmar-eliminar :action="route('secciones.destroy', $seccion)" :etiqueta="__('Quitar del menú')" :confirmar="__('Sí, quitar')" :pregunta="__('¿Quitar «:nombre» del menú?', ['nombre' => $seccion->nombre])" />
-                                    </div>
-                                </div>
-
-                                <form method="POST" action="{{ route('secciones.update', $seccion) }}" x-show="editando" x-cloak class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                                    @csrf
-                                    @method('PUT')
-                                    <div>
-                                        <label for="sec-nombre-{{ $seccion->id }}" class="block text-xs font-medium text-gray-700">{{ __('Nombre') }}</label>
-                                        <input id="sec-nombre-{{ $seccion->id }}" name="nombre" value="{{ $seccion->nombre }}" required maxlength="160"
-                                               class="mt-1 block min-h-[40px] w-full rounded-md border-gray-300 text-sm shadow-sm">
-                                    </div>
-                                    <div>
-                                        <label for="sec-grupo-{{ $seccion->id }}" class="block text-xs font-medium text-gray-700">{{ __('Grupo') }}</label>
-                                        <select id="sec-grupo-{{ $seccion->id }}" name="menu_grupo_id" class="mt-1 block min-h-[40px] w-full rounded-md border-gray-300 text-sm shadow-sm">
-                                            @foreach ($grupos as $opcion)
-                                                <option value="{{ $opcion->id }}" @selected($opcion->id === $seccion->menu_grupo_id)>{{ $opcion->nombre }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="sm:col-span-3">
-                                        <label for="sec-desc-{{ $seccion->id }}" class="block text-xs font-medium text-gray-700">{{ __('Descripción') }}</label>
-                                        <input id="sec-desc-{{ $seccion->id }}" name="descripcion" value="{{ $seccion->descripcion }}" maxlength="2000"
-                                               class="mt-1 block min-h-[40px] w-full rounded-md border-gray-300 text-sm shadow-sm">
-                                    </div>
-                                    <div class="flex gap-2 sm:col-span-3 sm:justify-end">
-                                        <button type="button" @click="editando = false" class="min-h-[40px] rounded-md px-3 text-sm text-gray-700 hover:bg-gray-100">{{ __('Cancelar') }}</button>
-                                        <x-primary-button>{{ __('Guardar') }}</x-primary-button>
-                                    </div>
-                                </form>
-                            </li>
+                        @php($raices = \App\Support\ArbolSecciones::construir($grupo->secciones))
+                        @forelse ($raices as $seccion)
+                            @include('secciones.partials.nodo-administrar', ['seccion' => $seccion, 'nivel' => 0, 'primera' => $loop->first, 'ultima' => $loop->last])
                         @empty
                             <li class="px-5 py-4 text-sm text-gray-500">{{ __('Sin secciones.') }}</li>
                         @endforelse

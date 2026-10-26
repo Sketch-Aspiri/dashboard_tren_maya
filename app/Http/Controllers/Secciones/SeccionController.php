@@ -49,10 +49,14 @@ class SeccionController extends Controller
 
         return view('secciones.show', [
             'seccion' => $seccion,
+            'ancestros' => $seccion->ancestros(),
+            'subsecciones' => $seccion->hijas()->withCount(['filas', 'archivos', 'hijas'])->get(),
+            'puedeAnidar' => $seccion->nivel() < Seccion::PROFUNDIDAD_MAXIMA,
             'tablaActiva' => $tabla,
             'tablas' => $seccion->tablas()->withCount('filas')->get(),
             'filtros' => $filtros,
-            'tab' => $request->validated('tab') ?? 'tabla',
+            // Sin parte de tabla solo existe la pestaña de documentos.
+            'tab' => $seccion->solo_documentos ? 'documentos' : ($request->validated('tab') ?? 'tabla'),
             'filas' => $this->consulta->filas($tabla, $filtros),
             'documentos' => $this->consulta->documentos($seccion, $filtros['q']),
             'cargas' => $cargas,
