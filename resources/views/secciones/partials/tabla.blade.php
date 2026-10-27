@@ -37,9 +37,15 @@
                         <tr class="align-top hover:bg-brand-mist/40">
                             @foreach ($columnas as $columna)
                                 @php $texto = $normalizador->paraMostrar($fila->datos[$columna->clave] ?? null, $columna->tipo); @endphp
-                                <td class="max-w-xs px-4 py-3 text-gray-800" title="{{ \Illuminate\Support\Str::length($texto) > 60 ? $texto : '' }}">
-                                    {{ \Illuminate\Support\Str::limit($texto, 60) ?: '—' }}
-                                </td>
+                                @if ($columna->tipo === \App\Enums\TipoColumna::Foto)
+                                    <td class="px-4 py-2">
+                                        @include('secciones.partials.celda-foto', ['valor' => $fila->datos[$columna->clave] ?? null, 'nombre' => $columna->nombre])
+                                    </td>
+                                @else
+                                    <td class="max-w-xs px-4 py-3 text-gray-800" title="{{ \Illuminate\Support\Str::length($texto) > 60 ? $texto : '' }}">
+                                        {{ \Illuminate\Support\Str::limit($texto, 60) ?: '—' }}
+                                    </td>
+                                @endif
                             @endforeach
                             <td class="whitespace-nowrap px-4 py-2 text-right">
                                 @include('secciones.partials.acciones-fila')
@@ -64,7 +70,13 @@
                         @foreach ($columnas->take(6) as $columna)
                             <div class="flex gap-2">
                                 <dt class="w-1/3 shrink-0 text-xs text-gray-500">{{ $columna->nombre }}</dt>
-                                <dd class="min-w-0 break-words text-gray-800">{{ $normalizador->paraMostrar($fila->datos[$columna->clave] ?? null, $columna->tipo) ?: '—' }}</dd>
+                                <dd class="min-w-0 break-words text-gray-800">
+                                    @if ($columna->tipo === \App\Enums\TipoColumna::Foto)
+                                        @include('secciones.partials.celda-foto', ['valor' => $fila->datos[$columna->clave] ?? null, 'nombre' => $columna->nombre])
+                                    @else
+                                        {{ $normalizador->paraMostrar($fila->datos[$columna->clave] ?? null, $columna->tipo) ?: '—' }}
+                                    @endif
+                                </dd>
                             </div>
                         @endforeach
                     </dl>

@@ -17,6 +17,7 @@ use App\Http\Controllers\Secciones\SeccionColumnaController;
 use App\Http\Controllers\Secciones\SeccionController;
 use App\Http\Controllers\Secciones\SeccionExportacionController;
 use App\Http\Controllers\Secciones\SeccionFilaController;
+use App\Http\Controllers\Secciones\SeccionFotoController;
 use App\Http\Controllers\Secciones\SeccionImportacionController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Auth;
@@ -133,6 +134,9 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
 
         Route::scopeBindings()->group(function () {
             Route::get('/{seccion}/archivos/{archivo}', [SeccionArchivoController::class, 'show'])->name('archivos.show');
+            Route::get('/{seccion}/fotos/{foto}', [SeccionFotoController::class, 'show'])
+                ->where('foto', '[a-f0-9]{40}\.jpg')
+                ->name('fotos.show');
             Route::get('/{seccion}/archivos/{archivo}/vista-previa', [SeccionArchivoController::class, 'vistaPrevia'])
                 ->middleware('throttle:secciones-vista-previa')
                 ->name('archivos.vista-previa');

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Secciones\FotoService;
 use App\Support\Texto;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -63,7 +64,7 @@ class SeccionFila extends Model
     public static function textoBusqueda(array $datos): string
     {
         return implode(' | ', array_filter(
-            array_map(fn ($valor) => Texto::normalizar($valor), $datos),
+            array_map(fn ($valor) => FotoService::nombreDe($valor) === null ? Texto::normalizar($valor) : '', $datos),
             fn (string $valor) => $valor !== '',
         ));
     }

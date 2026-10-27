@@ -21,7 +21,7 @@ class SeccionFilaController extends Controller
     {
         $this->authorize('gestionarDatos', $seccion);
 
-        $this->filas->crear($request->tabla(), $request->valores(), $request->user());
+        $this->filas->crear($request->tabla(), $request->valores(), $request->user(), $request->fotos());
 
         return back()->with('status', __('Registro agregado.'));
     }
@@ -30,7 +30,7 @@ class SeccionFilaController extends Controller
     {
         $this->authorize('gestionarDatos', $seccion);
 
-        $this->filas->actualizar($fila, $request->valores(), $request->user());
+        $this->filas->actualizar($fila, $request->valores(), $request->user(), $request->fotos());
 
         return back()->with('status', __('Registro actualizado.'));
     }

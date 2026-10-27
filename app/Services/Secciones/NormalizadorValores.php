@@ -39,12 +39,17 @@ final class NormalizadorValores
             return null;
         }
 
+        // Una foto solo es válida si ya es un archivo guardado por FotoService.
+        if ($tipo === TipoColumna::Foto) {
+            return FotoService::nombreDe($valor);
+        }
+
         $convertido = match ($tipo) {
             TipoColumna::Numero => $this->numero($valor),
             TipoColumna::Fecha => $this->fecha($valor),
             TipoColumna::Booleano => $this->booleano($valor),
             TipoColumna::Telefono => $this->telefono($valor),
-            TipoColumna::Texto, TipoColumna::Lista => null,
+            TipoColumna::Texto, TipoColumna::Lista, TipoColumna::Foto => null,
         };
 
         return $convertido ?? $this->texto($valor);
@@ -211,6 +216,10 @@ final class NormalizadorValores
 
         $umbral = (int) ceil(count($noVacios) * 0.9);
 
+        if (count(array_filter($noVacios, fn ($valor) => FotoService::nombreDe($valor) !== null)) >= $umbral) {
+            return TipoColumna::Foto;
+        }
+
         $cuenta = fn (callable $conversion) => count(array_filter($noVacios, fn ($valor) => $conversion($valor) !== null));
 
         // Fecha antes que número: un serial de Excel también es número, pero
@@ -237,6 +246,8 @@ final class NormalizadorValores
         }
 
         return match (true) {
+            // La foto se pinta como imagen en las vistas; en texto no aporta nada.
+            $tipo === TipoColumna::Foto => '',
             $tipo === TipoColumna::Booleano && is_bool($valor) => $valor ? 'Sí' : 'No',
             $tipo === TipoColumna::Fecha && is_string($valor) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $valor) === 1 => CarbonImmutable::parse($valor)->format('d/m/Y'),
             $tipo === TipoColumna::Numero && (is_int($valor) || is_float($valor)) => $this->formatoNumero($valor),

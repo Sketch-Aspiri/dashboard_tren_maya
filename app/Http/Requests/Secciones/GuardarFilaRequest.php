@@ -10,6 +10,7 @@ use App\Services\Secciones\NormalizadorValores;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
 
 /**
@@ -43,16 +44,38 @@ class GuardarFilaRequest extends FormRequest
      */
     public function rules(): array
     {
-        return $this->reglaTabla() + $this->tabla()->columnas
-            ->mapWithKeys(fn (SeccionColumna $columna) => ['datos.'.$columna->clave => $this->reglasPara($columna)])
-            ->all();
+        $reglas = $this->reglaTabla();
+
+        foreach ($this->tabla()->columnas as $columna) {
+            if ($columna->tipo === TipoColumna::Foto) {
+                $reglas['fotos.'.$columna->clave] = ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'];
+            } else {
+                $reglas['datos.'.$columna->clave] = $this->reglasPara($columna);
+            }
+        }
+
+        return $reglas;
     }
 
     public function attributes(): array
     {
         return $this->tabla()->columnas
-            ->mapWithKeys(fn (SeccionColumna $columna) => ['datos.'.$columna->clave => $columna->nombre])
+            ->flatMap(fn (SeccionColumna $columna) => ['datos.'.$columna->clave => $columna->nombre, 'fotos.'.$columna->clave => $columna->nombre])
             ->all();
+    }
+
+    /**
+     * Fotos subidas, por clave de columna Foto (solo claves de columnas Foto
+     * de la tabla: rules() es lo único que se valida).
+     *
+     * @return array<string, UploadedFile>
+     */
+    public function fotos(): array
+    {
+        return array_filter(
+            $this->validated('fotos', []),
+            fn ($archivo) => $archivo instanceof UploadedFile,
+        );
     }
 
     /**
@@ -78,7 +101,8 @@ class GuardarFilaRequest extends FormRequest
                     $falla(__('Escribe un teléfono de 10 dígitos, p. ej. 983 168 7870 (con ext. 123 si lleva extensión).'));
                 }
             }],
-            TipoColumna::Texto => ['nullable', 'string', 'max:5000'],
+            // La foto llega como archivo en "fotos.*" (ver rules()), nunca en "datos".
+            TipoColumna::Texto, TipoColumna::Foto => ['nullable', 'string', 'max:5000'],
         };
     }
 

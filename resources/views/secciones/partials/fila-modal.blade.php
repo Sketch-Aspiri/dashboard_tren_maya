@@ -21,7 +21,7 @@
                 <button type="button" @click="cerrar()" class="min-h-[44px] min-w-[44px] rounded-md text-gray-500 hover:bg-gray-100" aria-label="{{ __('Cerrar') }}">✕</button>
             </div>
 
-            <form method="POST" :action="url" class="flex min-h-0 flex-1 flex-col">
+            <form method="POST" :action="url" enctype="multipart/form-data" class="flex min-h-0 flex-1 flex-col">
                 @csrf
                 <template x-if="id"><input type="hidden" name="_method" value="PUT"></template>
                 <input type="hidden" name="_modal_fila" :value="id ?? 'nueva'">
@@ -52,6 +52,12 @@
                                 @case(\App\Enums\TipoColumna::Telefono)
                                     <input id="{{ $campo }}" type="tel" inputmode="tel" maxlength="40" placeholder="983 168 7870" name="datos[{{ $columna->clave }}]" x-model="valores[@js($columna->clave)]"
                                            class="mt-1 block min-h-[44px] w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal">
+                                    @break
+                                @case(\App\Enums\TipoColumna::Foto)
+                                    <input id="{{ $campo }}" type="file" name="fotos[{{ $columna->clave }}]" accept="image/jpeg,image/png,image/webp"
+                                           class="mt-1 block w-full text-sm text-gray-700 file:mr-3 file:min-h-[44px] file:rounded-md file:border-0 file:bg-brand-mist file:px-4 file:text-sm file:font-medium file:text-brand-green">
+                                    <p class="mt-1 text-xs text-gray-500">{{ __('Opcional. Al editar, déjalo vacío para conservar la foto actual.') }}</p>
+                                    <x-input-error :messages="$errors->get('fotos.'.$columna->clave)" class="mt-1" />
                                     @break
                                 @case(\App\Enums\TipoColumna::Lista)
                                     <select id="{{ $campo }}" name="datos[{{ $columna->clave }}]" x-model="valores[@js($columna->clave)]"

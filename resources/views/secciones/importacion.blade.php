@@ -131,7 +131,7 @@
                                             </select>
                                         </td>
                                         <td class="max-w-xs px-4 py-2 text-xs text-gray-600">
-                                            {{ \Illuminate\Support\Str::limit(implode(' · ', array_slice(array_filter(array_map(fn ($fila) => (string) ($fila[$indice] ?? ''), $propuesta['muestra']), 'strlen'), 0, 3)), 90) ?: '—' }}
+                                            {{ \Illuminate\Support\Str::limit(implode(' · ', array_slice(array_filter(array_map(fn ($fila) => \App\Services\Secciones\FotoService::nombreDe($fila[$indice] ?? null) !== null ? __('(foto)') : (string) ($fila[$indice] ?? ''), $propuesta['muestra']), 'strlen'), 0, 3)), 90) ?: '—' }}
                                         </td>
                                     </tr>
                                 @endforeach

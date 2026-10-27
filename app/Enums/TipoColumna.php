@@ -5,7 +5,7 @@ namespace App\Enums;
 /**
  * Tipo de dato de una columna de una sección dinámica (seccion_columnas).
  * El valor se guarda ya normalizado en seccion_filas.datos (JSON): número
- * como int/float, fecha como "Y-m-d", sí/no como bool, teléfono como "983 168 7870", texto y lista como
+ * como int/float, fecha como "Y-m-d", sí/no como bool, teléfono como "983 168 7870", foto como el nombre del archivo en disco (FotoService), texto y lista como
  * string. La conversión vive en App\Services\Secciones\NormalizadorValores.
  */
 enum TipoColumna: string
@@ -16,6 +16,7 @@ enum TipoColumna: string
     case Booleano = 'booleano';
     case Lista = 'lista';
     case Telefono = 'telefono';
+    case Foto = 'foto';
 
     public function label(): string
     {
@@ -26,6 +27,7 @@ enum TipoColumna: string
             self::Booleano => 'Sí / No',
             self::Lista => 'Lista de opciones',
             self::Telefono => 'Teléfono',
+            self::Foto => 'Foto',
         };
     }
 }

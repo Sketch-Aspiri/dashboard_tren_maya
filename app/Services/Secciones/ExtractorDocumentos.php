@@ -50,6 +50,8 @@ final class ExtractorDocumentos
      */
     private array $cacheTablas = [];
 
+    public function __construct(private readonly FotosEnCeldas $fotosEnCeldas) {}
+
     /**
      * @return list<array{nombre: string, filas: list<list<string|int|float|bool|null>>}>
      */
@@ -168,6 +170,7 @@ final class ExtractorDocumentos
         $reader = SpreadsheetIOFactory::createReader($extension === 'xls' ? 'Xls' : 'Xlsx');
         $reader->setReadEmptyCells(false);
         $libro = $reader->load($ruta);
+        $fotos = $extension === 'xlsx' ? $this->fotosEnCeldas->leer($ruta) : [];
 
         $tablas = [];
 
@@ -176,7 +179,16 @@ final class ExtractorDocumentos
                 continue;
             }
 
-            $tablas[] = ['nombre' => $hoja->getTitle(), 'filas' => $this->filasDeHoja($hoja)];
+            $filas = $this->filasDeHoja($hoja);
+
+            foreach ($fotos[$hoja->getTitle()] ?? [] as $foto) {
+                // array_key_exists: Excel guarda la celda con #VALUE!, que se lee como null.
+                if (array_key_exists($foto['columna'] - 1, $filas[$foto['fila'] - 1] ?? [])) {
+                    $filas[$foto['fila'] - 1][$foto['columna'] - 1] = FotoService::PREFIJO.$foto['foto'];
+                }
+            }
+
+            $tablas[] = ['nombre' => $hoja->getTitle(), 'filas' => $filas];
         }
 
         $libro->disconnectWorksheets();
@@ -388,7 +400,7 @@ final class ExtractorDocumentos
     {
         return implode("\n", array_map(
             fn (array $tabla) => $tabla['nombre']."\n".implode("\n", array_map(
-                fn (array $fila) => implode(' | ', array_map(fn ($valor) => (string) $valor, array_filter($fila, fn ($valor) => $valor !== null))),
+                fn (array $fila) => implode(' | ', array_map(fn ($valor) => (string) $valor, array_filter($fila, fn ($valor) => $valor !== null && FotoService::nombreDe($valor) === null))),
                 $tabla['filas'],
             )),
             $tablas,
