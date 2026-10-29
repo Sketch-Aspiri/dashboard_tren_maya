@@ -140,11 +140,11 @@ return response()->json([
 - JSON endpoints that create/update/delete data go through
   `spatie/laravel-activitylog` exactly like their web counterparts. A
   "quick AJAX action" is not exempt from the audit trail requirement in
-  `CLAUDE.md`.
+  `AGENTS.md`.
 
 ## Exports (PDF/Excel)
 
-- Report/export endpoints (blocked on final report format per `CLAUDE.md`
+- Report/export endpoints (blocked on final report format per `AGENTS.md`
   — build against dummy data until confirmed) return a file download
   (`response()->download(...)` / streamed response), not the JSON
   envelope above — but still go through the same authorization and audit

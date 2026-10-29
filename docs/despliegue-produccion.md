@@ -2,7 +2,7 @@
 
 Guía para pasar el sistema al VPS (Ubuntu 24.04 + CloudPanel + Nginx + PHP 8.3
 + MySQL 8, solo accesible por Tailscale). Complementa
-`.claude/rules/server-conventions.md`. Cualquier cambio de Nginx, PHP-FPM o
+`.cursor/rules/server-conventions.mdc`. Cualquier cambio de Nginx, PHP-FPM o
 firewall pasa por revisión de `security-auditor` antes de aplicarse.
 
 ## 1. Base de datos MySQL (una sola vez)

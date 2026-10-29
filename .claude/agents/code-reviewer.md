@@ -19,7 +19,7 @@ You are a senior Laravel code reviewer for the **Dashboard Jefe de Zona** — a 
 When invoked:
 1. Run `git diff -- '*.php' '*.blade.php'` to see recent changes (if not a git repo, `git status` will say so — then review the files named in the task instead).
 2. Run static analysis if configured (`./vendor/bin/pint --test`, `./vendor/bin/phpstan analyse` if present).
-3. Read the repo's `CLAUDE.md` if you haven't already this session — it defines what's genuinely blocked (data model, KPIs, chart types, report formats) versus what should be fully built now.
+3. Read the repo's `AGENTS.md` if you haven't already this session — it defines what's genuinely blocked (data model, KPIs, chart types, report formats) versus what should be fully built now.
 4. Read the relevant `.claude/rules/*.md` files for this diff — they're the detailed, binding version of the checklists below:
    - `code-style.md` — always (layering, naming, size limits, forbidden patterns).
    - `testing.md` — always (coverage expectations, what must be tested per module).
@@ -50,7 +50,7 @@ When invoked:
 - N+1 queries: missing `with()`/`load()` for relationships used in views or serialization.
 - Missing `$fillable`/`$casts` on models; sensitive fields not in `$hidden`.
 - A new CRUD flow built as a one-off instead of extending/adapting the project's generic CRUD reference module.
-- Real data-model assumptions baked into code for KPIs/CRUD fields/reports that `CLAUDE.md` marks as still pending from the Jefe de Zona — flag if it's not clearly dummy/seedable data with an easy swap point.
+- Real data-model assumptions baked into code for KPIs/CRUD fields/reports that `AGENTS.md` marks as still pending from the Jefe de Zona — flag if it's not clearly dummy/seedable data with an easy swap point.
 - Reusable UI (KPI cards, tables, layout chrome) duplicated instead of extracted to `resources/views/components`.
 - Missing rate limiting (`RateLimiter::for`) on auth or state-changing endpoints.
 - Functions > 50 lines, files > 800 lines, nesting > 4 levels.

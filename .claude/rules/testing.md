@@ -97,7 +97,7 @@ the name alone, e.g. `test_guest_cannot_access_dashboard`,
 
 ## Dummy Data (while the real data model is pending)
 
-Per `CLAUDE.md`, the final CRUD data model, KPI definitions, chart types,
+Per `AGENTS.md`, the final CRUD data model, KPI definitions, chart types,
 and report formats are **blocked** on information from the Jefe de Zona.
 Until that lands:
 

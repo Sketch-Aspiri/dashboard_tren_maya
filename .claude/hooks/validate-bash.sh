@@ -7,7 +7,7 @@
 # would be specifically expensive in THIS project: taking the VPN-only
 # dashboard public, exposing MySQL beyond localhost, reopening password SSH,
 # leaking .env, or rewriting/force-pushing shared git history. It mirrors the
-# non-negotiables in the repo's CLAUDE.md and the global git-safety rules.
+# non-negotiables in the repo's AGENTS.md and the global git-safety rules.
 #
 # It does not replace the security-auditor or code-reviewer agents — those
 # review code and diffs; this only intercepts commands before they execute.
@@ -97,7 +97,7 @@ c="$command_str"
 # ===========================================================================
 # DENY — project non-negotiables and irreversible system destruction.
 # These are refused outright rather than escalated to the user, because
-# CLAUDE.md declares them out of bounds for this project regardless of who
+# AGENTS.md declares them out of bounds for this project regardless of who
 # is asking: an infra change like this belongs to a deliberate, manual
 # sysadmin action outside of Claude Code, not a dashboard-development task.
 # ===========================================================================
@@ -112,7 +112,7 @@ if [[ "$c" == *"mkfs"* ]] || [[ "$c" == *"dd if="* && "$c" == *"of=/dev/"* ]] ||
   deny "Blocked: disk-level destructive operation (mkfs/dd/raw device write). Not something this project's Bash tool should ever run."
 fi
 
-# Widening MySQL beyond 127.0.0.1 — CLAUDE.md: "MySQL solo accesible desde localhost".
+# Widening MySQL beyond 127.0.0.1 — AGENTS.md: "MySQL solo accesible desde localhost".
 if [[ "$c" == *"bind-address"* ]] && [[ "$c" == *"0.0.0.0"* ]]; then
   deny "Blocked: this would bind MySQL beyond 127.0.0.1, violating the project's non-negotiable 'MySQL solo accesible desde localhost' rule."
 fi
@@ -122,7 +122,7 @@ if [[ "$c" == *"ufw"* ]] && [[ "$c" == *"3306"* ]] && [[ "$c" == *"allow"* ]]; t
   deny "Blocked: opening port 3306 on the firewall would expose MySQL outside the server, violating the VPN-only access model."
 fi
 
-# Re-enabling SSH password authentication — CLAUDE.md: "Acceso SSH al servidor solo por llave".
+# Re-enabling SSH password authentication — AGENTS.md: "Acceso SSH al servidor solo por llave".
 if [[ "$c" == *"PasswordAuthentication"* ]] && [[ "$c" == *"yes"* ]]; then
   deny "Blocked: enabling SSH password authentication violates the project's key-only SSH access rule."
 fi
@@ -130,7 +130,7 @@ fi
 # Tearing down the VPN or the firewall that keeps this system off the open internet.
 if [[ "$c" == *"tailscale down"* ]] || [[ "$c" == *"systemctl stop tailscaled"* ]] \
   || [[ "$c" == *"systemctl disable tailscaled"* ]] || [[ "$c" == *"ufw disable"* ]]; then
-  deny "Blocked: this would remove the VPN-only barrier that keeps the dashboard off the public internet. CLAUDE.md marks this non-negotiable."
+  deny "Blocked: this would remove the VPN-only barrier that keeps the dashboard off the public internet. AGENTS.md marks this non-negotiable."
 fi
 
 # Committing the real .env file (never .env.example) to git.
