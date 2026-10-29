@@ -58,7 +58,8 @@ class SeccionController extends Controller
             // Sin parte de tabla solo existe la pestaña de documentos.
             'tab' => $seccion->solo_documentos ? 'documentos' : ($request->validated('tab') ?? 'tabla'),
             'filas' => $this->consulta->filas($tabla, $filtros),
-            'documentos' => $this->consulta->documentos($seccion, $filtros['q']),
+            'documentos' => $this->consulta->documentos($seccion, $filtros['q'], $filtros['doc_orden'], $filtros['doc_tipo']),
+            'tiposDocumento' => $this->consulta->tiposDeDocumento($seccion),
             'cargas' => $cargas,
             'cargaDeshacible' => $this->cargaDeshacible($seccion),
             'cargaPendiente' => $cargas->first(fn ($carga) => $carga->isVistaPrevia()),

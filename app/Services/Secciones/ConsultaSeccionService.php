@@ -66,10 +66,14 @@ final class ConsultaSeccionService
      *
      * @return Collection<int, SeccionArchivo>
      */
-    public function documentos(Seccion $seccion, ?string $busqueda): Collection
+    public function documentos(Seccion $seccion, ?string $busqueda, string $orden = 'recientes', ?string $tipo = null): Collection
     {
-        $consulta = $seccion->archivos()->with('autor:id,name')->latest();
+        $consulta = $seccion->archivos()->with('autor:id,name')->latest()->latest('id');
         $busqueda = trim((string) $busqueda);
+
+        if ($tipo !== null && $tipo !== '') {
+            $consulta->where('extension', $tipo);
+        }
 
         if ($busqueda !== '') {
             $consulta->where(function (Builder $q) use ($busqueda): void {
@@ -81,7 +85,57 @@ final class ConsultaSeccionService
             });
         }
 
-        return $consulta->limit(self::MAX_DOCUMENTOS)->get();
+        return $this->ordenarDocumentos($consulta->limit(self::MAX_DOCUMENTOS)->get(), $orden);
+    }
+
+    /**
+     * Extensiones presentes en la sección, para el filtro por tipo.
+     *
+     * @return list<string>
+     */
+    public function tiposDeDocumento(Seccion $seccion): array
+    {
+        return $seccion->archivos()->distinct()->orderBy('extension')->pluck('extension')->all();
+    }
+
+    /**
+     * Orden de los documentos ya cargados (máx. MAX_DOCUMENTOS). El nombre se
+     * compara sin acentos ni mayúsculas y con orden natural ("2" antes de "10");
+     * "numero" usa el número con que empieza el nombre y deja al final los
+     * que no empiezan con uno.
+     *
+     * @param  Collection<int, SeccionArchivo>  $documentos
+     * @return Collection<int, SeccionArchivo>
+     */
+    private function ordenarDocumentos(Collection $documentos, string $orden): Collection
+    {
+        $nombre = fn (SeccionArchivo $d): string => Texto::normalizar($d->nombre_original);
+        $numero = function (SeccionArchivo $d): ?float {
+            return preg_match('/^\s*(\d+(?:[.,]\d+)?)/u', $d->nombre_original, $m)
+                ? (float) str_replace(',', '.', $m[1])
+                : null;
+        };
+
+        return match ($orden) {
+            'antiguos' => $documentos->sortBy(fn (SeccionArchivo $d) => [$d->created_at, $d->id])->values(),
+            'nombre_asc' => $documentos->sort(fn ($a, $b) => strnatcmp($nombre($a), $nombre($b)))->values(),
+            'nombre_desc' => $documentos->sort(fn ($a, $b) => strnatcmp($nombre($b), $nombre($a)))->values(),
+            'numero_asc', 'numero_desc' => $documentos->sort(function ($a, $b) use ($numero, $nombre, $orden): int {
+                [$na, $nb] = [$numero($a), $numero($b)];
+
+                // Sin número siempre al final, en cualquier dirección.
+                if ($na === null || $nb === null) {
+                    return ($na === null) <=> ($nb === null) ?: strnatcmp($nombre($a), $nombre($b));
+                }
+
+                $cmp = $na <=> $nb ?: strnatcmp($nombre($a), $nombre($b));
+
+                return $orden === 'numero_desc' ? -$cmp : $cmp;
+            })->values(),
+            'tamano_desc' => $documentos->sortByDesc('tamano')->values(),
+            'tamano_asc' => $documentos->sortBy('tamano')->values(),
+            default => $documentos,
+        };
     }
 
     /**
