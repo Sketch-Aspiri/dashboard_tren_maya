@@ -45,4 +45,27 @@ return [
 
     // Disco privado donde viven los archivos (nunca el disco "public").
     'disco' => 'local',
+
+    // Sincronización de documentos con un enlace compartido de la nube
+    // (secciones:sincronizar-nube, cada `minutos`). Solo se descargan
+    // dominios de esta lista, también tras una redirección.
+    'nube' => [
+        'minutos' => (int) env('SECCIONES_SYNC_MINUTOS', 30),
+        'timeout_segundos' => 60,
+        'max_redirecciones' => 5,
+        'hosts_permitidos' => [
+            'drive.google.com',
+            'docs.google.com',
+            'drive.usercontent.google.com',
+            'googleusercontent.com',
+            '1drv.ms',
+            '1drv.com',
+            'onedrive.live.com',
+            'api.onedrive.com',
+            'sharepoint.com',
+            'microsoftpersonalcontent.com',
+            'dropbox.com',
+            'dropboxusercontent.com',
+        ],
+    ],
 ];

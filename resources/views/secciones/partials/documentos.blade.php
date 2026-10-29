@@ -16,6 +16,12 @@
     $hayFiltroDocumentos = $filtros['q'] || $filtros['doc_tipo'];
 @endphp
 
+@foreach (['nube', 'enlace'] as $campoNube)
+    @error($campoNube)
+        <div class="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">{{ $message }}</div>
+    @enderror
+@endforeach
+
 @if (count($tiposDocumento) > 0)
     <form method="GET" action="{{ route('secciones.show', $seccion) }}" class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end">
         <input type="hidden" name="tab" value="documentos">
@@ -67,6 +73,15 @@
                             @if ($documento->autor) · {{ $documento->autor->name }} @endif
                             @if ($documento->seccion_fila_id) · {{ __('adjunto de un registro') }} @endif
                         </p>
+                        @if ($documento->estaVinculadoANube())
+                            <p class="mt-0.5 text-xs text-brand-teal">
+                                {{ __('Nube') }} ({{ $documento->origen_proveedor }}) ·
+                                {{ $documento->sincronizado_en ? __('revisado :cuando', ['cuando' => $documento->sincronizado_en->diffForHumans()]) : __('aún sin revisar') }}
+                            </p>
+                            @if ($documento->sincronizacion_error)
+                                <p class="mt-0.5 text-xs text-amber-700" role="status">{{ $documento->sincronizacion_error }}</p>
+                            @endif
+                        @endif
                     </div>
                 </div>
                 <div class="flex flex-wrap items-center gap-1 sm:justify-end">
@@ -80,6 +95,30 @@
                         <x-confirmar-eliminar :action="route('secciones.archivos.ia', [$seccion, $documento])" metodo="POST" tono="neutro"
                                               :etiqueta="__('Extraer con IA')" :confirmar="__('Sí, enviar')"
                                               :pregunta="__('El documento completo se enviará a Claude (Anthropic) para leer sus tablas. Revisarás el resultado antes de guardarlo. ¿Continuar?')" />
+                    @endif
+                    @if ($puedeGestionar && ! $documento->seccion_fila_id)
+                        @if ($documento->estaVinculadoANube())
+                            <form method="POST" action="{{ route('secciones.archivos.nube.sincronizar', [$seccion, $documento]) }}">
+                                @csrf
+                                <button type="submit" class="min-h-[36px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Sincronizar ahora') }}</button>
+                            </form>
+                            <x-confirmar-eliminar :action="route('secciones.archivos.nube.desvincular', [$seccion, $documento])" :etiqueta="__('Desvincular')" :confirmar="__('Sí, desvincular')" tono="neutro"
+                                                  :pregunta="__('El documento dejará de actualizarse solo. El archivo guardado se conserva. ¿Continuar?')" />
+                        @else
+                            <div x-data="{ abierto: false }" class="relative">
+                                <button type="button" @click="abierto = ! abierto" :aria-expanded="abierto"
+                                        class="min-h-[36px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Vincular a la nube') }}</button>
+                                <form x-show="abierto" x-cloak method="POST" action="{{ route('secciones.archivos.nube.vincular', [$seccion, $documento]) }}"
+                                      class="absolute right-0 z-10 mt-1 w-80 max-w-[90vw] space-y-2 rounded-lg border border-gray-200 bg-white p-3 shadow-lg">
+                                    @csrf
+                                    <label for="enlace-{{ $documento->id }}" class="block text-xs font-medium text-gray-600">{{ __('Enlace compartido (Google Drive, OneDrive, SharePoint o Dropbox)') }}</label>
+                                    <input id="enlace-{{ $documento->id }}" name="enlace" type="url" required maxlength="2000" placeholder="https://"
+                                           class="min-h-[44px] w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal">
+                                    <p class="text-xs text-gray-500">{{ __('El archivo debe estar compartido con "cualquiera con el enlace" (solo lectura).') }}</p>
+                                    <button type="submit" class="min-h-[44px] w-full rounded-md bg-brand-green px-4 text-sm font-semibold text-white">{{ __('Vincular') }}</button>
+                                </form>
+                            </div>
+                        @endif
                     @endif
                     @if ($puedeGestionar)
                         <x-confirmar-eliminar :action="route('secciones.archivos.destroy', [$seccion, $documento])" />

@@ -37,17 +37,9 @@ class StoreSeccionArchivoRequest extends FormRequest
      */
     public function rules(): array
     {
-        $extensiones = config('secciones.extensiones');
-
         return $this->reglaTabla() + [
             'archivos' => ['required', 'array', 'min:1', 'max:'.self::MAX_ARCHIVOS],
-            'archivos.*' => [
-                'required',
-                'file',
-                'max:'.config('secciones.max_archivo_kb'),
-                'extensions:'.implode(',', $extensiones),
-                'mimes:'.implode(',', [...$extensiones, ...self::MIMES_EXTRA]),
-            ],
+            'archivos.*' => ['required', ...self::reglasDeContenido()],
             'seccion_fila_id' => [
                 'nullable',
                 'integer',
@@ -55,6 +47,25 @@ class StoreSeccionArchivoRequest extends FormRequest
                     ->where('seccion_id', $this->route('seccion')->id)
                     ->whereNull('deleted_at'),
             ],
+        ];
+    }
+
+    /**
+     * Reglas de un archivo individual (tamaño, extensión declarada y tipo
+     * real del contenido). Las comparte la subida manual y la sincronización
+     * con la nube: un documento descargado se valida igual que uno subido.
+     *
+     * @return list<string>
+     */
+    public static function reglasDeContenido(): array
+    {
+        $extensiones = config('secciones.extensiones');
+
+        return [
+            'file',
+            'max:'.config('secciones.max_archivo_kb'),
+            'extensions:'.implode(',', $extensiones),
+            'mimes:'.implode(',', [...$extensiones, ...self::MIMES_EXTRA]),
         ];
     }
 

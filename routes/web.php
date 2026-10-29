@@ -13,8 +13,10 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Secciones\AdministrarMenuController;
 use App\Http\Controllers\Secciones\MenuGrupoController;
 use App\Http\Controllers\Secciones\SeccionArchivoController;
+use App\Http\Controllers\Secciones\SeccionArchivoNubeController;
 use App\Http\Controllers\Secciones\SeccionColumnaController;
 use App\Http\Controllers\Secciones\SeccionController;
+use App\Http\Controllers\Secciones\SeccionEnlaceController;
 use App\Http\Controllers\Secciones\SeccionExportacionController;
 use App\Http\Controllers\Secciones\SeccionFilaController;
 use App\Http\Controllers\Secciones\SeccionFotoController;
@@ -157,6 +159,16 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
                 Route::delete('/{seccion}/filas/{fila}', [SeccionFilaController::class, 'destroy'])->name('filas.destroy');
 
                 Route::delete('/{seccion}/archivos/{archivo}', [SeccionArchivoController::class, 'destroy'])->name('archivos.destroy');
+
+                Route::post('/{seccion}/enlaces', [SeccionEnlaceController::class, 'store'])->name('enlaces.store');
+                Route::put('/{seccion}/enlaces/{enlace}', [SeccionEnlaceController::class, 'update'])->name('enlaces.update');
+                Route::delete('/{seccion}/enlaces/{enlace}', [SeccionEnlaceController::class, 'destroy'])->name('enlaces.destroy');
+
+                Route::post('/{seccion}/archivos/{archivo}/nube', [SeccionArchivoNubeController::class, 'vincular'])->name('archivos.nube.vincular');
+                Route::post('/{seccion}/archivos/{archivo}/nube/sincronizar', [SeccionArchivoNubeController::class, 'sincronizar'])
+                    ->middleware('throttle:secciones-archivos')
+                    ->name('archivos.nube.sincronizar');
+                Route::delete('/{seccion}/archivos/{archivo}/nube', [SeccionArchivoNubeController::class, 'desvincular'])->name('archivos.nube.desvincular');
 
                 Route::post('/{seccion}/importaciones/{importacion}/calcular', [SeccionImportacionController::class, 'calcular'])->name('importaciones.calcular');
                 Route::post('/{seccion}/importaciones/{importacion}/aplicar', [SeccionImportacionController::class, 'aplicar'])->name('importaciones.aplicar');

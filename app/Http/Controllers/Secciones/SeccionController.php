@@ -60,6 +60,7 @@ class SeccionController extends Controller
             'filas' => $this->consulta->filas($tabla, $filtros),
             'documentos' => $this->consulta->documentos($seccion, $filtros['q'], $filtros['doc_orden'], $filtros['doc_tipo']),
             'tiposDocumento' => $this->consulta->tiposDeDocumento($seccion),
+            'enlaces' => $seccion->enlaces()->orderBy('titulo')->get(),
             'cargas' => $cargas,
             'cargaDeshacible' => $this->cargaDeshacible($seccion),
             'cargaPendiente' => $cargas->first(fn ($carga) => $carga->isVistaPrevia()),

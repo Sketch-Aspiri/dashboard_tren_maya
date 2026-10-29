@@ -94,10 +94,14 @@
             <div class="border-b border-brand-green/15" role="tablist" aria-label="{{ __('Contenido de la sección') }}">
                 <nav class="-mb-px flex gap-4 overflow-x-auto">
                     @foreach ($soloDocumentos
-                        ? ['documentos' => __('Documentos').' ('.$documentos->count().')']
+                        ? [
+                            'documentos' => __('Documentos').' ('.$documentos->count().')',
+                            'enlaces' => __('Enlaces').' ('.$enlaces->count().')',
+                        ]
                         : [
                             'tabla' => __('Tabla').' ('.$filas->total().')',
                             'documentos' => __('Documentos').' ('.$documentos->count().')',
+                            'enlaces' => __('Enlaces').' ('.$enlaces->count().')',
                             'cargas' => __('Cargas').' ('.$cargas->count().')',
                         ] as $clave => $etiqueta)
                         <button type="button" role="tab" @click="tab = @js($clave)" :aria-selected="(tab === @js($clave)).toString()"
@@ -133,6 +137,10 @@
 
             <div x-show="tab === 'documentos'" x-cloak role="tabpanel">
                 @include('secciones.partials.documentos')
+            </div>
+
+            <div x-show="tab === 'enlaces'" x-cloak role="tabpanel">
+                @include('secciones.partials.enlaces')
             </div>
 
             @unless ($soloDocumentos)

@@ -189,6 +189,14 @@ class Seccion extends Model
     }
 
     /**
+     * @return HasMany<SeccionEnlace, $this>
+     */
+    public function enlaces(): HasMany
+    {
+        return $this->hasMany(SeccionEnlace::class);
+    }
+
+    /**
      * @return HasMany<SeccionImportacion, $this>
      */
     public function importaciones(): HasMany

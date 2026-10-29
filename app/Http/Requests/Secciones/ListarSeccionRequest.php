@@ -36,7 +36,7 @@ class ListarSeccionRequest extends FormRequest
             'direction' => ['nullable', Rule::in(['asc', 'desc'])],
             'per_page' => ['nullable', 'integer', Rule::in(config('secciones.filas_por_pagina'))],
             'page' => ['nullable', 'integer', 'min:1'],
-            'tab' => ['nullable', Rule::in(['tabla', 'documentos', 'cargas'])],
+            'tab' => ['nullable', Rule::in(['tabla', 'documentos', 'enlaces', 'cargas'])],
             'doc_orden' => ['nullable', Rule::in(self::ORDENES_DOCUMENTO)],
             'doc_tipo' => ['nullable', 'string', 'max:10', 'alpha_num'],
         ];

@@ -157,7 +157,7 @@ final class ImportacionService
         ];
     }
 
-    public function aplicar(SeccionImportacion $importacion, OpcionesImportacion $opciones, User $usuario): SeccionImportacion
+    public function aplicar(SeccionImportacion $importacion, OpcionesImportacion $opciones, ?User $usuario): SeccionImportacion
     {
         $this->exigirVistaPrevia($importacion);
         $seccion = $importacion->seccion;
