@@ -1,6 +1,7 @@
 {{-- Una sección (y, recursivamente, sus subsecciones) en "Administrar menú".
      Variables: $seccion (con 'hijas' ya asignada), $nivel (0 = raíz),
-     $primera/$ultima (entre sus hermanas), $grupos y $ubicaciones. Las
+     $primera/$ultima (entre sus hermanas), $ancestros (ids de sus
+     antecesoras, para compactar la rama), $grupos y $ubicaciones. Las
      subsecciones se pintan como <li> hermanos con sangría, no anidados. --}}
 @php
     $puedeAnidar = $nivel + 1 < \App\Models\Seccion::PROFUNDIDAD_MAXIMA;
@@ -8,10 +9,21 @@
     $ubicacionActual = $seccion->parent_id ? 's-'.$seccion->parent_id : 'g-'.$seccion->menu_grupo_id;
     $opcionesUbicacion = collect($ubicaciones)->reject(fn (array $opcion) => in_array($seccion->id, $opcion['ruta'], true));
 @endphp
-<li id="seccion-{{ $seccion->id }}" class="scroll-mt-24 py-3 pe-5" style="padding-inline-start: {{ 1.25 + $nivel * 1.5 }}rem" x-data="{ editando: false, agregando: false }">
+<li id="seccion-{{ $seccion->id }}" class="scroll-mt-24 py-3 pe-5" style="padding-inline-start: {{ 1.25 + $nivel * 1.5 }}rem"
+    data-ancestros="{{ json_encode($ancestros ?? []) }}"
+    x-data="{ editando: false, agregando: false }"
+    x-show="visible(@js($ancestros ?? []), @js($seccion->nombre))">
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between" x-show="! editando && ! agregando">
         <div class="min-w-0">
-            @if ($nivel > 0)<span class="me-1 text-gray-400" aria-hidden="true">↳</span>@endif
+            @if ($hijas->isNotEmpty())
+                <button type="button" @click="alternar({{ $seccion->id }})" :aria-expanded="abiertas.includes({{ $seccion->id }})"
+                        aria-label="{{ __('Mostrar u ocultar las subsecciones de :nombre', ['nombre' => $seccion->nombre]) }}"
+                        class="me-1 inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-600 hover:bg-gray-100">
+                    <span aria-hidden="true" class="transition-transform" :class="abiertas.includes({{ $seccion->id }}) && 'rotate-90'">▸</span>
+                </button>
+            @elseif ($nivel > 0)
+                <span class="me-1 text-gray-400" aria-hidden="true">↳</span>
+            @endif
             <a href="{{ route('secciones.show', $seccion) }}" class="font-medium text-gray-900 hover:text-brand-teal">{{ $seccion->nombre }}</a>
             @unless ($seccion->is_visible)
                 <span class="ms-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">{{ __('Oculta') }}</span>
@@ -105,5 +117,5 @@
     </form>
 </li>
 @foreach ($hijas as $hija)
-    @include('secciones.partials.nodo-administrar', ['seccion' => $hija, 'nivel' => $nivel + 1, 'primera' => $loop->first, 'ultima' => $loop->last])
+    @include('secciones.partials.nodo-administrar', ['seccion' => $hija, 'nivel' => $nivel + 1, 'primera' => $loop->first, 'ultima' => $loop->last, 'ancestros' => [...($ancestros ?? []), $seccion->id]])
 @endforeach

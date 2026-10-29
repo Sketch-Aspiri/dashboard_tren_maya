@@ -11,6 +11,55 @@
                 {{ __('Crea, renombra, ordena u oculta las secciones de cada grupo del menú. Quitar una sección la saca del menú; su información se conserva en la base de datos y, si necesitas recuperarla, pídelo al equipo de sistemas.') }}
             </p>
 
+            @php
+                $conSubsecciones = $grupos
+                    ->flatMap(fn ($grupo) => \App\Support\ArbolSecciones::aplanar(\App\Support\ArbolSecciones::construir($grupo->secciones)))
+                    ->filter(fn (array $nodo) => $nodo['seccion']->getRelation('hijas')->isNotEmpty())
+                    ->map(fn (array $nodo) => $nodo['seccion']->id)
+                    ->values();
+            @endphp
+
+            {{-- Compactar / buscar: las ramas con subsecciones arrancan cerradas. --}}
+            <div x-data="{
+                    todas: @js($conSubsecciones),
+                    abiertas: [],
+                    q: '',
+                    init() {
+                        try { this.abiertas = JSON.parse(sessionStorage.getItem('menu-abiertas') ?? '[]'); } catch (e) { this.abiertas = []; }
+                        const destino = document.getElementById(location.hash.slice(1));
+                        if (destino && destino.dataset.ancestros) {
+                            this.abiertas = [...new Set([...this.abiertas, ...JSON.parse(destino.dataset.ancestros)])];
+                            this.$nextTick(() => destino.scrollIntoView({ block: 'center' }));
+                        }
+                    },
+                    guardar() { try { sessionStorage.setItem('menu-abiertas', JSON.stringify(this.abiertas)); } catch (e) {} },
+                    alternar(id) {
+                        this.abiertas = this.abiertas.includes(id) ? this.abiertas.filter(x => x !== id) : [...this.abiertas, id];
+                        this.guardar();
+                    },
+                    abrirTodas() { this.abiertas = [...this.todas]; this.guardar(); },
+                    cerrarTodas() { this.abiertas = []; this.guardar(); },
+                    fold(texto) { return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); },
+                    visible(ancestros, nombre) {
+                        const q = this.fold(this.q.trim());
+                        return q ? this.fold(nombre).includes(q) : ancestros.every(id => this.abiertas.includes(id));
+                    },
+                }" class="space-y-5">
+
+            @if ($conSubsecciones->isNotEmpty() || $grupos->sum(fn ($g) => $g->secciones->count()) > 8)
+                <div class="flex flex-col gap-2 rounded-xl border border-brand-green/10 bg-white p-4 shadow-sm shadow-brand-green/5 sm:flex-row sm:items-end">
+                    <div class="flex-1">
+                        <label for="buscar-seccion" class="block text-sm font-medium text-gray-700">{{ __('Buscar sección o subsección') }}</label>
+                        <input id="buscar-seccion" type="search" x-model="q" autocomplete="off" placeholder="{{ __('Escribe parte del nombre…') }}"
+                               class="mt-1 block min-h-[44px] w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal">
+                    </div>
+                    <div class="flex gap-2" x-show="! q.trim()">
+                        <button type="button" @click="abrirTodas()" class="min-h-[44px] rounded-md px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Expandir todo') }}</button>
+                        <button type="button" @click="cerrarTodas()" class="min-h-[44px] rounded-md px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Compactar todo') }}</button>
+                    </div>
+                </div>
+            @endif
+
             {{-- Nueva sección --}}
             <div class="rounded-xl border border-brand-green/10 bg-white p-5 shadow-sm shadow-brand-green/5">
                 <h3 class="font-heading text-base font-semibold text-brand-green">{{ __('Nueva sección') }}</h3>
@@ -94,6 +143,7 @@
                     <x-primary-button>{{ __('Crear grupo') }}</x-primary-button>
                 </form>
             </div>
+            </div>{{-- /x-data compactar --}}
         </div>
     </div>
 </x-app-layout>
