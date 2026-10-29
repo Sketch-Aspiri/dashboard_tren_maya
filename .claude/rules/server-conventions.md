@@ -5,7 +5,7 @@ de Zona" production VPS. These are enforced alongside `security-auditor` —
 any change touching server/Nginx/MySQL/deploy config should be reviewed by
 that agent before merge.
 
-## Non-Negotiables (from `CLAUDE.md` — never relax these)
+## Non-Negotiables (from `AGENTS.md` — never relax these)
 
 - [ ] The app is **never reachable except through Tailscale VPN**. No
       Nginx `server_block`, firewall rule, or CloudPanel setting opens a

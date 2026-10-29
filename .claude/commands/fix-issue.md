@@ -31,7 +31,7 @@ Use TodoWrite to track the phases of this command.
 **Actions**:
 1. Locate the file(s) involved with `Grep`/`Glob` (route, controller, model, Blade view, Form Request, Policy, as applicable).
 2. Read the full affected path: route → middleware → controller → Form Request/Policy → model/service → view. Don't patch the first symptom you see without understanding why it happens.
-3. If the bug involves data, check whether it depends on fields that `CLAUDE.md` marks as **blocked on external information** (final data model, KPIs, charts, reports). If so, say so explicitly — it may not be a bug but an expected gap while dummy data is in use — don't invent the real data model to "fix" it.
+3. If the bug involves data, check whether it depends on fields that `AGENTS.md` marks as **blocked on external information** (final data model, KPIs, charts, reports). If so, say so explicitly — it may not be a bug but an expected gap while dummy data is in use — don't invent the real data model to "fix" it.
 4. If existing tests cover this area, run them first: `php artisan test --filter=...` to confirm the current state.
 
 ---

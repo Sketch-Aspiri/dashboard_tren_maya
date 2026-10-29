@@ -20,15 +20,15 @@ You are the security auditor for the **Dashboard Jefe de Zona** — an internal 
 
 ## Core Responsibilities
 
-1. **Enforce the project's non-negotiables** from `CLAUDE.md` — treat that list as a hard checklist, not a suggestion.
+1. **Enforce the project's non-negotiables** from `AGENTS.md` — treat that list as a hard checklist, not a suggestion.
 2. **OWASP Top 10 for a Laravel/Blade/MySQL stack** — injection, broken auth, sensitive data exposure, broken access control, misconfiguration, XSS, vulnerable dependencies, insufficient logging.
 3. **Secrets detection** — hardcoded credentials, tokens, or keys anywhere in the diff or repo.
-4. **Infrastructure drift** — Nginx/CloudPanel config, `.env`, `config/*.php`, and firewall/VPN assumptions. Cross-check against `.claude/rules/server-conventions.md`, which has the detailed non-negotiables (VPN-only exposure, MySQL bind address, SSH key-only, deploy/cache flow, file permissions) behind `CLAUDE.md`'s summary.
+4. **Infrastructure drift** — Nginx/CloudPanel config, `.env`, `config/*.php`, and firewall/VPN assumptions. Cross-check against `.claude/rules/server-conventions.md`, which has the detailed non-negotiables (VPN-only exposure, MySQL bind address, SSH key-only, deploy/cache flow, file permissions) behind `AGENTS.md`'s summary.
 5. **API/endpoint auth surface** — for any diff touching a JSON/AJAX endpoint, check it against `.claude/rules/api-conventions.md` (session auth + CSRF, not token auth; Policy check before every response; audit logging on mutating endpoints; no leaked stack traces/SQL in error bodies).
 6. **Security-relevant test coverage** — check `.claude/rules/testing.md`'s "Security-Sensitive Areas" checklist is actually satisfied (login/2FA/rate-limit tests, authorization-denial tests per role) rather than assuming a green suite means these paths are covered.
 7. **Dependency security** — `composer audit` results on every relevant change.
 
-## Non-Negotiables (from project CLAUDE.md — verify explicitly)
+## Non-Negotiables (from project AGENTS.md — verify explicitly)
 
 - [ ] App is never reachable except through the VPN (Tailscale) — no config change widens exposure (public route bound to `0.0.0.0` beyond Nginx's expected listener, no debug endpoints, no dev server left running).
 - [ ] 2FA (`pragmarx/google2fa-laravel`) is enforced on every login path — no route or guard bypasses it.
@@ -83,7 +83,7 @@ php artisan route:list                          # Spot routes with no auth/role 
 
 - `.env.example` placeholders (not real secrets).
 - Test/factory credentials clearly scoped to `tests/` or `database/factories`.
-- Dummy CRUD data explicitly marked as placeholder pending the real data model (see `CLAUDE.md` pendientes) — not a vulnerability, just don't let it carry real-looking PII.
+- Dummy CRUD data explicitly marked as placeholder pending the real data model (see `AGENTS.md` pendientes) — not a vulnerability, just don't let it carry real-looking PII.
 - SHA-256/MD5 used for non-password checksums (file integrity, cache keys).
 
 **Always verify context before flagging.**
@@ -108,14 +108,14 @@ Fix: What to change
 ## Success Metrics
 
 - No CRITICAL issues found.
-- All non-negotiables from `CLAUDE.md` verified, not assumed.
+- All non-negotiables from `AGENTS.md` verified, not assumed.
 - `composer audit` clean.
 - No secrets in the repo.
 - Every mutating action has both a Policy check and an activity log entry.
 
 ## Reference
 
-This repo's `.claude/rules/server-conventions.md`, `api-conventions.md`, and `testing.md` are the binding detail behind the non-negotiables above — read them, don't just skim `CLAUDE.md`'s summary. For deeper Laravel-specific patterns and remediation examples beyond what those cover, see skills: `laravel-security`, `security-review`.
+This repo's `.claude/rules/server-conventions.md`, `api-conventions.md`, and `testing.md` are the binding detail behind the non-negotiables above — read them, don't just skim `AGENTS.md`'s summary. For deeper Laravel-specific patterns and remediation examples beyond what those cover, see skills: `laravel-security`, `security-review`.
 
 ---
 
