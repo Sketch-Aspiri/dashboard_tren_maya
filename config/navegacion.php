@@ -3,8 +3,8 @@
 /*
  * Menú principal según "Dashboard Tren Maya.pptx".
  *
- * - 'items': módulos FIJOS con ruta propia (Personal y Asistencia, que
- *   generan oficios y dependen de modelos estructurados). 'patron' /
+ * - 'items': módulos FIJOS con ruta propia (hoy vacío: Personal y Asistencia
+ *   siguen existiendo por URL pero no aparecen en el menú). 'patron' /
  *   'excepto' son patrones de routeIs() para marcar el enlace activo;
  *   'roles' quién lo ve.
  * - 'secciones': catálogo INICIAL de secciones dinámicas. MenuSeeder las
@@ -13,8 +13,6 @@
  *   "Administrar menú". Cambiar esta lista no altera una base ya sembrada.
  * - 'patrones': patrones de routeIs() que marcan activo el grupo.
  */
-
-$zona = ['Jefe de Zona', 'Administrador'];
 
 return [
     'grupos' => [
@@ -34,11 +32,7 @@ return [
             'slug' => 'rrhh',
             'nombre' => 'RR.HH.',
             'patrones' => ['agenda.*', 'asistencia.*'],
-            'items' => [
-                ['label' => 'Personal', 'ruta' => 'agenda.personal.index', 'patron' => 'agenda.personal.*', 'roles' => $zona],
-                ['label' => 'Asistencia Zona Oriente', 'ruta' => 'asistencia.zona.index', 'patron' => 'asistencia.zona.*', 'roles' => $zona],
-                ['label' => 'Captura de asistencia', 'ruta' => 'asistencia.captura.index', 'patron' => 'asistencia.captura.*', 'roles' => ['Estación', 'Administrador']],
-            ],
+            'items' => [],
             'secciones' => [
                 'Rol de vacaciones',
                 'Relación nominal',
