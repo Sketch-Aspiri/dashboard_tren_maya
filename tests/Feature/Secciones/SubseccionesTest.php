@@ -189,4 +189,44 @@ class SubseccionesTest extends TestCase
 
         $this->post(route('secciones.store'), ['parent_id' => $raiz->id, 'nombre' => 'X'])->assertForbidden();
     }
+
+    public function test_admin_can_delete_subsection_from_parent_show_and_returns_there(): void
+    {
+        $usuario = $this->comoAdministrador();
+        [$raiz, $hija, $nieta] = $this->cadena();
+
+        $this->delete(route('secciones.destroy', $hija), ['desde_seccion' => '1'])
+            ->assertRedirect(route('secciones.show', $raiz))
+            ->assertSessionHas('status');
+
+        $this->assertSoftDeleted($hija);
+        $this->assertSoftDeleted($nieta);
+        $this->assertTrue(Activity::query()
+            ->where('subject_type', Seccion::class)
+            ->where('subject_id', $hija->id)
+            ->where('event', 'deleted')
+            ->where('causer_id', $usuario->id)
+            ->exists());
+    }
+
+    public function test_deleting_from_administrar_still_redirects_to_administrar(): void
+    {
+        $this->comoAdministrador();
+        [$raiz, $hija] = $this->cadena();
+
+        $this->delete(route('secciones.destroy', $hija))
+            ->assertRedirect(route('secciones.administrar'));
+
+        $this->assertSoftDeleted($hija);
+    }
+
+    public function test_estacion_role_cannot_delete_subsection(): void
+    {
+        [$raiz, $hija] = $this->cadena();
+        $this->actingAsTwoFactorVerified($this->usuarioConRol('Estación'));
+
+        $this->delete(route('secciones.destroy', $hija), ['desde_seccion' => '1'])->assertForbidden();
+        $this->assertNotSoftDeleted($hija);
+        $this->assertNotSoftDeleted($raiz);
+    }
 }

@@ -13,6 +13,7 @@ use App\Models\SeccionTabla;
 use App\Services\Secciones\ColumnaService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 class SeccionColumnaController extends Controller
 {
@@ -60,13 +61,21 @@ class SeccionColumnaController extends Controller
         return redirect()->to(route('secciones.columnas.index', $this->parametrosTabla($columna->tabla)).'#columna-'.$columna->id);
     }
 
-    public function destroy(Seccion $seccion, SeccionColumna $columna): RedirectResponse
+    public function destroy(Request $request, Seccion $seccion, SeccionColumna $columna): RedirectResponse
     {
         $this->authorize('update', $seccion);
 
+        $tabla = $columna->tabla;
+        $nombre = $columna->nombre;
         $this->columnas->eliminar($columna);
 
-        return $this->volver($columna->tabla, __('Columna ":nombre" eliminada.', ['nombre' => $columna->nombre]));
+        if ($request->input('volver') === 'tabla') {
+            return redirect()
+                ->route('secciones.show', $this->parametrosTabla($tabla))
+                ->with('status', __('Columna ":nombre" eliminada.', ['nombre' => $nombre]));
+        }
+
+        return $this->volver($tabla, __('Columna ":nombre" eliminada.', ['nombre' => $nombre]));
     }
 
     private function volver(SeccionTabla $tabla, ?string $mensaje = null): RedirectResponse

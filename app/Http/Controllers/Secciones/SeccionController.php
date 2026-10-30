@@ -17,6 +17,7 @@ use App\Services\Secciones\MenuService;
 use App\Services\Secciones\NormalizadorValores;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 /**
  * Pantalla de una sección (tabla + documentos + cargas) y su alta/edición
@@ -112,13 +113,20 @@ class SeccionController extends Controller
         return redirect()->to(route('secciones.administrar').'#seccion-'.$seccion->id);
     }
 
-    public function destroy(Seccion $seccion): RedirectResponse
+    public function destroy(Request $request, Seccion $seccion): RedirectResponse
     {
         $this->authorize('delete', $seccion);
 
+        $padre = $seccion->padre;
+        $nombre = $seccion->nombre;
         $this->menu->eliminarSeccion($seccion);
 
+        if ($request->boolean('desde_seccion') && $padre !== null) {
+            return redirect()->route('secciones.show', $padre)
+                ->with('status', __('Sección ":nombre" eliminada del menú.', ['nombre' => $nombre]));
+        }
+
         return redirect()->route('secciones.administrar')
-            ->with('status', __('Sección ":nombre" eliminada del menú.', ['nombre' => $seccion->nombre]));
+            ->with('status', __('Sección ":nombre" eliminada del menú.', ['nombre' => $nombre]));
     }
 }
