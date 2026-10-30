@@ -13,6 +13,7 @@ use App\Models\SeccionTabla;
 use App\Models\User;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Http\File;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
@@ -48,6 +49,8 @@ final class NubeSyncService
     private const MAX_MENSAJE = 490;
 
     private const BLOQUEO_SEGUNDOS = 600;
+
+    private const CACHE_BADGER = 'nube-onedrive-badger-token';
 
     public function __construct(
         private readonly EnlaceNubeResolver $resolver,
@@ -155,10 +158,44 @@ final class NubeSyncService
     {
         $url = $this->resolver->resolver($enlace)['descarga'];
         $maximo = (int) config('secciones.max_archivo_kb') * 1024;
+        $esOneDrivePersonal = $this->esDescargaOneDrivePersonal($url);
+
+        $respuesta = $this->solicitarDescarga($url, $destino, $maximo, $esOneDrivePersonal);
+
+        // Token Badger caducado en caché: una sola vez pedimos otro y reintentamos.
+        if ($esOneDrivePersonal && $respuesta->status() === 401) {
+            Cache::forget(self::CACHE_BADGER);
+            $respuesta = $this->solicitarDescarga($url, $destino, $maximo, true);
+        }
+
+        if ($respuesta->failed()) {
+            if ($esOneDrivePersonal && $respuesta->status() === 401) {
+                throw new NubeSyncException(__('OneDrive rechazó el enlace (401). Compártelo de nuevo con "cualquiera con el enlace" (solo lectura) y vuelve a vincularlo.'));
+            }
+
+            throw new NubeSyncException(__('La nube respondió con error :codigo. Revisa que el enlace siga compartido.', ['codigo' => $respuesta->status()]));
+        }
+
+        if ((int) filesize($destino) > $maximo) {
+            throw new NubeSyncException($this->mensajeTamano());
+        }
+    }
+
+    /**
+     * @return Response
+     */
+    private function solicitarDescarga(string $url, string $destino, int $maximo, bool $conBadger)
+    {
+        $cabeceras = ['User-Agent' => 'DashboardJefeZona-Sync/1.0'];
+
+        if ($conBadger) {
+            $cabeceras['Authorization'] = 'Badger '.$this->tokenBadgerOneDrive();
+            $cabeceras['Prefer'] = 'autoredeem';
+        }
 
         try {
-            $respuesta = Http::timeout((int) config('secciones.nube.timeout_segundos'))
-                ->withHeaders(['User-Agent' => 'DashboardJefeZona-Sync/1.0'])
+            return Http::timeout((int) config('secciones.nube.timeout_segundos'))
+                ->withHeaders($cabeceras)
                 ->withOptions([
                     'sink' => $destino,
                     'allow_redirects' => [
@@ -186,14 +223,67 @@ final class NubeSyncService
 
             throw new NubeSyncException(__('No se pudo conectar con la nube. Se reintentará en la próxima revisión.'), 0, $e);
         }
+    }
 
-        if ($respuesta->failed()) {
-            throw new NubeSyncException(__('La nube respondió con error :codigo. Revisa que el enlace siga compartido.', ['codigo' => $respuesta->status()]));
+    /**
+     * Solo la API de shares personales (api.onedrive.com). SharePoint
+     * (?download=1), Google Drive y Dropbox no usan Badger.
+     */
+    private function esDescargaOneDrivePersonal(string $url): bool
+    {
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+
+        return $host === 'api.onedrive.com';
+    }
+
+    /**
+     * Token anónimo Badger exigido por Microsoft para descargas de shares
+     * personales. Se cachea; nunca se registra en logs.
+     */
+    private function tokenBadgerOneDrive(): string
+    {
+        $minutos = max(1, (int) config('secciones.nube.onedrive_badger.cache_minutos', 360));
+
+        try {
+            $token = Cache::remember(self::CACHE_BADGER, now()->addMinutes($minutos), function (): string {
+                $url = (string) config('secciones.nube.onedrive_badger.url');
+                $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+
+                if ($host !== 'api-badgerp.svc.ms' || (parse_url($url, PHP_URL_SCHEME) !== 'https')) {
+                    throw new NubeSyncException(__('No se pudo autenticar la descarga de OneDrive. Se reintentará en la próxima revisión.'));
+                }
+
+                $respuesta = Http::timeout((int) config('secciones.nube.timeout_segundos'))
+                    ->acceptJson()
+                    ->asJson()
+                    ->withOptions(['allow_redirects' => false])
+                    ->post($url, [
+                        'appId' => (string) config('secciones.nube.onedrive_badger.app_id'),
+                    ]);
+
+                if ($respuesta->failed()) {
+                    throw new NubeSyncException(__('No se pudo autenticar la descarga de OneDrive. Se reintentará en la próxima revisión.'));
+                }
+
+                $token = trim((string) $respuesta->json('token'));
+
+                if ($token === '') {
+                    throw new NubeSyncException(__('No se pudo autenticar la descarga de OneDrive. Se reintentará en la próxima revisión.'));
+                }
+
+                return $token;
+            });
+        } catch (NubeSyncException $e) {
+            Cache::forget(self::CACHE_BADGER);
+
+            throw $e;
+        } catch (ConnectionException|RequestException|Throwable $e) {
+            Cache::forget(self::CACHE_BADGER);
+
+            throw new NubeSyncException(__('No se pudo autenticar la descarga de OneDrive. Se reintentará en la próxima revisión.'), 0, $e);
         }
 
-        if ((int) filesize($destino) > $maximo) {
-            throw new NubeSyncException($this->mensajeTamano());
-        }
+        return (string) $token;
     }
 
     /**
