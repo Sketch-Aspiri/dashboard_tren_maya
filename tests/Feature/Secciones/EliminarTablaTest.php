@@ -133,4 +133,58 @@ class EliminarTablaTest extends TestCase
         $this->assertArrayNotHasKey('empleado', $playa->filas()->first()->datos);
         $this->assertSame('Matutino', $tulum->filas()->first()->datos['turno']);
     }
+
+    public function test_admin_sees_eliminar_hoja_control_when_section_has_several_tables(): void
+    {
+        $this->comoAdministrador();
+        [$seccion, $playa, $tulum] = $this->seccionConDosTablas();
+
+        $this->get(route('secciones.show', $seccion))
+            ->assertOk()
+            ->assertSee('Eliminar hoja', false)
+            ->assertSee(__('Hoja actual: :nombre', ['nombre' => $playa->nombre]), false)
+            ->assertSee(
+                __('¿Eliminar la hoja «:nombre» y todos sus registros?', ['nombre' => $playa->nombre]),
+                false,
+            )
+            ->assertSee(route('secciones.tablas.destroy', [$seccion, $playa]), false)
+            ->assertDontSee(route('secciones.tablas.destroy', [$seccion, $tulum]), false);
+
+        $this->get(route('secciones.show', [$seccion, 'tabla' => $tulum->id]))
+            ->assertOk()
+            ->assertSee('Eliminar hoja', false)
+            ->assertSee(__('Hoja actual: :nombre', ['nombre' => $tulum->nombre]), false)
+            ->assertSee(route('secciones.tablas.destroy', [$seccion, $tulum]), false)
+            ->assertDontSee(route('secciones.tablas.destroy', [$seccion, $playa]), false);
+    }
+
+    public function test_admin_does_not_see_eliminar_hoja_with_a_single_table(): void
+    {
+        $this->comoAdministrador();
+        $seccion = Seccion::factory()->create();
+        $seccion->tablaActiva();
+        $this->assertSame(1, $seccion->tablas()->count());
+
+        $this->get(route('secciones.show', $seccion))
+            ->assertOk()
+            ->assertDontSee('Eliminar hoja', false)
+            ->assertDontSee(__('Tablas de la sección'), false);
+    }
+
+    public function test_estacion_role_cannot_view_section_show_so_no_eliminar_hoja(): void
+    {
+        [$seccion] = $this->seccionConDosTablas();
+        $this->actingAsTwoFactorVerified($this->usuarioConRol('Estación'));
+
+        // Estación no tiene view en SeccionPolicy; el control nunca se renderiza.
+        $this->get(route('secciones.show', $seccion))->assertForbidden();
+    }
+
+    public function test_guest_is_redirected_from_section_show(): void
+    {
+        [$seccion] = $this->seccionConDosTablas();
+
+        $this->get(route('secciones.show', $seccion))
+            ->assertRedirect(route('login'));
+    }
 }
