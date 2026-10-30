@@ -59,7 +59,7 @@
         {{ $hayFiltroDocumentos ? __('Ningún documento coincide con la búsqueda o el filtro.') : __('Aún no hay documentos. Arrástralos a la zona de arriba.') }}
     </div>
 @else
-    <ul class="divide-y divide-gray-100 overflow-hidden rounded-xl border border-brand-green/10 bg-white shadow-sm shadow-brand-green/5">
+    <ul class="divide-y divide-gray-100 rounded-xl border border-brand-green/10 bg-white shadow-sm shadow-brand-green/5">
         @foreach ($documentos as $documento)
             <li class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div class="flex min-w-0 items-start gap-3">
@@ -105,17 +105,24 @@
                             <x-confirmar-eliminar :action="route('secciones.archivos.nube.desvincular', [$seccion, $documento])" :etiqueta="__('Desvincular')" :confirmar="__('Sí, desvincular')" tono="neutro"
                                                   :pregunta="__('El documento dejará de actualizarse solo. El archivo guardado se conserva. ¿Continuar?')" />
                         @else
-                            <div x-data="{ abierto: false }" class="relative">
-                                <button type="button" @click="abierto = ! abierto" :aria-expanded="abierto"
-                                        class="min-h-[36px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Vincular a la nube') }}</button>
-                                <form x-show="abierto" x-cloak method="POST" action="{{ route('secciones.archivos.nube.vincular', [$seccion, $documento]) }}"
-                                      class="absolute right-0 z-10 mt-1 w-80 max-w-[90vw] space-y-2 rounded-lg border border-gray-200 bg-white p-3 shadow-lg">
+                            <div x-data="{ abierto: false }" class="relative"
+                                 @keydown.escape="if (abierto) { abierto = false; $refs.disparador.focus() }" @click.outside="abierto = false">
+                                <button type="button" x-ref="disparador" @click="abierto = ! abierto; if (abierto) $nextTick(() => $refs.enlace.focus())"
+                                        :aria-expanded="abierto.toString()" aria-haspopup="dialog" aria-controls="vincular-{{ $documento->id }}"
+                                        class="min-h-[44px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist sm:min-h-[36px]">{{ __('Vincular a la nube') }}</button>
+                                {{-- Móvil: panel fijo al pie de la pantalla (nunca se sale ni queda bajo la última fila).
+                                     sm+: popover anclado al botón, alineado a la derecha. --}}
+                                <form id="vincular-{{ $documento->id }}" x-show="abierto" x-cloak method="POST" role="dialog" aria-label="{{ __('Vincular a la nube') }}"
+                                      action="{{ route('secciones.archivos.nube.vincular', [$seccion, $documento]) }}"
+                                      class="fixed inset-x-3 bottom-3 z-50 space-y-2 rounded-lg border border-gray-200 bg-white p-4 shadow-2xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-full sm:mt-1 sm:w-80 sm:p-3 sm:shadow-lg">
                                     @csrf
                                     <label for="enlace-{{ $documento->id }}" class="block text-xs font-medium text-gray-600">{{ __('Enlace compartido (Google Drive, OneDrive, SharePoint o Dropbox)') }}</label>
-                                    <input id="enlace-{{ $documento->id }}" name="enlace" type="url" required maxlength="2000" placeholder="https://"
+                                    <input x-ref="enlace" id="enlace-{{ $documento->id }}" name="enlace" type="url" required maxlength="2000" placeholder="https://"
                                            class="min-h-[44px] w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal">
                                     <p class="text-xs text-gray-500">{{ __('El archivo debe estar compartido con "cualquiera con el enlace" (solo lectura).') }}</p>
                                     <button type="submit" class="min-h-[44px] w-full rounded-md bg-brand-green px-4 text-sm font-semibold text-white">{{ __('Vincular') }}</button>
+                                    <button type="button" @click="abierto = false; $refs.disparador.focus()"
+                                            class="min-h-[44px] w-full rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100 sm:hidden">{{ __('Cancelar') }}</button>
                                 </form>
                             </div>
                         @endif
