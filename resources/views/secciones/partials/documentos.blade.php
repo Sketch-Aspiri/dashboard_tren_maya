@@ -105,25 +105,39 @@
                             <x-confirmar-eliminar :action="route('secciones.archivos.nube.desvincular', [$seccion, $documento])" :etiqueta="__('Desvincular')" :confirmar="__('Sí, desvincular')" tono="neutro"
                                                   :pregunta="__('El documento dejará de actualizarse solo. El archivo guardado se conserva. ¿Continuar?')" />
                         @else
-                            <div x-data="{ abierto: false }" class="relative"
-                                 @keydown.escape="if (abierto) { abierto = false; $refs.disparador.focus() }" @click.outside="abierto = false">
-                                <button type="button" x-ref="disparador" @click="abierto = ! abierto; if (abierto) $nextTick(() => $refs.enlace.focus())"
+                            {{-- Modal fijo al viewport (como el de filas): con muchos documentos un
+                                 popover absolute bajo la fila se iba fuera de pantalla. --}}
+                            <div x-data="{ abierto: false }"
+                                 @keydown.escape.window="if (abierto) { abierto = false; $nextTick(() => $refs.disparador.focus()) }">
+                                <button type="button" x-ref="disparador" @click="abierto = true; $nextTick(() => $refs.enlace.focus())"
                                         :aria-expanded="abierto.toString()" aria-haspopup="dialog" aria-controls="vincular-{{ $documento->id }}"
                                         class="min-h-[44px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist sm:min-h-[36px]">{{ __('Vincular a la nube') }}</button>
-                                {{-- Móvil: panel fijo al pie de la pantalla (nunca se sale ni queda bajo la última fila).
-                                     sm+: popover anclado al botón, alineado a la derecha. --}}
-                                <form id="vincular-{{ $documento->id }}" x-show="abierto" x-cloak method="POST" role="dialog" aria-label="{{ __('Vincular a la nube') }}"
-                                      action="{{ route('secciones.archivos.nube.vincular', [$seccion, $documento]) }}"
-                                      class="fixed inset-x-3 bottom-3 z-50 space-y-2 rounded-lg border border-gray-200 bg-white p-4 shadow-2xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-full sm:mt-1 sm:w-80 sm:p-3 sm:shadow-lg">
-                                    @csrf
-                                    <label for="enlace-{{ $documento->id }}" class="block text-xs font-medium text-gray-600">{{ __('Enlace compartido (Google Drive, OneDrive, SharePoint o Dropbox)') }}</label>
-                                    <input x-ref="enlace" id="enlace-{{ $documento->id }}" name="enlace" type="url" required maxlength="2000" placeholder="https://"
-                                           class="min-h-[44px] w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal">
-                                    <p class="text-xs text-gray-500">{{ __('El archivo debe estar compartido con "cualquiera con el enlace" (solo lectura).') }}</p>
-                                    <button type="submit" class="min-h-[44px] w-full rounded-md bg-brand-green px-4 text-sm font-semibold text-white">{{ __('Vincular') }}</button>
-                                    <button type="button" @click="abierto = false; $refs.disparador.focus()"
-                                            class="min-h-[44px] w-full rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100 sm:hidden">{{ __('Cancelar') }}</button>
-                                </form>
+                                <div id="vincular-{{ $documento->id }}" x-show="abierto" x-cloak
+                                     class="fixed inset-0 z-50 flex items-end justify-center bg-gray-900/50 p-0 sm:items-center sm:p-4"
+                                     role="dialog" aria-modal="true" aria-labelledby="titulo-vincular-{{ $documento->id }}"
+                                     @click.self="abierto = false; $nextTick(() => $refs.disparador.focus())">
+                                    <form method="POST"
+                                          action="{{ route('secciones.archivos.nube.vincular', [$seccion, $documento]) }}"
+                                          class="w-full max-w-md space-y-3 rounded-t-2xl border border-gray-200 bg-white p-5 shadow-xl sm:rounded-2xl sm:p-4"
+                                          @click.stop>
+                                        @csrf
+                                        <div class="flex items-start justify-between gap-3">
+                                            <h3 id="titulo-vincular-{{ $documento->id }}" class="font-heading text-base font-semibold text-brand-green">{{ __('Vincular a la nube') }}</h3>
+                                            <button type="button" @click="abierto = false; $nextTick(() => $refs.disparador.focus())"
+                                                    class="min-h-[44px] min-w-[44px] rounded-md text-gray-500 hover:bg-gray-100" aria-label="{{ __('Cerrar') }}">✕</button>
+                                        </div>
+                                        <p class="truncate text-xs text-gray-500" title="{{ $documento->nombre_original }}">{{ $documento->nombre_original }}</p>
+                                        <label for="enlace-{{ $documento->id }}" class="block text-xs font-medium text-gray-600">{{ __('Enlace compartido (Google Drive, OneDrive, SharePoint o Dropbox)') }}</label>
+                                        <input x-ref="enlace" id="enlace-{{ $documento->id }}" name="enlace" type="url" required maxlength="2000" placeholder="https://"
+                                               class="min-h-[44px] w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal">
+                                        <p class="text-xs text-gray-500">{{ __('El archivo debe estar compartido con "cualquiera con el enlace" (solo lectura).') }}</p>
+                                        <div class="flex flex-col gap-2 sm:flex-row-reverse">
+                                            <button type="submit" class="min-h-[44px] w-full rounded-md bg-brand-green px-4 text-sm font-semibold text-white sm:w-auto">{{ __('Vincular') }}</button>
+                                            <button type="button" @click="abierto = false; $nextTick(() => $refs.disparador.focus())"
+                                                    class="min-h-[44px] w-full rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100 sm:w-auto sm:px-4">{{ __('Cancelar') }}</button>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
                         @endif
                     @endif

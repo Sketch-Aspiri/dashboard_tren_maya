@@ -389,6 +389,40 @@ class SincronizacionNubeTest extends TestCase
         $this->assertDatabaseHas('activity_log', ['event' => 'documento_vinculado_nube', 'subject_id' => $archivo->id]);
     }
 
+    /**
+     * Con muchos documentos el popover anclado a la fila (absolute / top-full)
+     * se iba debajo del viewport. El formulario debe ser un modal fijo al
+     * viewport, igual que el de alta/edición de filas.
+     */
+    public function test_vincular_nube_form_is_viewport_fixed_modal_not_row_anchored(): void
+    {
+        $this->comoAdministrador();
+        $seccion = Seccion::factory()->create();
+        $archivo = app(ArchivoService::class)->guardar($seccion, $this->excel([['Folio'], ['A1']]), auth()->user());
+
+        $html = $this->get(route('secciones.show', [$seccion, 'tab' => 'documentos']))
+            ->assertOk()
+            ->assertSee('Vincular a la nube', false)
+            ->getContent();
+
+        $this->assertStringNotContainsString(
+            'sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-full',
+            $html,
+            'El formulario de vincular no debe anclarse a la fila: con listas largas se sale de la pantalla.'
+        );
+
+        $this->assertMatchesRegularExpression(
+            '/id="vincular-'.preg_quote((string) $archivo->id, '/').'"[^>]*\brole="dialog"[^>]*\baria-modal="true"/s',
+            $html,
+            'El diálogo de vincular debe ser un modal de viewport (aria-modal) visible con cualquier longitud de lista.'
+        );
+        $this->assertMatchesRegularExpression(
+            '/x-show="abierto"[^>]*class="[^"]*\bfixed inset-0\b/s',
+            $html,
+            'El contenedor del diálogo de vincular debe usar fixed inset-0 para quedar centrado en el viewport.'
+        );
+    }
+
     public function test_link_with_disallowed_host_is_rejected_by_the_form_request(): void
     {
         $this->comoAdministrador();
