@@ -117,13 +117,14 @@
             <div x-show="tab === 'tabla'" role="tabpanel">
                 {{-- Una sub-pestaña por tabla de la sección (p. ej. las hojas de un libro de Excel). --}}
                 @if ($tablas->count() > 1)
-                    <nav class="mb-3 flex gap-2 overflow-x-auto pb-1" aria-label="{{ __('Tablas de la sección') }}">
+                    <nav class="mb-3 flex flex-wrap gap-2 pb-1" aria-label="{{ __('Tablas de la sección') }}">
                         @foreach ($tablas as $tablaItem)
                             @php $esActiva = $tablaItem->id === $tablaActiva->id; @endphp
                             <a href="{{ route('secciones.show', [$seccion, 'tabla' => $tablaItem->id, 'tab' => 'tabla', 'q' => $filtros['q']]) }}"
                                @if ($esActiva) aria-current="page" @endif
+                               title="{{ $tablaItem->nombre }}"
                                @class([
-                                   'inline-flex min-h-[44px] items-center whitespace-nowrap rounded-full border px-4 text-sm',
+                                   'inline-flex min-h-[44px] max-w-full shrink-0 items-center rounded-full border px-4 text-sm',
                                    'border-brand-green bg-brand-green font-semibold text-white' => $esActiva,
                                    'border-brand-green/20 bg-white text-brand-green hover:bg-brand-mist' => ! $esActiva,
                                ])>{{ $tablaItem->nombre }} ({{ $tablaItem->filas_count }})</a>
@@ -132,7 +133,7 @@
 
                     @if ($puedeEditarSeccion)
                         <div class="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-gray-700">
-                            <span>{{ __('Hoja actual: :nombre', ['nombre' => $tablaActiva->nombre]) }}</span>
+                            <span class="min-w-0 break-words">{{ __('Hoja actual: :nombre', ['nombre' => $tablaActiva->nombre]) }}</span>
                             <x-confirmar-eliminar
                                 :action="route('secciones.tablas.destroy', [$seccion, $tablaActiva])"
                                 :etiqueta="__('Eliminar hoja')"

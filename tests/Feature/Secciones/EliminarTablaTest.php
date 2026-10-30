@@ -158,6 +158,37 @@ class EliminarTablaTest extends TestCase
             ->assertDontSee(route('secciones.tablas.destroy', [$seccion, $playa]), false);
     }
 
+    public function test_sheet_pills_show_the_full_table_name_not_a_truncated_label(): void
+    {
+        $this->comoAdministrador();
+        $seccion = Seccion::factory()->create();
+        $nombreLargo = 'EDIFICIO ZONAL ESTE - PERSONAL OPERATIVO';
+        $edificio = $this->tablaConColumnas($seccion, $nombreLargo, ['Empleado' => TipoColumna::Texto]);
+        $this->tablaConColumnas($seccion, 'PUERTO MORELOS', ['Empleado' => TipoColumna::Texto]);
+        $this->filaEnTabla($edificio, ['empleado' => 'Ana']);
+
+        $html = $this->get(route('secciones.show', [$seccion, 'tabla' => $edificio->id]))
+            ->assertOk()
+            ->assertSee($nombreLargo.' (1)', false)
+            ->assertSee('PUERTO MORELOS (0)', false)
+            ->assertSee(__('Hoja actual: :nombre', ['nombre' => $nombreLargo]), false)
+            ->assertSee('title="'.$nombreLargo.'"', false)
+            ->getContent();
+
+        $this->assertSame(1, preg_match(
+            '/(<nav\b[^>]*aria-label="'.preg_quote(__('Tablas de la sección'), '/').'"[^>]*>.*?<\/nav>)/s',
+            $html,
+            $nav,
+        ));
+        $pildoras = $nav[1];
+        $this->assertStringContainsString('flex-wrap', $pildoras);
+        $this->assertStringContainsString('shrink-0', $pildoras);
+        $this->assertStringContainsString('max-w-full', $pildoras);
+        $this->assertStringNotContainsString('overflow-x-auto', $pildoras);
+        $this->assertStringNotContainsString('whitespace-nowrap', $pildoras);
+        $this->assertStringNotContainsString('truncate', $pildoras);
+    }
+
     public function test_admin_does_not_see_eliminar_hoja_with_a_single_table(): void
     {
         $this->comoAdministrador();
