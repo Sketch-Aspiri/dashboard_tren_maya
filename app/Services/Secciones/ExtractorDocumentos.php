@@ -216,56 +216,7 @@ final class ExtractorDocumentos
             $filas[] = $valores;
         }
 
-        return $this->rellenarCeldasFusionadas($filas, $hoja);
-    }
-
-    /**
-     * Copia el valor de la celda maestra de cada fusión a las celdas vacías
-     * del rango (p. ej. Estación / siniestro fusionados en vertical).
-     *
-     * @param  list<list<mixed>>  $filas
-     * @return list<list<mixed>>
-     */
-    private function rellenarCeldasFusionadas(array $filas, Worksheet $hoja): array
-    {
-        if ($filas === []) {
-            return $filas;
-        }
-
-        $maxFila = count($filas);
-        $maxColumna = count($filas[0]);
-
-        foreach ($hoja->getMergeCells() as $rango) {
-            [$inicio, $fin] = Coordinate::rangeBoundaries($rango);
-            $colInicio = (int) $inicio[0];
-            $filaInicio = (int) $inicio[1];
-            $colFin = (int) $fin[0];
-            $filaFin = (int) $fin[1];
-
-            if ($filaInicio < 1 || $filaInicio > $maxFila || $colInicio < 1 || $colInicio > $maxColumna) {
-                continue;
-            }
-
-            $maestro = $filas[$filaInicio - 1][$colInicio - 1] ?? null;
-            if ($maestro === null || $maestro === '') {
-                continue;
-            }
-
-            for ($fila = $filaInicio; $fila <= min($filaFin, $maxFila); $fila++) {
-                for ($columna = $colInicio; $columna <= min($colFin, $maxColumna); $columna++) {
-                    if ($fila === $filaInicio && $columna === $colInicio) {
-                        continue;
-                    }
-
-                    $actual = $filas[$fila - 1][$columna - 1] ?? null;
-                    if ($actual === null || $actual === '') {
-                        $filas[$fila - 1][$columna - 1] = $maestro;
-                    }
-                }
-            }
-        }
-
-        return $filas;
+        return (new CeldasFusionadas)->rellenar($filas, $hoja);
     }
 
     private function valorCelda(Worksheet $hoja, int $columna, int $fila): string|int|float|bool|null
