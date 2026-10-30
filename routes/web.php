@@ -21,6 +21,7 @@ use App\Http\Controllers\Secciones\SeccionExportacionController;
 use App\Http\Controllers\Secciones\SeccionFilaController;
 use App\Http\Controllers\Secciones\SeccionFotoController;
 use App\Http\Controllers\Secciones\SeccionImportacionController;
+use App\Http\Controllers\Secciones\SeccionTablaController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -153,6 +154,8 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
                 Route::put('/{seccion}/columnas/{columna}', [SeccionColumnaController::class, 'update'])->name('columnas.update');
                 Route::post('/{seccion}/columnas/{columna}/mover', [SeccionColumnaController::class, 'mover'])->name('columnas.mover');
                 Route::delete('/{seccion}/columnas/{columna}', [SeccionColumnaController::class, 'destroy'])->name('columnas.destroy');
+
+                Route::delete('/{seccion}/tablas/{tabla}', [SeccionTablaController::class, 'destroy'])->name('tablas.destroy');
 
                 Route::post('/{seccion}/filas', [SeccionFilaController::class, 'store'])->name('filas.store');
                 Route::put('/{seccion}/filas/{fila}', [SeccionFilaController::class, 'update'])->name('filas.update');

@@ -120,13 +120,28 @@
                     <nav class="mb-4 flex gap-2 overflow-x-auto pb-1" aria-label="{{ __('Tablas de la sección') }}">
                         @foreach ($tablas as $tablaItem)
                             @php $esActiva = $tablaItem->id === $tablaActiva->id; @endphp
-                            <a href="{{ route('secciones.show', [$seccion, 'tabla' => $tablaItem->id, 'tab' => 'tabla', 'q' => $filtros['q']]) }}"
-                               @if ($esActiva) aria-current="page" @endif
-                               @class([
-                                   'inline-flex min-h-[44px] items-center whitespace-nowrap rounded-full border px-4 text-sm',
-                                   'border-brand-green bg-brand-green font-semibold text-white' => $esActiva,
-                                   'border-brand-green/20 bg-white text-brand-green hover:bg-brand-mist' => ! $esActiva,
-                               ])>{{ $tablaItem->nombre }} ({{ $tablaItem->filas_count }})</a>
+                            <div @class([
+                                'inline-flex min-h-[44px] items-stretch overflow-hidden rounded-full border',
+                                'border-brand-green bg-brand-green text-white' => $esActiva,
+                                'border-brand-green/20 bg-white text-brand-green' => ! $esActiva,
+                            ])>
+                                <a href="{{ route('secciones.show', [$seccion, 'tabla' => $tablaItem->id, 'tab' => 'tabla', 'q' => $filtros['q']]) }}"
+                                   @if ($esActiva) aria-current="page" @endif
+                                   @class([
+                                       'inline-flex min-h-[44px] items-center whitespace-nowrap px-4 text-sm',
+                                       'font-semibold text-white' => $esActiva,
+                                       'text-brand-green hover:bg-brand-mist' => ! $esActiva,
+                                   ])>{{ $tablaItem->nombre }} ({{ $tablaItem->filas_count }})</a>
+                                @if ($puedeEditarSeccion)
+                                    <x-confirmar-eliminar
+                                        :action="route('secciones.tablas.destroy', [$seccion, $tablaItem])"
+                                        etiqueta="✕"
+                                        :aria-label="__('Eliminar hoja «:nombre»', ['nombre' => $tablaItem->nombre])"
+                                        :pregunta="__('¿Eliminar la hoja «:nombre» y todos sus registros?', ['nombre' => $tablaItem->nombre])"
+                                        class="{{ $esActiva ? 'border-s border-white/30' : 'border-s border-brand-green/20' }}"
+                                    />
+                                @endif
+                            </div>
                         @endforeach
                     </nav>
                 @endif
