@@ -12,9 +12,12 @@ that agent before merge.
 
 ## Non-Negotiables (from `AGENTS.md` — never relax these)
 
-- [ ] The app is **never reachable except through Tailscale VPN**. No
-      Nginx `server_block`, firewall rule, or CloudPanel setting opens a
-      public port beyond what VPN-only access requires.
+- [ ] The app is published on a **public HTTPS domain** (decision nov 2026,
+      needed for cloud OAuth callbacks). Only ports **80/443** are open to
+      the internet. SSH (22), the CloudPanel UI (8443) and MySQL are
+      reachable **only through Tailscale** / localhost — never public.
+- [ ] Before the domain goes live: `TWO_FACTOR_ENABLED=true`, individual
+      user accounts, login rate limiting verified, `SESSION_SECURE_COOKIE=true`.
 - [ ] MySQL binds to `127.0.0.1` only (`bind-address = 127.0.0.1` in
       `mysqld.cnf`) — never `0.0.0.0`, never a public interface.
 - [ ] SSH access is **key-only** — password auth stays disabled
@@ -35,7 +38,7 @@ that agent before merge.
 | PHP | 8.3, PHP-FPM |
 | Database | MySQL 8, local to the VPS |
 | Host | Hostinger VPS, KVM 2 (2 vCPU / 8 GB RAM / NVMe), US datacenter |
-| Remote access | Tailscale VPN only — no direct public exposure |
+| Remote access | Public HTTPS domain for the app (80/443); Tailscale for SSH + CloudPanel |
 | TLS | Let's Encrypt, auto-renewal |
 
 Don't introduce a different web server, panel, or DB engine without an
@@ -48,9 +51,9 @@ explicit decision recorded — this stack is fixed for v1.
   private key passed around.
 - Application/deploy actions run as the app's dedicated CloudPanel site
   user, not `root`, except for OS-level package management.
-- Tailscale is the only path to the app, the DB port, and any admin panel
-  (CloudPanel UI itself should also sit behind the VPN, not the public
-  internet).
+- Tailscale is the only path to SSH, the DB port, and any admin panel
+  (CloudPanel UI itself sits behind the VPN, not the public internet).
+  Only the app (80/443) is public.
 
 ## `.env` Management
 
@@ -68,7 +71,7 @@ explicit decision recorded — this stack is fixed for v1.
 
 ## Deployment Flow
 
-Deploys are VPN-reachable-only actions — never run these against a host
+Deploys run over SSH (Tailscale only) — never run these against a host
 you haven't confirmed is the intended environment.
 
 ```bash
@@ -141,7 +144,7 @@ php artisan queue:restart      # if queue workers are running
 - Any change to the site's Nginx vhost, PHP-FPM pool, or CloudPanel
   firewall rule is a `security-auditor`-reviewed change — treat it with
   the same scrutiny as an auth code change, since a misconfiguration here
-  is exactly what could break the VPN-only guarantee.
+  is exactly what could expose SSH, CloudPanel or MySQL publicly.
 - Standard security headers (`X-Content-Type-Options`, `X-Frame-Options`,
   `Referrer-Policy`, CSP once the frontend asset story is finalized) are
   set at the Nginx or Laravel middleware level and not something a
@@ -153,7 +156,7 @@ php artisan queue:restart      # if queue workers are running
 
 | Anti-pattern | Why |
 |---|---|
-| Opening a port/route to the public internet "temporarily" for testing | Breaks the VPN-only non-negotiable; use Tailscale instead |
+| Opening any port besides 80/443 (SSH, 8443, 3306) to the internet, even "temporarily" | Breaks the non-negotiable; use Tailscale instead |
 | `chmod -R 777` to fix a permissions error | Papers over the real ownership issue and widens attack surface |
 | Committing a real `.env` or hardcoding prod credentials in a script | Secret leak into git history |
 | Running deploy/migrate commands without confirming target host | Risk of migrating/deploying against the wrong environment |

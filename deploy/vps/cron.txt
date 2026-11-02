@@ -1,0 +1,9 @@
+# Cron del USUARIO DEL SITIO (crontab -e como ese usuario, o la UI de cron de CloudPanel).
+# UNA sola entrada: el scheduler de Laravel decide qué corre y cuándo
+# (sincronización de nube, etc.). No agregar entradas por tarea.
+# Reemplazar <RUTA_SITIO> (p. ej. /home/dashboard/htdocs/dashboard.ejemplo.mx).
+* * * * * cd <RUTA_SITIO> && /usr/bin/php8.3 artisan schedule:run >> /dev/null 2>&1
+
+# Respaldo diario de la BD (03:15) fuera del web root; conserva 14 días.
+# Crea ~/.my-respaldo.cnf (chmod 600) con [client] user/password/host.
+15 3 * * * mysqldump --defaults-extra-file=$HOME/.my-respaldo.cnf --single-transaction --routines --hex-blob dashboard_jefe_zona | gzip > $HOME/respaldos/db-diario-$(date +\%a).sql.gz

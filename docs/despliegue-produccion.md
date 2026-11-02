@@ -1,7 +1,9 @@
 # Despliegue a producción — Dashboard Jefe de Zona
 
 Guía para pasar el sistema al VPS (Ubuntu 24.04 + CloudPanel + Nginx + PHP 8.3
-+ MySQL 8, solo accesible por Tailscale). Complementa
++ MySQL 8, dominio público por HTTPS; SSH y CloudPanel solo por Tailscale).
+**La guía operativa paso a paso para TI está en `deploy/vps/LEEME.md`**; este
+documento es la referencia de configuración. Complementa
 `.cursor/rules/server-conventions.mdc`. Cualquier cambio de Nginx, PHP-FPM o
 firewall pasa por revisión de `security-auditor` antes de aplicarse.
 
@@ -15,7 +17,10 @@ FLUSH PRIVILEGES;
 ```
 
 - `bind-address = 127.0.0.1` en `mysqld.cnf` (nunca `0.0.0.0`).
-- La base arranca **vacía**: no se migra nada del SQLite anterior.
+- Para llevar los datos del servidor local usa `deploy/vps/migrar-desde-local.md`
+  (importar el dump en esta base vacía y verificar con
+  `deploy/vps/verificar-migracion.php`). Si se arranca sin datos, la base queda
+  vacía y se usa `--seed` (paso 4).
 
 ## 2. `.env` del servidor
 
@@ -24,7 +29,7 @@ Parte de `.env.example` y ajusta, como mínimo:
 ```dotenv
 APP_ENV=production
 APP_DEBUG=false
-APP_URL=https://<host-tailscale>
+APP_URL=https://<dominio-del-dashboard>
 APP_LOCALE=es
 
 DB_CONNECTION=mysql
@@ -36,9 +41,11 @@ DB_PASSWORD=<la del paso 1>
 
 SESSION_SECURE_COOKIE=true
 
-# Decisión del Jefe de Zona (oct 2026): una sola cuenta compartida, sin 2FA.
-# Volver a true en cuanto existan cuentas individuales.
-TWO_FACTOR_ENABLED=false
+# OBLIGATORIO true con dominio público (cuentas individuales + 2FA).
+TWO_FACTOR_ENABLED=true
+
+SECCIONES_SYNC_MINUTOS=15
+QUEUE_CONNECTION=database
 
 SECCIONES_MAX_ARCHIVO_KB=102400
 
@@ -84,6 +91,9 @@ respaldo.)
 
 ## 4. Despliegue
 
+Desde el segundo despliegue usa `bash deploy/vps/deploy.sh` (respaldo previo +
+mantenimiento + migración + cachés). Manual / primera vez:
+
 ```bash
 git pull origin master
 composer install --no-dev --optimize-autoloader
@@ -100,13 +110,22 @@ php artisan config:cache && php artisan route:cache && php artisan view:cache
 
 ## 5. Verificación después del despliegue
 
-1. Entrar por la VPN e iniciar sesión con la cuenta creada.
+1. Entrar a `https://<dominio>` e iniciar sesión (con 2FA) con la cuenta creada.
 2. Abrir una sección, arrastrar un Excel pequeño de prueba, revisar la vista
    previa y aplicarla; después deshacerla desde la pestaña "Cargas".
 3. Exportar una tabla a Excel.
 4. En RR.HH. > Personal, arrastrar el Excel de la Base de datos Zona Oriente y
    revisar la vista previa (sin aplicar si no es el definitivo).
 5. Revisar `storage/logs/laravel.log` sin errores.
+
+## 5b. Procesos en segundo plano (obligatorio)
+
+- **Cron** del usuario del sitio con la entrada única de `schedule:run`
+  (`deploy/vps/cron.txt`): sin él no corre la sincronización de nube.
+- **Worker de cola** bajo supervisor (`deploy/vps/supervisor-dashboard.conf`).
+- `libreoffice-writer` + `fonts-noto` y `ASISTENCIA_SOFFICE_PATH=/usr/bin/soffice`
+  para los oficios de asistencia.
+- Credenciales OAuth de nubes: `docs/nube-oauth.md`.
 
 ## 6. Respaldos
 

@@ -32,7 +32,7 @@ mano o arrastrando documentos.
 | Sistema operativo (prod) | Ubuntu 24.04 LTS |
 | Panel de administración del servidor | CloudPanel (gratuito) |
 | Hosting | VPS Hostinger, plan KVM 2 (2 vCPU / 8 GB RAM / NVMe), datacenter en Estados Unidos |
-| Acceso remoto seguro | VPN (Tailscale) — el sistema nunca se expone abiertamente a internet |
+| Acceso | Dominio público por HTTPS (login + 2FA + rate limiting). Tailscale queda solo para administración (SSH y CloudPanel) |
 | Certificado SSL | Let's Encrypt (renovación automática) |
 
 ## Arquitectura
@@ -45,8 +45,10 @@ Arquitectura de tres capas, alojada en un VPS propio:
   buscador, reportes).
 - **Datos:** MySQL en el mismo servidor, sin exposición directa a internet
   (`bind-address 127.0.0.1`).
-- **Acceso remoto:** únicamente vía VPN (Tailscale). No se publican puertos
-  abiertos a internet más allá de lo estrictamente necesario.
+- **Acceso:** la aplicación se publica por dominio con HTTPS (decisión de
+  nov 2026, para poder usar OAuth con las nubes). Solo 80/443 están abiertos a
+  internet; SSH y el panel CloudPanel (8443) solo son alcanzables por
+  Tailscale.
 
 ## Módulos del sistema
 
@@ -65,10 +67,12 @@ Arquitectura de tres capas, alojada en un VPS propio:
 
 ## Requisitos de seguridad (no negociables)
 
-- Nunca exponer la aplicación directamente a internet sin VPN.
-- 2FA obligatorio para el login. **Excepción vigente:** apagado con
-  `TWO_FACTOR_ENABLED=false` mientras se usa una sola cuenta compartida
-  (decisión del Jefe de Zona, oct 2026); se reactiva con cuentas individuales.
+- La aplicación solo se publica por HTTPS con login + 2FA + rate limiting.
+  Solo 80/443 abiertos a internet; SSH, CloudPanel y MySQL nunca son públicos.
+- 2FA obligatorio para el login. **Con dominio público no se permite**
+  `TWO_FACTOR_ENABLED=false`: el 2FA y las cuentas individuales son requisito
+  previo a abrir el DNS. (La excepción de cuenta compartida solo vale mientras
+  el servidor siga sin exposición pública.)
 - Roles y permisos desde el día uno, aunque hoy solo exista un usuario.
 - Toda acción de creación/edición/eliminación debe quedar registrada en la
   bitácora de auditoría (`activitylog`).
@@ -218,9 +222,12 @@ servidor ejecuta, y recibe únicamente el resultado. Requiere
 
 Por decisión del Jefe de Zona (oct 2026) hay **una sola cuenta** con roles
 Jefe de Zona + Administrador que usa todo el equipo, y el 2FA está apagado
-con `TWO_FACTOR_ENABLED=false` (el código de 2FA sigue completo). Volver a
-`true` en cuanto existan cuentas individuales. El rol Estación existe pero
-sin cuentas.
+con `TWO_FACTOR_ENABLED=false` (el código de 2FA sigue completo). El rol
+Estación existe pero sin cuentas.
+
+**Requisito antes de publicar el dominio en el VPS:** `TWO_FACTOR_ENABLED=true`
+y una cuenta por persona (`deploy/vps/LEEME.md`, paso V2). Mientras el servidor
+no sea público, la excepción sigue vigente.
 
 ## Roles del proyecto
 

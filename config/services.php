@@ -47,4 +47,28 @@ return [
         'asistente_por_dia' => (int) env('ASISTENTE_LIMITE_DIARIO', 300),
     ],
 
+    /*
+     * OAuth de las nubes (solo lectura). Las apps las registra TI; ver
+     * docs/nube-oauth.md. Se usan desde la fase F2 de
+     * docs/plan-sincronizacion-nube.md. Siempre leer con config(), nunca env().
+     */
+    'microsoft' => [
+        'client_id' => env('MICROSOFT_CLIENT_ID'),
+        'client_secret' => env('MICROSOFT_CLIENT_SECRET'),
+        'tenant' => env('MICROSOFT_TENANT', 'common'),
+        'redirect' => env('MICROSOFT_REDIRECT_URI'),
+    ],
+
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI'),
+    ],
+
+    'dropbox' => [
+        'client_id' => env('DROPBOX_CLIENT_ID'),
+        'client_secret' => env('DROPBOX_CLIENT_SECRET'),
+        'redirect' => env('DROPBOX_REDIRECT_URI'),
+    ],
+
 ];
