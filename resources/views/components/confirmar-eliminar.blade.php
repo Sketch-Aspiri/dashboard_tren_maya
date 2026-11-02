@@ -5,6 +5,7 @@
     'confirmar' => __('Sí, eliminar'),
     'metodo' => 'DELETE',
     'tono' => 'peligro',
+    'ariaLabel' => null,
 ])
 
 @php
@@ -18,8 +19,10 @@
 <form method="POST" action="{{ $action }}" x-data="{ confirmando: false }" {{ $attributes->merge(['class' => 'inline-flex items-center gap-2']) }}>
     @csrf
     @method($metodo)
+    {{ $slot }}
     <button type="button" x-ref="abrir" x-show="! confirmando"
             @click="confirmando = true; $nextTick(() => $refs.cancelar.focus())"
+            aria-label="{{ $ariaLabel ?? $etiqueta }}"
             class="min-h-[44px] rounded-md px-2 text-sm font-medium focus:outline-none focus:ring-2 {{ $colorBoton }}">
         {{ $etiqueta }}
     </button>

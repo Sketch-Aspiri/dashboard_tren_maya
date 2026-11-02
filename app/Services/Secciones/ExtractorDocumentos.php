@@ -216,7 +216,7 @@ final class ExtractorDocumentos
             $filas[] = $valores;
         }
 
-        return $filas;
+        return (new CeldasFusionadas)->rellenar($filas, $hoja);
     }
 
     private function valorCelda(Worksheet $hoja, int $columna, int $fila): string|int|float|bool|null

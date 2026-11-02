@@ -183,7 +183,7 @@ final class PrevisualizadorArchivos
             $filas[] = $valores;
         }
 
-        return $filas;
+        return (new CeldasFusionadas)->rellenar($filas, $hoja);
     }
 
     /**

@@ -21,12 +21,24 @@
                         @foreach ($columnas as $columna)
                             <th scope="col" class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase text-brand-green"
                                 @if ($filtros['sort'] === $columna->clave) aria-sort="{{ $filtros['direction'] === 'asc' ? 'ascending' : 'descending' }}" @endif>
-                                <a href="{{ $enlaceOrden($columna->clave) }}" class="inline-flex items-center gap-1 hover:underline">
-                                    {{ $columna->nombre }}
-                                    @if ($filtros['sort'] === $columna->clave)
-                                        <span aria-hidden="true">{{ $filtros['direction'] === 'asc' ? '▲' : '▼' }}</span>
+                                <div class="flex flex-col items-start gap-1">
+                                    <a href="{{ $enlaceOrden($columna->clave) }}" class="inline-flex items-center gap-1 hover:underline">
+                                        {{ $columna->nombre }}
+                                        @if ($filtros['sort'] === $columna->clave)
+                                            <span aria-hidden="true">{{ $filtros['direction'] === 'asc' ? '▲' : '▼' }}</span>
+                                        @endif
+                                    </a>
+                                    @if ($puedeEditarSeccion)
+                                        <x-confirmar-eliminar
+                                            :action="route('secciones.columnas.destroy', [$seccion, $columna])"
+                                            :etiqueta="__('Eliminar')"
+                                            :pregunta="__('¿Eliminar la columna y sus valores?')"
+                                            class="normal-case"
+                                        >
+                                            <input type="hidden" name="volver" value="tabla">
+                                        </x-confirmar-eliminar>
                                     @endif
-                                </a>
+                                </div>
                             </th>
                         @endforeach
                         <th scope="col" class="px-4 py-3"><span class="sr-only">{{ __('Acciones') }}</span></th>
@@ -61,6 +73,27 @@
                 </tbody>
             </table>
         </div>
+
+        {{-- Celular: borrar columnas (el thead de escritorio no se ve aquí) --}}
+        @if ($puedeEditarSeccion)
+            <div class="space-y-2 border-b border-gray-100 px-4 py-3 sm:hidden" aria-label="{{ __('Columnas') }}">
+                <p class="text-xs font-semibold uppercase text-brand-green">{{ __('Columnas') }}</p>
+                <ul class="space-y-1">
+                    @foreach ($columnas as $columna)
+                        <li class="flex items-center justify-between gap-2 text-sm">
+                            <span class="min-w-0 truncate text-gray-800">{{ $columna->nombre }}</span>
+                            <x-confirmar-eliminar
+                                :action="route('secciones.columnas.destroy', [$seccion, $columna])"
+                                :etiqueta="__('Eliminar')"
+                                :pregunta="__('¿Eliminar la columna y sus valores?')"
+                            >
+                                <input type="hidden" name="volver" value="tabla">
+                            </x-confirmar-eliminar>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
 
         {{-- Celular: tarjetas --}}
         <div class="divide-y divide-gray-100 sm:hidden">

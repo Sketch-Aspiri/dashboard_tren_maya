@@ -67,5 +67,13 @@ return [
             'dropbox.com',
             'dropboxusercontent.com',
         ],
+        // Token anónimo "Badger" que Microsoft exige para descargar
+        // shares personales vía api.onedrive.com (sin OAuth). El appId
+        // es el cliente público que usan sus propios clientes; no es un secreto.
+        'onedrive_badger' => [
+            'url' => 'https://api-badgerp.svc.ms/v1.0/token',
+            'app_id' => '5cbed6ac-a083-4e14-b191-b4ba07653de2',
+            'cache_minutos' => 360,
+        ],
     ],
 ];

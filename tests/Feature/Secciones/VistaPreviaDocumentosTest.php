@@ -62,6 +62,33 @@ class VistaPreviaDocumentosTest extends TestCase
         $this->assertTrue(Activity::query()->where('event', 'documento_visto')->exists());
     }
 
+    public function test_xlsx_preview_fills_vertically_merged_cells(): void
+    {
+        $this->comoAdministrador();
+        $seccion = Seccion::factory()->create();
+        $libro = new Spreadsheet;
+        $hoja = $libro->getActiveSheet();
+        $hoja->setTitle('Siniestros');
+        $hoja->fromArray([
+            ['Estacion', 'FECHA'],
+            ['Nicolás Bravo', '2026-05-02'],
+            [null, '2026-08-17'],
+            [null, '2026-08-24'],
+        ], null, 'A1', true);
+        $hoja->mergeCells('A2:A4');
+        $ruta = tempnam(sys_get_temp_dir(), 'xlsx');
+        (new Xlsx($libro))->save($ruta);
+        $archivo = $this->subir($seccion, new UploadedFile($ruta, 'siniestros.xlsx', null, null, true));
+
+        $this->vistaPrevia($seccion, $archivo)
+            ->assertOk()
+            ->assertJsonPath('data.tipo', 'tabla')
+            ->assertJsonPath('data.filas.1.0', 'Nicolás Bravo')
+            ->assertJsonPath('data.filas.2.0', 'Nicolás Bravo')
+            ->assertJsonPath('data.filas.3.0', 'Nicolás Bravo')
+            ->assertJsonPath('data.filas.2.1', '2026-08-17');
+    }
+
     public function test_csv_preview_returns_rows(): void
     {
         $this->comoAdministrador();

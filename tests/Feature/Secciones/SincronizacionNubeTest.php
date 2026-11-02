@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Spatie\Activitylog\Models\Activity;
 use Tests\Concerns\InteractsWithSecciones;
 use Tests\TestCase;
 
@@ -252,6 +253,126 @@ class SincronizacionNubeTest extends TestCase
         Http::assertSent(fn (Request $request) => $request->url() === 'https://drive.google.com/uc?export=download&id=1AbCdEfGhIjKlMnOpQ');
     }
 
+    /**
+     * OneDrive personal (api.onedrive.com/shares) ahora exige un token
+     * "Badger" anónimo; sin él responde 401 UnauthenticatedVroomException.
+     */
+    public function test_onedrive_download_obtains_badger_token_and_sends_it(): void
+    {
+        $enlace = 'https://1drv.ms/x/s!AbCdEf123XyZ';
+        $archivo = $this->documentoVinculado([['Folio', 'Equipo'], ['A1', 'Escalera 1']], $enlace);
+        $archivo->origen->forceFill(['proveedor' => 'microsoft'])->save();
+        $nueva = $this->bytesExcel([['Folio', 'Equipo'], ['A1', 'Escalera 1'], ['A2', 'Nueva']]);
+        $descarga = app(EnlaceNubeResolver::class)->resolver($enlace)['descarga'];
+
+        Http::fake([
+            'api-badgerp.svc.ms/*' => Http::response(['token' => 'token-badger-de-prueba', 'authScheme' => 'badger'], 200),
+            'api.onedrive.com/*' => Http::response($nueva, 200),
+        ]);
+
+        $resultado = app(NubeSyncService::class)->sincronizar($archivo);
+
+        $this->assertSame('actualizado', $resultado);
+        Http::assertSent(fn (Request $request) => $request->url() === 'https://api-badgerp.svc.ms/v1.0/token'
+            && $request->method() === 'POST'
+            && data_get($request->data(), 'appId') === '5cbed6ac-a083-4e14-b191-b4ba07653de2');
+        Http::assertSent(fn (Request $request) => $request->url() === $descarga
+            && $request->hasHeader('Authorization', 'Badger token-badger-de-prueba')
+            && $request->hasHeader('Prefer', 'autoredeem'));
+        Http::assertNotSent(fn (Request $request) => str_contains($request->url(), 'drive.google.com'));
+    }
+
+    public function test_onedrive_reports_auth_error_when_badger_token_cannot_be_obtained(): void
+    {
+        $enlace = 'https://1drv.ms/x/s!AbCdEf123';
+        $archivo = $this->documentoVinculado([['Folio', 'Equipo'], ['A1', 'Escalera 1']], $enlace);
+        Http::fake(['api-badgerp.svc.ms/*' => Http::response(['error' => 'denied'], 503)]);
+
+        $resultado = app(NubeSyncService::class)->sincronizar($archivo);
+
+        $this->assertSame('error', $resultado);
+        $this->assertStringContainsString('OneDrive', (string) $archivo->fresh()->origen->sincronizacion_error);
+        Http::assertNotSent(fn (Request $request) => str_contains($request->url(), 'api.onedrive.com'));
+    }
+
+    public function test_onedrive_retries_once_with_fresh_badger_token_after_401(): void
+    {
+        $enlace = 'https://1drv.ms/x/s!AbCdEfRetry401';
+        $archivo = $this->documentoVinculado([['Folio', 'Equipo'], ['A1', 'Escalera 1']], $enlace);
+        $nueva = $this->bytesExcel([['Folio', 'Equipo'], ['A1', 'Escalera 1'], ['A2', 'Tras reintento']]);
+        $tokens = ['token-caducado', 'token-fresco'];
+
+        Http::fake([
+            'api-badgerp.svc.ms/*' => function () use (&$tokens) {
+                return Http::response(['token' => array_shift($tokens), 'authScheme' => 'badger'], 200);
+            },
+            'api.onedrive.com/*' => Http::sequence()
+                ->push('', 401)
+                ->push($nueva, 200),
+        ]);
+
+        $resultado = app(NubeSyncService::class)->sincronizar($archivo);
+
+        $this->assertSame('actualizado', $resultado);
+        Http::assertSentCount(4); // 2 badger + 2 downloads
+        $this->assertNull($archivo->fresh()->origen->sincronizacion_error);
+        $props = Activity::query()
+            ->where('event', 'documento_sincronizado')
+            ->latest('id')
+            ->first()
+            ?->properties;
+        $this->assertStringNotContainsString('token-caducado', json_encode($props?->toArray() ?? []));
+        $this->assertStringNotContainsString('token-fresco', json_encode($props?->toArray() ?? []));
+    }
+
+    public function test_onedrive_401_error_message_does_not_leak_badger_token(): void
+    {
+        $enlace = 'https://1drv.ms/x/s!AbCdEfLeakCheck';
+        $archivo = $this->documentoVinculado([['Folio', 'Equipo'], ['A1', 'Escalera 1']], $enlace);
+        $secreto = 'token-secreto-que-no-debe-verse';
+
+        Http::fake([
+            'api-badgerp.svc.ms/*' => Http::response(['token' => $secreto, 'authScheme' => 'badger'], 200),
+            'api.onedrive.com/*' => Http::response('', 401),
+        ]);
+
+        $this->assertSame('error', app(NubeSyncService::class)->sincronizar($archivo));
+
+        $error = (string) $archivo->fresh()->origen->sincronizacion_error;
+        $this->assertStringContainsString('cualquiera con el enlace', $error);
+        $this->assertStringNotContainsString($secreto, $error);
+        $this->assertStringNotContainsString('Badger', $error);
+        $props = Activity::query()
+            ->where('event', 'sincronizacion_fallida')
+            ->latest('id')
+            ->first()
+            ?->properties;
+        $this->assertStringNotContainsString($secreto, json_encode($props?->toArray() ?? []));
+    }
+
+    public function test_google_drive_download_does_not_request_onedrive_badger_token(): void
+    {
+        $archivo = $this->documentoVinculado([['Folio', 'Equipo'], ['A1', 'Escalera 1']]);
+        Http::fake(['*' => Http::response($this->bytesExcel([['Folio', 'Equipo'], ['A1', 'Escalera 1'], ['A2', 'X']]), 200)]);
+
+        app(NubeSyncService::class)->sincronizar($archivo);
+
+        Http::assertNotSent(fn (Request $request) => str_contains($request->url(), 'api-badgerp.svc.ms'));
+    }
+
+    public function test_sharepoint_download_does_not_request_onedrive_badger_token(): void
+    {
+        $enlace = 'https://contoso.sharepoint.com/:x:/s/equipo/EaBcDeFg?e=xyz';
+        $archivo = $this->documentoVinculado([['Folio', 'Equipo'], ['A1', 'Escalera 1']], $enlace);
+        $archivo->origen->forceFill(['proveedor' => 'microsoft'])->save();
+        Http::fake(['*' => Http::response($this->bytesExcel([['Folio', 'Equipo'], ['A1', 'Escalera 1'], ['A2', 'X']]), 200)]);
+
+        app(NubeSyncService::class)->sincronizar($archivo);
+
+        Http::assertNotSent(fn (Request $request) => str_contains($request->url(), 'api-badgerp.svc.ms'));
+        Http::assertSent(fn (Request $request) => str_contains($request->url(), 'sharepoint.com') && str_contains($request->url(), 'download=1'));
+    }
+
     public function test_command_syncs_only_active_linked_documents(): void
     {
         $vinculado = $this->documentoVinculado([['Folio', 'Equipo'], ['A1', 'Escalera 1']]);
@@ -286,6 +407,40 @@ class SincronizacionNubeTest extends TestCase
         $this->assertSame($archivo->seccion_id, $origen->seccion_id);
         $this->assertSame(hash_file('sha256', app(ArchivoService::class)->rutaAbsoluta($archivo)), $archivo->fresh()->contenido_hash);
         $this->assertDatabaseHas('activity_log', ['event' => 'documento_vinculado_nube', 'subject_id' => $archivo->id]);
+    }
+
+    /**
+     * Con muchos documentos el popover anclado a la fila (absolute / top-full)
+     * se iba debajo del viewport. El formulario debe ser un modal fijo al
+     * viewport, igual que el de alta/edición de filas.
+     */
+    public function test_vincular_nube_form_is_viewport_fixed_modal_not_row_anchored(): void
+    {
+        $this->comoAdministrador();
+        $seccion = Seccion::factory()->create();
+        $archivo = app(ArchivoService::class)->guardar($seccion, $this->excel([['Folio'], ['A1']]), auth()->user());
+
+        $html = $this->get(route('secciones.show', [$seccion, 'tab' => 'documentos']))
+            ->assertOk()
+            ->assertSee('Vincular a la nube', false)
+            ->getContent();
+
+        $this->assertStringNotContainsString(
+            'sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-full',
+            $html,
+            'El formulario de vincular no debe anclarse a la fila: con listas largas se sale de la pantalla.'
+        );
+
+        $this->assertMatchesRegularExpression(
+            '/id="vincular-'.preg_quote((string) $archivo->id, '/').'"[^>]*\brole="dialog"[^>]*\baria-modal="true"/s',
+            $html,
+            'El diálogo de vincular debe ser un modal de viewport (aria-modal) visible con cualquier longitud de lista.'
+        );
+        $this->assertMatchesRegularExpression(
+            '/x-show="abierto"[^>]*class="[^"]*\bfixed inset-0\b/s',
+            $html,
+            'El contenedor del diálogo de vincular debe usar fixed inset-0 para quedar centrado en el viewport.'
+        );
     }
 
     public function test_link_with_disallowed_host_is_rejected_by_the_form_request(): void

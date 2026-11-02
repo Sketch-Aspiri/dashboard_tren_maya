@@ -28,9 +28,9 @@
         @if ($subsecciones->isNotEmpty())
             <ul class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach ($subsecciones as $subseccion)
-                    <li>
+                    <li class="flex min-h-[56px] items-stretch overflow-hidden rounded-lg border border-gray-200">
                         <a href="{{ route('secciones.show', $subseccion) }}"
-                           class="flex min-h-[56px] flex-col justify-center rounded-lg border border-gray-200 px-3 py-2 hover:border-brand-teal hover:bg-brand-mist focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
+                           class="flex min-w-0 flex-1 flex-col justify-center px-3 py-2 hover:border-brand-teal hover:bg-brand-mist focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
                             <span class="font-medium text-gray-900">
                                 <span aria-hidden="true">📁</span> {{ $subseccion->nombre }}
                                 @unless ($subseccion->is_visible)
@@ -44,6 +44,20 @@
                                 @endif
                             </span>
                         </a>
+                        @can('delete', $subseccion)
+                            <div class="flex items-center border-s border-gray-200 px-1">
+                                <x-confirmar-eliminar
+                                    :action="route('secciones.destroy', $subseccion)"
+                                    :etiqueta="__('Eliminar')"
+                                    :aria-label="__('Eliminar subsección «:nombre»', ['nombre' => $subseccion->nombre])"
+                                    :pregunta="$subseccion->hijas_count === 0
+                                        ? __('¿Quitar «:nombre» del menú?', ['nombre' => $subseccion->nombre])
+                                        : __('¿Quitar «:nombre» y sus subsecciones del menú?', ['nombre' => $subseccion->nombre])"
+                                >
+                                    <input type="hidden" name="desde_seccion" value="1">
+                                </x-confirmar-eliminar>
+                            </div>
+                        @endcan
                     </li>
                 @endforeach
             </ul>
