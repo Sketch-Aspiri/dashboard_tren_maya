@@ -54,6 +54,7 @@ class SeccionArchivo extends Model
     protected $hidden = [
         'ruta',
         'texto_extraido',
+        // Columna heredada (ya sin uso, se elimina en una migración posterior): el enlace compartido no se serializa.
         'origen_url',
     ];
 
@@ -64,14 +65,20 @@ class SeccionArchivo extends Model
     {
         return [
             'tamano' => 'integer',
-            'sincronizacion_activa' => 'boolean',
-            'sincronizado_en' => 'datetime',
         ];
     }
 
     public function estaVinculadoANube(): bool
     {
-        return $this->origen_url !== null;
+        return $this->seccion_origen_id !== null;
+    }
+
+    /**
+     * @return BelongsTo<SeccionOrigen, $this>
+     */
+    public function origen(): BelongsTo
+    {
+        return $this->belongsTo(SeccionOrigen::class, 'seccion_origen_id');
     }
 
     /**

@@ -7,6 +7,8 @@ use App\Services\Asistente\ClienteClaude;
 use App\Services\Asistente\ModeloLenguaje;
 use App\Services\Documentos\ConvertidorPdf;
 use App\Services\Documentos\ConvertidorPdfLibreOffice;
+use App\Services\Nube\Contracts\ProveedorNube;
+use App\Services\Nube\Proveedores\EnlacePublico;
 use App\Services\Secciones\ExtractorDocumentos;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -41,6 +43,9 @@ class AppServiceProvider extends ServiceProvider
         ));
 
         $this->app->singleton(ModeloLenguaje::class, ClienteClaude::class);
+
+        // Hoy solo enlaces públicos; las cuentas OAuth (Graph, Drive, Dropbox) se enlazan por origen en F2+.
+        $this->app->bind(ProveedorNube::class, EnlacePublico::class);
 
         // Una instancia por petición: comparte la caché de tablas leídas
         // entre ArchivoService e ImportacionService (no relee el archivo).

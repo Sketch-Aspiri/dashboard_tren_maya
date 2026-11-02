@@ -73,13 +73,13 @@
                             @if ($documento->autor) · {{ $documento->autor->name }} @endif
                             @if ($documento->seccion_fila_id) · {{ __('adjunto de un registro') }} @endif
                         </p>
-                        @if ($documento->estaVinculadoANube())
+                        @if ($documento->origen)
                             <p class="mt-0.5 text-xs text-brand-teal">
-                                {{ __('Nube') }} ({{ $documento->origen_proveedor }}) ·
-                                {{ $documento->sincronizado_en ? __('revisado :cuando', ['cuando' => $documento->sincronizado_en->diffForHumans()]) : __('aún sin revisar') }}
+                                {{ __('Nube') }} ({{ $documento->origen->proveedor }}) ·
+                                {{ $documento->origen->sincronizado_en ? __('revisado :cuando', ['cuando' => $documento->origen->sincronizado_en->diffForHumans()]) : __('aún sin revisar') }}
                             </p>
-                            @if ($documento->sincronizacion_error)
-                                <p class="mt-0.5 text-xs text-amber-700" role="status">{{ $documento->sincronizacion_error }}</p>
+                            @if ($documento->origen->sincronizacion_error)
+                                <p class="mt-0.5 text-xs text-amber-700" role="status">{{ $documento->origen->sincronizacion_error }}</p>
                             @endif
                         @endif
                     </div>

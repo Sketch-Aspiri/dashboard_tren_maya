@@ -68,7 +68,7 @@ final class ConsultaSeccionService
      */
     public function documentos(Seccion $seccion, ?string $busqueda, string $orden = 'recientes', ?string $tipo = null): Collection
     {
-        $consulta = $seccion->archivos()->with('autor:id,name')->latest()->latest('id');
+        $consulta = $seccion->archivos()->with(['autor:id,name', 'origen:id,proveedor,sincronizado_en,sincronizacion_error'])->latest()->latest('id');
         $busqueda = trim((string) $busqueda);
 
         if ($tipo !== null && $tipo !== '') {

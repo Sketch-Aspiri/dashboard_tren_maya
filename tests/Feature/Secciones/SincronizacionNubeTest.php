@@ -3,10 +3,12 @@
 namespace Tests\Feature\Secciones;
 
 use App\Enums\EstadoImportacion;
+use App\Enums\EstadoOrigen;
 use App\Enums\ModoImportacion;
 use App\Enums\TipoColumna;
 use App\Models\Seccion;
 use App\Models\SeccionArchivo;
+use App\Models\SeccionOrigen;
 use App\Models\User;
 use App\Services\Secciones\ArchivoService;
 use App\Services\Secciones\EnlaceNubeResolver;
@@ -69,11 +71,27 @@ class SincronizacionNubeTest extends TestCase
             llave: null,
         ), $usuario);
 
+        return $this->vincularDirecto($archivo, $enlace);
+    }
+
+    /**
+     * Deja el documento vinculado como lo haría vincular(), sin pasar por el resolver.
+     */
+    private function vincularDirecto(SeccionArchivo $archivo, string $enlace = self::ENLACE_DRIVE, EstadoOrigen $estado = EstadoOrigen::Activo): SeccionArchivo
+    {
+        $origen = new SeccionOrigen;
+        $origen->forceFill([
+            'seccion_id' => $archivo->seccion_id,
+            'tipo' => SeccionOrigen::TIPO_ARCHIVO,
+            'proveedor' => 'google',
+            'enlace_original' => $enlace,
+            'nombre' => $archivo->nombre_original,
+            'estado' => $estado,
+        ])->save();
+
         $archivo->forceFill([
-            'origen_url' => $enlace,
-            'origen_proveedor' => 'google',
-            'origen_hash' => hash_file('sha256', app(ArchivoService::class)->rutaAbsoluta($archivo)),
-            'sincronizacion_activa' => true,
+            'seccion_origen_id' => $origen->id,
+            'contenido_hash' => hash_file('sha256', app(ArchivoService::class)->rutaAbsoluta($archivo)),
         ])->save();
 
         return $archivo->fresh();
@@ -139,12 +157,12 @@ class SincronizacionNubeTest extends TestCase
 
         $this->assertSame('actualizado', $resultado);
         $archivo->refresh();
-        $this->assertSame(hash('sha256', $nueva), $archivo->origen_hash);
+        $this->assertSame(hash('sha256', $nueva), $archivo->contenido_hash);
         $this->assertNotSame($versionAnterior, $archivo->ruta);
         Storage::disk('local')->assertMissing($versionAnterior);
         Storage::disk('local')->assertExists($archivo->ruta);
-        $this->assertNotNull($archivo->sincronizado_en);
-        $this->assertNull($archivo->sincronizacion_error);
+        $this->assertNotNull($archivo->origen->sincronizado_en);
+        $this->assertNull($archivo->origen->sincronizacion_error);
 
         $filas = $archivo->seccion->tablaActiva()->filas()->get()->pluck('datos');
         $this->assertCount(3, $filas);
@@ -164,7 +182,7 @@ class SincronizacionNubeTest extends TestCase
         $this->assertSame('sin_cambios', $resultado);
         $archivo->refresh();
         $this->assertSame($rutaAntes, $archivo->ruta);
-        $this->assertNotNull($archivo->sincronizado_en);
+        $this->assertNotNull($archivo->origen->sincronizado_en);
         $this->assertSame(1, $archivo->seccion->importaciones()->count());
     }
 
@@ -172,7 +190,7 @@ class SincronizacionNubeTest extends TestCase
     {
         $archivo = $this->documentoVinculado([['Folio', 'Equipo'], ['A1', 'Escalera 1']]);
         $rutaAntes = $archivo->ruta;
-        $hashAntes = $archivo->origen_hash;
+        $hashAntes = $archivo->contenido_hash;
         Http::fake(['*' => Http::response('', 500)]);
 
         $resultado = app(NubeSyncService::class)->sincronizar($archivo);
@@ -180,8 +198,8 @@ class SincronizacionNubeTest extends TestCase
         $this->assertSame('error', $resultado);
         $archivo->refresh();
         $this->assertSame($rutaAntes, $archivo->ruta);
-        $this->assertSame($hashAntes, $archivo->origen_hash);
-        $this->assertNotNull($archivo->sincronizacion_error);
+        $this->assertSame($hashAntes, $archivo->contenido_hash);
+        $this->assertNotNull($archivo->origen->sincronizacion_error);
         Storage::disk('local')->assertExists($rutaAntes);
         $this->assertDatabaseHas('activity_log', ['event' => 'sincronizacion_fallida', 'subject_id' => $archivo->id]);
     }
@@ -196,7 +214,7 @@ class SincronizacionNubeTest extends TestCase
 
         $this->assertSame('error', $resultado);
         $this->assertSame($rutaAntes, $archivo->fresh()->ruta);
-        $this->assertStringContainsString('documento', mb_strtolower((string) $archivo->fresh()->sincronizacion_error));
+        $this->assertStringContainsString('documento', mb_strtolower((string) $archivo->fresh()->origen->sincronizacion_error));
     }
 
     public function test_rejects_a_download_larger_than_the_allowed_size(): void
@@ -206,7 +224,7 @@ class SincronizacionNubeTest extends TestCase
         Http::fake(['*' => Http::response(str_repeat('x', 4096), 200)]);
 
         $this->assertSame('error', app(NubeSyncService::class)->sincronizar($archivo));
-        $this->assertNotNull($archivo->fresh()->sincronizacion_error);
+        $this->assertNotNull($archivo->fresh()->origen->sincronizacion_error);
     }
 
     public function test_replaces_document_only_when_tables_cannot_be_matched_without_a_key(): void
@@ -219,9 +237,9 @@ class SincronizacionNubeTest extends TestCase
 
         $this->assertSame('actualizado', $resultado);
         $archivo->refresh();
-        $this->assertSame(hash('sha256', $nueva), $archivo->origen_hash);
+        $this->assertSame(hash('sha256', $nueva), $archivo->contenido_hash);
         $this->assertCount(1, $archivo->seccion->tablaActiva()->filas()->get());
-        $this->assertNotNull($archivo->sincronizacion_error);
+        $this->assertNotNull($archivo->origen->sincronizacion_error);
     }
 
     public function test_download_request_uses_the_resolved_direct_url(): void
@@ -238,16 +256,16 @@ class SincronizacionNubeTest extends TestCase
     {
         $vinculado = $this->documentoVinculado([['Folio', 'Equipo'], ['A1', 'Escalera 1']]);
         $pausado = $this->documentoVinculado([['Folio', 'Equipo'], ['B1', 'Escalera 9']]);
-        $pausado->forceFill(['sincronizacion_activa' => false])->save();
+        $pausado->origen->forceFill(['estado' => EstadoOrigen::Pausado])->save();
         $sinVinculo = app(ArchivoService::class)->guardar(Seccion::factory()->create(), $this->excel([['a'], ['b']]), $vinculado->autor ?? User::factory()->create());
         Http::fake(['*' => Http::response($this->bytesExcel([['Folio', 'Equipo'], ['A1', 'Escalera 1'], ['A2', 'Nueva']]), 200)]);
 
         $this->artisan('secciones:sincronizar-nube')->assertSuccessful();
 
         Http::assertSentCount(1);
-        $this->assertNotNull($vinculado->fresh()->sincronizado_en);
-        $this->assertNull($pausado->fresh()->sincronizado_en);
-        $this->assertNull($sinVinculo->fresh()->sincronizado_en);
+        $this->assertNotNull($vinculado->fresh()->origen->sincronizado_en);
+        $this->assertNull($pausado->fresh()->origen->sincronizado_en);
+        $this->assertNull($sinVinculo->fresh()->origen);
     }
 
     public function test_admin_links_a_document_and_it_is_logged(): void
@@ -261,10 +279,12 @@ class SincronizacionNubeTest extends TestCase
             ->assertRedirect()
             ->assertSessionHasNoErrors();
 
-        $archivo->refresh();
-        $this->assertSame(self::ENLACE_DRIVE, $archivo->origen_url);
-        $this->assertSame('google', $archivo->origen_proveedor);
-        $this->assertTrue($archivo->sincronizacion_activa);
+        $origen = $archivo->fresh()->origen;
+        $this->assertSame(self::ENLACE_DRIVE, $origen->enlace_original);
+        $this->assertSame('google', $origen->proveedor);
+        $this->assertSame(EstadoOrigen::Activo, $origen->estado);
+        $this->assertSame($archivo->seccion_id, $origen->seccion_id);
+        $this->assertSame(hash_file('sha256', app(ArchivoService::class)->rutaAbsoluta($archivo)), $archivo->fresh()->contenido_hash);
         $this->assertDatabaseHas('activity_log', ['event' => 'documento_vinculado_nube', 'subject_id' => $archivo->id]);
     }
 
@@ -277,7 +297,8 @@ class SincronizacionNubeTest extends TestCase
         $this->post(route('secciones.archivos.nube.vincular', [$seccion, $archivo]), ['enlace' => 'https://evil.example.com/x.xlsx'])
             ->assertSessionHasErrors('enlace');
 
-        $this->assertNull($archivo->fresh()->origen_url);
+        $this->assertNull($archivo->fresh()->seccion_origen_id);
+        $this->assertSame(0, SeccionOrigen::query()->count());
     }
 
     public function test_user_without_role_cannot_link_sync_or_unlink(): void
@@ -303,15 +324,16 @@ class SincronizacionNubeTest extends TestCase
         $this->comoAdministrador();
         $seccion = Seccion::factory()->create();
         $archivo = app(ArchivoService::class)->guardar($seccion, $this->excel([['Folio'], ['A1']]), auth()->user());
-        $archivo->forceFill(['origen_url' => self::ENLACE_DRIVE, 'origen_proveedor' => 'google', 'sincronizacion_activa' => true])->save();
+        $archivo = $this->vincularDirecto($archivo);
         Http::fake(['*' => Http::response($this->bytesExcel([['Folio'], ['A1'], ['A2']]), 200)]);
 
         $this->post(route('secciones.archivos.nube.sincronizar', [$seccion, $archivo]))->assertRedirect();
-        $this->assertNotNull($archivo->fresh()->sincronizado_en);
+        $this->assertNotNull($archivo->fresh()->origen->sincronizado_en);
 
         $this->delete(route('secciones.archivos.nube.desvincular', [$seccion, $archivo]))->assertRedirect();
-        $this->assertNull($archivo->fresh()->origen_url);
-        $this->assertFalse($archivo->fresh()->sincronizacion_activa);
+        $this->assertNull($archivo->fresh()->seccion_origen_id);
+        $this->assertNull($archivo->fresh()->origen);
+        $this->assertSoftDeleted('seccion_origenes', ['seccion_id' => $seccion->id]);
         $this->assertDatabaseHas('activity_log', ['event' => 'documento_desvinculado_nube', 'subject_id' => $archivo->id]);
     }
 
@@ -319,8 +341,7 @@ class SincronizacionNubeTest extends TestCase
     {
         $seccion = Seccion::factory()->create();
         $archivo = app(ArchivoService::class)->guardar($seccion, $this->excel([['Folio'], ['A1']]), User::factory()->create());
-        $archivo->forceFill(['origen_url' => self::ENLACE_DRIVE, 'origen_proveedor' => 'google', 'sincronizacion_activa' => true])->save();
 
-        return $archivo;
+        return $this->vincularDirecto($archivo);
     }
 }

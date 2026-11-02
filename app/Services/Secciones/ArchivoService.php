@@ -42,6 +42,8 @@ final class ArchivoService
 
     public function eliminar(SeccionArchivo $archivo): void
     {
+        // Un documento borrado no se sigue sincronizando: su origen se da de baja con él.
+        $archivo->origen?->delete();
         $archivo->delete();
     }
 

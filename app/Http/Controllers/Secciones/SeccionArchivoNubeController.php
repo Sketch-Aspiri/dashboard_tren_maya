@@ -34,13 +34,13 @@ class SeccionArchivoNubeController extends Controller
         abort_unless($archivo->estaVinculadoANube(), 404);
 
         $resultado = $this->nube->sincronizar($archivo, $request->user());
-        $archivo->refresh();
+        $mensaje = $archivo->origen()->value('sincronizacion_error');
 
         return match ($resultado) {
-            NubeSyncService::ACTUALIZADO => back()->with('status', $archivo->sincronizacion_error ?? __('Documento actualizado desde la nube.')),
+            NubeSyncService::ACTUALIZADO => back()->with('status', $mensaje ?? __('Documento actualizado desde la nube.')),
             NubeSyncService::SIN_CAMBIOS => back()->with('status', __('El documento ya estaba al día.')),
             NubeSyncService::OCUPADO => back()->with('status', __('Ya se está sincronizando este documento. Intenta de nuevo en un momento.')),
-            default => back()->withErrors(['nube' => $archivo->sincronizacion_error]),
+            default => back()->withErrors(['nube' => $mensaje]),
         };
     }
 

@@ -89,7 +89,7 @@ if ($modo === 'verificar') {
     }
 
     if ($errores === []) {
-        echo "OK: ".count($esperado)." tablas coinciden y todos los documentos existen en disco.\n";
+        echo 'OK: '.count($esperado)." tablas coinciden y todos los documentos existen en disco.\n";
         exit(0);
     }
     echo "DIFERENCIAS:\n - ".implode("\n - ", $errores)."\n";
