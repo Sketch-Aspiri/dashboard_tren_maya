@@ -35,6 +35,16 @@ class NubeCuentaPolicy
         return $this->esAdministrador($actor);
     }
 
+    /**
+     * Usar una cuenta conectada para leer la nube al vincular un origen: solo
+     * Jefe de Zona y Administrador (si no, cualquiera con acceso a datos podría
+     * leer con las credenciales de la institución archivos que no le tocan).
+     */
+    public function usar(User $actor, NubeCuenta $cuenta): bool
+    {
+        return $actor->hasAnyRole(Roles::JEFATURA);
+    }
+
     private function esAdministrador(User $actor): bool
     {
         return $actor->hasRole(Roles::ADMINISTRADOR);

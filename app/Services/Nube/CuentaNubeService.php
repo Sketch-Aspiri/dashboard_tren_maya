@@ -2,12 +2,15 @@
 
 namespace App\Services\Nube;
 
+use App\Enums\CodigoErrorNube;
 use App\Enums\EstadoCuentaNube;
 use App\Enums\EstadoOrigen;
 use App\Enums\ProveedorNube;
 use App\Models\NubeCuenta;
 use App\Models\User;
 use App\Services\Nube\Datos\TokensOAuth;
+use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -20,6 +23,11 @@ final class CuentaNubeService
 {
     /** Segundos de margen: se renueva el token si vence en menos que esto. */
     private const MARGEN_EXPIRACION = 60;
+
+    /** Segundos que dura el bloqueo del refresh de una cuenta, y lo que se espera por él. */
+    private const BLOQUEO_REFRESH = 30;
+
+    private const ESPERA_BLOQUEO = 10;
 
     public function __construct(
         private readonly OAuthNubeService $oauth,
@@ -70,7 +78,7 @@ final class CuentaNubeService
     public function tokenVigente(NubeCuenta $cuenta): string
     {
         if (! $cuenta->estaActiva()) {
-            throw new NubeOAuthException(__('La cuenta de nube necesita reconectarse.'));
+            throw new NubeOAuthException(__('La cuenta de nube necesita reconectarse.'), codigo: CodigoErrorNube::Reconexion);
         }
 
         $vencido = $cuenta->expira_en !== null && $cuenta->expira_en->subSeconds(self::MARGEN_EXPIRACION)->isPast();
@@ -83,20 +91,52 @@ final class CuentaNubeService
     }
 
     /**
-     * Pide un token nuevo. Si el proveedor lo rechaza, la cuenta queda en
-     * "requiere reconexión" y se relanza el error.
+     * Pide un token nuevo, una cuenta a la vez (Cache::lock): si otro proceso
+     * ya refrescó mientras se esperaba, se releen sus tokens. La cuenta solo
+     * pasa a "requiere reconexión" ante un rechazo definitivo del proveedor;
+     * timeouts, 429 y 5xx lanzan la excepción sin cambiar el estado.
      *
      * @throws NubeOAuthException
      */
     public function refrescar(NubeCuenta $cuenta): void
     {
+        $tokenAnterior = (string) $cuenta->access_token;
+        $bloqueo = Cache::lock('nube-refresh-'.$cuenta->id, self::BLOQUEO_REFRESH);
+
+        try {
+            $bloqueo->block(self::ESPERA_BLOQUEO);
+        } catch (LockTimeoutException) {
+            throw new NubeOAuthException(__('Otra renovación de la cuenta sigue en curso. Se reintentará en la próxima revisión.'), codigo: CodigoErrorNube::Transitorio);
+        }
+
+        try {
+            $this->refrescarConBloqueo($cuenta, $tokenAnterior);
+        } finally {
+            $bloqueo->release();
+        }
+    }
+
+    private function refrescarConBloqueo(NubeCuenta $cuenta, string $tokenAnterior): void
+    {
+        $cuenta->refresh();
+
+        if (! $cuenta->estaActiva()) {
+            throw new NubeOAuthException(__('La cuenta de nube necesita reconectarse.'), codigo: CodigoErrorNube::Reconexion);
+        }
+
+        if ((string) $cuenta->access_token !== $tokenAnterior && (string) $cuenta->access_token !== '') {
+            return; // otro proceso ya renovó
+        }
+
         try {
             $tokens = $this->oauth->refrescar($cuenta);
         } catch (NubeOAuthException $e) {
-            $cuenta->forceFill([
-                'estado' => EstadoCuentaNube::RequiereReconexion,
-                'ultimo_error' => $e->getMessage(),
-            ])->save();
+            if ($e->codigo === CodigoErrorNube::Reconexion) {
+                $cuenta->forceFill([
+                    'estado' => EstadoCuentaNube::RequiereReconexion,
+                    'ultimo_error' => $e->getMessage(),
+                ])->save();
+            }
 
             throw $e;
         }

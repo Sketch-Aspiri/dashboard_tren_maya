@@ -2,6 +2,7 @@
 
 namespace App\Services\Nube;
 
+use App\Enums\CodigoErrorNube;
 use App\Enums\ProveedorNube;
 use App\Models\NubeCuenta;
 use App\Services\Nube\Datos\CredencialesOAuth;
@@ -92,7 +93,7 @@ final class OAuthNubeService
         $refresh = (string) $cuenta->refresh_token;
 
         if ($refresh === '') {
-            throw new NubeOAuthException(__('La cuenta no tiene permiso de renovación. Vuelve a conectarla.'));
+            throw new NubeOAuthException(__('La cuenta no tiene permiso de renovación. Vuelve a conectarla.'), codigo: CodigoErrorNube::Reconexion);
         }
 
         $credenciales = $this->exigirCredenciales($cuenta->proveedor);
@@ -178,14 +179,34 @@ final class OAuthNubeService
         try {
             $respuesta = $this->http()->asForm()->post($proveedor->urlToken($credenciales->tenant), $campos);
         } catch (ConnectionException) {
-            throw new NubeOAuthException(__('No se pudo conectar con :nube.', ['nube' => $proveedor->label()]));
+            throw new NubeOAuthException(__('No se pudo conectar con :nube.', ['nube' => $proveedor->label()]), codigo: CodigoErrorNube::Transitorio);
         }
 
         if ($respuesta->failed()) {
-            throw new NubeOAuthException(__('El proveedor rechazó las credenciales o el permiso (:codigo). Revisa el Client ID/Secret o reconecta la cuenta.', ['codigo' => $respuesta->status()]));
+            throw $this->rechazoDeToken($respuesta);
         }
 
         return $respuesta;
+    }
+
+    /**
+     * Rechazo definitivo (400/401, invalid_grant) => reconexión; 429/5xx son
+     * pasajeros y no deben cambiar el estado de la cuenta.
+     */
+    private function rechazoDeToken(Response $respuesta): NubeOAuthException
+    {
+        $estado = $respuesta->status();
+
+        if ($estado === 429 || $estado >= 500) {
+            return new NubeOAuthException(__('El proveedor no respondió bien (:codigo). Se reintentará en la próxima revisión.', ['codigo' => $estado]), codigo: CodigoErrorNube::Transitorio);
+        }
+
+        $definitivo = in_array($estado, [400, 401], true) || $respuesta->json('error') === 'invalid_grant';
+
+        return new NubeOAuthException(
+            __('El proveedor rechazó las credenciales o el permiso (:codigo). Revisa el Client ID/Secret o reconecta la cuenta.', ['codigo' => $estado]),
+            codigo: $definitivo ? CodigoErrorNube::Reconexion : CodigoErrorNube::Otro,
+        );
     }
 
     private function tokensDe(ProveedorNube $proveedor, Response $respuesta, ?string $refreshAnterior): TokensOAuth

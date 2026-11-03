@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\Nube\Datos\OrigenRemoto;
 use App\Services\Nube\ProveedorNubeFactory;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -71,6 +72,10 @@ final class OrigenService
      */
     public function vincular(Seccion $seccion, ?NubeCuenta $cuenta, string $enlace, ?bool $alimentaTablas, bool $incluirSubcarpetas, User $usuario): SeccionOrigen
     {
+        if ($cuenta !== null) {
+            Gate::forUser($usuario)->authorize('usar', $cuenta);
+        }
+
         // Se vuelve a inspeccionar en el servidor: nada de lo que muestre el cliente se toma como cierto.
         $remoto = $this->inspeccionar($cuenta, $enlace);
         $this->evitarDuplicado($seccion, $cuenta, $remoto);
@@ -94,6 +99,8 @@ final class OrigenService
         $this->registrar('origen_vinculado', $origen, $usuario, 'Origen de nube vinculado a la sección.', [
             'tipo' => $origen->tipo,
             'cuenta' => $cuenta?->cuenta_email,
+            'cuenta_id' => $cuenta?->id,
+            'cuenta_proveedor' => $cuenta?->proveedor->value,
             'archivos' => $remoto->archivos,
         ]);
 

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Nube;
 
+use App\Enums\CodigoErrorNube;
 use App\Enums\EstadoCuentaNube;
 use App\Enums\EstadoOrigen;
 use App\Enums\ProveedorNube;
@@ -281,7 +282,7 @@ class SincronizacionCarpetasTest extends TestCase
 
     public function test_cloud_rejecting_the_account_marks_the_origin_as_needing_reconnection(): void
     {
-        $this->nube->falloAlListar = new NubeSyncException(__('La nube rechazó el acceso de la cuenta. Reconéctala desde Conexiones de nube.'));
+        $this->nube->falloAlListar = new NubeSyncException(__('La nube rechazó el acceso de la cuenta. Reconéctala desde Conexiones de nube.'), codigo: CodigoErrorNube::Reconexion);
         $origen = $this->origen();
 
         $resultado = $this->sincronizar($origen);
@@ -293,7 +294,7 @@ class SincronizacionCarpetasTest extends TestCase
     public function test_folder_deleted_in_the_cloud_marks_the_origin_and_keeps_the_documents(): void
     {
         $origen = $this->conTresArchivos();
-        $this->nube->falloAlListar = new NubeSyncException(__('No se encontró el elemento en la nube. Revisa que siga compartido con la cuenta conectada.'));
+        $this->nube->falloAlListar = new NubeSyncException(__('No se encontró el elemento en la nube. Revisa que siga compartido con la cuenta conectada.'), codigo: CodigoErrorNube::OrigenEliminado);
 
         $resultado = $this->sincronizar($origen);
 
@@ -305,7 +306,7 @@ class SincronizacionCarpetasTest extends TestCase
     public function test_temporary_cloud_errors_are_retried_by_the_job_and_recorded_when_it_gives_up(): void
     {
         $origen = $this->conTresArchivos();
-        $this->nube->falloAlListar = new NubeSyncException('La nube respondió con error 503.');
+        $this->nube->falloAlListar = new NubeSyncException('La nube respondió con error 503.', codigo: CodigoErrorNube::Transitorio);
         $job = new SincronizarOrigenJob($origen->id);
 
         try {

@@ -2,6 +2,7 @@
 
 namespace App\Services\Secciones;
 
+use App\Enums\CodigoErrorNube;
 use App\Enums\EstadoOrigen;
 use App\Models\SeccionArchivo;
 use App\Models\SeccionOrigen;
@@ -113,7 +114,10 @@ final class SincronizadorOrigen
     {
         $confirmada = (bool) ($origen->resumen['confirmar_baja_masiva'] ?? false);
 
-        return $this->calculador->calcular($listado->archivos, $this->locales($origen), $confirmada);
+        $diferencias = $this->calculador->calcular($listado->archivos, $this->locales($origen), $confirmada);
+
+        // Un listado cortado por un tope no prueba que lo que falta ya no exista.
+        return $listado->truncado !== null ? $diferencias->sinBajas() : $diferencias;
     }
 
     /**
@@ -136,9 +140,9 @@ final class SincronizadorOrigen
     private function manejarFalloDeNube(SeccionOrigen $origen, NubeSyncException $e): string
     {
         return match ($this->clasificador->clasificar($e, $origen->cuenta)) {
-            ClasificadorErrorNube::RECONEXION => $this->cerrarConEstado($origen, EstadoOrigen::RequiereReconexion, self::RECONEXION),
-            ClasificadorErrorNube::ELIMINADO => $this->cerrarConEstado($origen, EstadoOrigen::OrigenEliminado, self::ELIMINADO),
-            ClasificadorErrorNube::TRANSITORIO => throw new NubeTransitoriaException($e->getMessage(), 0, $e),
+            CodigoErrorNube::Reconexion => $this->cerrarConEstado($origen, EstadoOrigen::RequiereReconexion, self::RECONEXION),
+            CodigoErrorNube::OrigenEliminado => $this->cerrarConEstado($origen, EstadoOrigen::OrigenEliminado, self::ELIMINADO),
+            CodigoErrorNube::Transitorio => throw new NubeTransitoriaException($e->getMessage(), 0, $e),
             default => $this->fallar($origen, $e->getMessage()),
         };
     }
@@ -175,7 +179,8 @@ final class SincronizadorOrigen
 
         $retenido = $diferencias->cambioMasivoRetenido;
         $mensajeRetenido = __('Cambio masivo retenido: la nube no devolvió ningún archivo y antes había documentos. No se archivó nada; confirma el cambio o revisa el acceso.');
-        $error = $resultado->error ?? ($retenido ? $mensajeRetenido : $resultado->aviso);
+        $mensajeTruncado = $listado->truncado === null ? null : __($listado->truncado->mensaje()).' '.__('No se archivó ningún documento en este ciclo.');
+        $error = $resultado->error ?? ($retenido ? $mensajeRetenido : ($mensajeTruncado ?? $resultado->aviso));
 
         $origen->forceFill([
             'sincronizado_en' => now(),
@@ -185,6 +190,7 @@ final class SincronizadorOrigen
                 'omitidos' => $omitidos,
                 'ultimo_error' => $resultado->error,
                 'cambio_masivo_retenido' => $retenido,
+                'truncado' => $listado->truncado?->value,
                 'ciclo' => [
                     'altas' => $resultado->altas,
                     'actualizados' => $resultado->actualizados,

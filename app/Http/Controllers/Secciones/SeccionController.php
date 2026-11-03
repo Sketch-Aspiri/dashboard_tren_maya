@@ -88,8 +88,9 @@ class SeccionController extends Controller
             'migas' => $this->consulta->migas($filtros['carpeta']),
             'subcarpetas' => ($filtros['q'] ?? '') === '' ? $this->consulta->subcarpetas($seccion, $filtros['carpeta'], $request->user()) : [],
             'origenes' => $puedeGestionar ? $seccion->origenes()->with('cuenta:id,proveedor,cuenta_email,estado')->orderBy('id')->get() : collect(),
-            'cuentasNube' => $puedeGestionar ? NubeCuenta::query()->activas()->orderBy('cuenta_email')->get(['id', 'proveedor', 'cuenta_email']) : collect(),
-            'cuentasPorReconectar' => $puedeGestionar ? NubeCuenta::query()->where('estado', EstadoCuentaNube::RequiereReconexion->value)->orderBy('cuenta_email')->get(['id', 'proveedor', 'cuenta_email']) : collect(),
+            // Solo las cuentas que el usuario puede usar (NubeCuentaPolicy::usar); Edificio solo vincula enlaces públicos.
+            'cuentasNube' => $puedeGestionar ? NubeCuenta::query()->activas()->orderBy('cuenta_email')->get(['id', 'proveedor', 'cuenta_email'])->filter(fn (NubeCuenta $cuenta): bool => $usuario->can('usar', $cuenta))->values() : collect(),
+            'cuentasPorReconectar' => $puedeGestionar ? NubeCuenta::query()->where('estado', EstadoCuentaNube::RequiereReconexion->value)->orderBy('cuenta_email')->get(['id', 'proveedor', 'cuenta_email'])->filter(fn (NubeCuenta $cuenta): bool => $usuario->can('usar', $cuenta))->values() : collect(),
             'hayConexionesNube' => $puedeGestionar && NubeCredencial::query()->exists(),
             'tiposDocumento' => $this->consulta->tiposDeDocumento($seccion, $request->user()),
             'enlaces' => $usuario->can('verEnlaces', $seccion) ? $seccion->enlaces()->orderBy('titulo')->get() : collect(),

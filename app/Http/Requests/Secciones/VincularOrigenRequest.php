@@ -20,7 +20,17 @@ class VincularOrigenRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('gestionarDatos', $this->route('seccion')) ?? false;
+        $usuario = $this->user();
+
+        if ($usuario === null || ! $usuario->can('gestionarDatos', $this->route('seccion'))) {
+            return false;
+        }
+
+        // Una cuenta conectada solo la puede usar quien tiene la ability `usar` (403 si no).
+        $cuentaId = $this->input('cuenta_id');
+        $cuenta = is_scalar($cuentaId) && is_numeric($cuentaId) ? NubeCuenta::query()->find((int) $cuentaId) : null;
+
+        return $cuenta === null || $usuario->can('usar', $cuenta);
     }
 
     /**

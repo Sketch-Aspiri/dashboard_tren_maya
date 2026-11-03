@@ -34,13 +34,13 @@ final class MicrosoftGraph extends ProveedorConCuenta
 
         [$driveId, $itemId, $real] = $this->identidad($item, null);
         $nombre = (string) ($item['name'] ?? $itemId);
-        $acumulador = new AcumuladorListado;
+        $acumulador = new AcumuladorListado(inspeccion: true);
 
         if (isset($real['folder'])) {
             $this->recorrer($cuenta, $driveId, $itemId, true, $acumulador);
             $listado = $acumulador->resultado();
 
-            return new OrigenRemoto(OrigenRemoto::CARPETA, $driveId, $itemId, $nombre, count($listado->archivos), $listado->omitidos, $listado->excel());
+            return new OrigenRemoto(OrigenRemoto::CARPETA, $driveId, $itemId, $nombre, count($listado->archivos), $listado->omitidos, $listado->excel(), $listado->truncado);
         }
 
         $acumulador->agregar($this->archivoDe($item, $nombre, $driveId));
@@ -81,13 +81,26 @@ final class MicrosoftGraph extends ProveedorConCuenta
 
     private function recorrer(NubeCuenta $cuenta, string $driveId, string $itemId, bool $incluirSub, AcumuladorListado $acumulador, string $ruta = '', int $profundidad = 1): void
     {
+        // Un acceso directo (remoteItem) puede apuntar a una carpeta ya recorrida: se corta el ciclo.
+        if ($acumulador->yaVisitado($driveId.':'.$itemId)) {
+            return;
+        }
+
         $url = $this->urlItem($driveId, $itemId).'/children';
         $opciones = ['query' => ['$select' => self::CAMPOS, '$top' => 200]];
 
         while ($url !== null) {
+            if (! $acumulador->permitirPeticion()) {
+                return;
+            }
+
             $pagina = $this->cliente->json($cuenta, 'GET', $url, $opciones);
 
             foreach ($pagina['value'] ?? [] as $item) {
+                if (! $acumulador->permitirEntrada()) {
+                    return;
+                }
+
                 if ($acumulador->lleno()) {
                     $acumulador->omitir(MotivoOmision::TopeArchivos);
 
@@ -98,7 +111,7 @@ final class MicrosoftGraph extends ProveedorConCuenta
             }
 
             // nextLink ya trae su propia query completa.
-            $url = is_string($pagina['@odata.nextLink'] ?? null) ? $pagina['@odata.nextLink'] : null;
+            $url = is_string($pagina['@odata.nextLink'] ?? null) ? $this->exigirHostGraph($pagina['@odata.nextLink']) : null;
             $opciones = [];
         }
     }
@@ -173,6 +186,22 @@ final class MicrosoftGraph extends ProveedorConCuenta
             mime: $real['file']['mimeType'] ?? null,
             modificadoEn: $this->fecha($real['lastModifiedDateTime'] ?? $item['lastModifiedDateTime'] ?? null),
         );
+    }
+
+    /**
+     * El nextLink lleva el Bearer: solo se sigue si es https del mismo host de la API.
+     *
+     * @throws NubeSyncException
+     */
+    private function exigirHostGraph(string $url): string
+    {
+        $partes = parse_url($url);
+
+        if (($partes['scheme'] ?? '') !== 'https' || strtolower((string) ($partes['host'] ?? '')) !== parse_url(self::BASE, PHP_URL_HOST)) {
+            throw new NubeSyncException(__('El enlace redirige a un sitio no permitido.'));
+        }
+
+        return $url;
     }
 
     private function urlItem(string $driveId, string $itemId): string

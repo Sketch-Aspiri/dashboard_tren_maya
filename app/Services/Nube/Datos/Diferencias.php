@@ -23,4 +23,12 @@ final readonly class Diferencias
         public int $sinCambios = 0,
         public bool $cambioMasivoRetenido = false,
     ) {}
+
+    /**
+     * Misma comparación sin archivar nada (listado incompleto).
+     */
+    public function sinBajas(): self
+    {
+        return new self($this->altas, $this->actualizar, [], $this->sinCambios, $this->cambioMasivoRetenido);
+    }
 }

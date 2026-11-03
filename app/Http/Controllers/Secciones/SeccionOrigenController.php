@@ -114,6 +114,10 @@ class SeccionOrigenController extends Controller
             'nombre' => $remoto->nombre,
             'archivos' => $remoto->archivos,
             'excel' => $remoto->excel,
+            'truncado' => $remoto->truncado === null ? null : [
+                'motivo' => $remoto->truncado->value,
+                'mensaje' => __($remoto->truncado->mensaje()),
+            ],
             'omitidos_total' => array_sum($remoto->omitidos),
             'omitidos' => collect($remoto->omitidos)->map(fn (int $cantidad, string $motivo): array => [
                 'motivo' => $motivo,

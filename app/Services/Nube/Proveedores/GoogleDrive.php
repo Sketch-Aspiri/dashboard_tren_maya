@@ -46,13 +46,13 @@ final class GoogleDrive extends ProveedorConCuenta
             'query' => ['fields' => self::CAMPOS, 'supportsAllDrives' => 'true'],
         ]);
         $nombre = (string) ($archivo['name'] ?? $id);
-        $acumulador = new AcumuladorListado;
+        $acumulador = new AcumuladorListado(inspeccion: true);
 
         if (($archivo['mimeType'] ?? null) === self::CARPETA) {
             $this->recorrer($cuenta, $id, true, $acumulador);
             $listado = $acumulador->resultado();
 
-            return new OrigenRemoto(OrigenRemoto::CARPETA, null, $id, $nombre, count($listado->archivos), $listado->omitidos, $listado->excel());
+            return new OrigenRemoto(OrigenRemoto::CARPETA, null, $id, $nombre, count($listado->archivos), $listado->omitidos, $listado->excel(), $listado->truncado);
         }
 
         $this->procesar($archivo, '', $acumulador);
@@ -103,6 +103,10 @@ final class GoogleDrive extends ProveedorConCuenta
         $pagina = null;
 
         do {
+            if (! $acumulador->permitirPeticion()) {
+                return;
+            }
+
             $consulta = [
                 'q' => "'{$this->validarId($carpetaId)}' in parents and trashed=false",
                 'fields' => 'nextPageToken,files('.self::CAMPOS.')',
@@ -114,6 +118,10 @@ final class GoogleDrive extends ProveedorConCuenta
             $respuesta = $this->cliente->json($cuenta, 'GET', self::BASE, ['query' => $consulta]);
 
             foreach ($respuesta['files'] ?? [] as $archivo) {
+                if (! $acumulador->permitirEntrada()) {
+                    return;
+                }
+
                 if ($acumulador->lleno()) {
                     $acumulador->omitir(MotivoOmision::TopeArchivos);
 

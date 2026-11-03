@@ -2,6 +2,7 @@
 
 namespace Tests\Concerns;
 
+use App\Enums\MotivoTruncado;
 use App\Models\NubeCuenta;
 use App\Models\SeccionOrigen;
 use App\Services\Nube\Contracts\ProveedorNube;
@@ -29,6 +30,8 @@ final class ProveedorNubeFalso implements ProveedorNube
 
     /** @var array<string, Throwable> */
     public array $falloAlDescargar = [];
+
+    public ?MotivoTruncado $truncado = null;
 
     public int $listados = 0;
 
@@ -77,7 +80,7 @@ final class ProveedorNubeFalso implements ProveedorNube
             throw $this->falloAlListar;
         }
 
-        return new ListadoRemoto($this->archivos, $this->omitidos);
+        return new ListadoRemoto($this->archivos, $this->omitidos, $this->truncado);
     }
 
     public function descargar(SeccionOrigen $origen, ArchivoRemoto $archivo, string $destino): void

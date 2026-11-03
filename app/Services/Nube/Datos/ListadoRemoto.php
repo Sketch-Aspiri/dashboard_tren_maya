@@ -2,6 +2,8 @@
 
 namespace App\Services\Nube\Datos;
 
+use App\Enums\MotivoTruncado;
+
 /**
  * Resultado de listar un origen: los archivos sincronizables y lo omitido
  * (con su motivo) para el resumen del origen.
@@ -15,6 +17,7 @@ final readonly class ListadoRemoto
     public function __construct(
         public array $archivos,
         public array $omitidos = [],
+        public ?MotivoTruncado $truncado = null,
     ) {}
 
     /**

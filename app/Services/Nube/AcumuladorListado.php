@@ -3,12 +3,15 @@
 namespace App\Services\Nube;
 
 use App\Enums\MotivoOmision;
+use App\Enums\MotivoTruncado;
 use App\Services\Nube\Datos\ArchivoRemoto;
 use App\Services\Nube\Datos\ListadoRemoto;
+use Carbon\CarbonImmutable;
 
 /**
  * Junta los archivos de un recorrido remoto aplicando los topes del plan:
- * máximo de archivos por origen, y las reglas de qué se omite y por qué
+ * máximo de archivos por origen, topes globales del listado (peticiones,
+ * entradas revisadas y tiempo: al alcanzarlos queda `truncado`) y las reglas de qué se omite y por qué
  * (extensión, tamaño, zip, accesos directos de Google).
  */
 final class AcumuladorListado
@@ -21,9 +24,99 @@ final class AcumuladorListado
 
     private readonly int $maximo;
 
-    public function __construct()
+    private readonly int $maxPeticiones;
+
+    private readonly int $maxEntradas;
+
+    private readonly CarbonImmutable $limiteDeTiempo;
+
+    private int $peticiones = 0;
+
+    private int $entradas = 0;
+
+    private ?MotivoTruncado $truncado = null;
+
+    /** @var array<string, true> */
+    private array $visitados = [];
+
+    /**
+     * @param  bool  $inspeccion  corre dentro de la petición web: topes más bajos
+     */
+    public function __construct(bool $inspeccion = false)
     {
         $this->maximo = (int) config('secciones.nube.max_archivos_por_origen');
+        $this->maxEntradas = 10 * $this->maximo;
+        $this->maxPeticiones = (int) config($inspeccion ? 'secciones.nube.max_peticiones_inspeccion' : 'secciones.nube.max_peticiones_listado');
+        $this->limiteDeTiempo = now()->toImmutable()->addSeconds((int) config($inspeccion ? 'secciones.nube.max_segundos_inspeccion' : 'secciones.nube.max_segundos_listado'));
+    }
+
+    /**
+     * Pide permiso para una petición más a la nube. Si se alcanzó un tope
+     * (peticiones o tiempo) el listado queda truncado y devuelve false.
+     */
+    public function permitirPeticion(): bool
+    {
+        if ($this->detenido()) {
+            return false;
+        }
+
+        if ($this->peticiones >= $this->maxPeticiones) {
+            $this->truncado = MotivoTruncado::Peticiones;
+
+            return false;
+        }
+
+        $this->peticiones++;
+
+        return true;
+    }
+
+    /**
+     * Cuenta una entrada revisada (archivo, carpeta u omitida). false = parar.
+     */
+    public function permitirEntrada(): bool
+    {
+        if ($this->detenido()) {
+            return false;
+        }
+
+        if ($this->entradas >= $this->maxEntradas) {
+            $this->truncado = MotivoTruncado::Entradas;
+
+            return false;
+        }
+
+        $this->entradas++;
+
+        return true;
+    }
+
+    /**
+     * Marca una carpeta como visitada; true si ya lo estaba (ciclo por accesos directos).
+     */
+    public function yaVisitado(string $clave): bool
+    {
+        if (isset($this->visitados[$clave])) {
+            return true;
+        }
+
+        $this->visitados[$clave] = true;
+
+        return false;
+    }
+
+    public function truncado(): ?MotivoTruncado
+    {
+        return $this->truncado;
+    }
+
+    private function detenido(): bool
+    {
+        if ($this->truncado === null && now()->greaterThanOrEqualTo($this->limiteDeTiempo)) {
+            $this->truncado = MotivoTruncado::Tiempo;
+        }
+
+        return $this->truncado !== null;
     }
 
     public function lleno(): bool
@@ -58,7 +151,7 @@ final class AcumuladorListado
 
     public function resultado(): ListadoRemoto
     {
-        return new ListadoRemoto($this->archivos, $this->omitidos);
+        return new ListadoRemoto($this->archivos, $this->omitidos, $this->truncado);
     }
 
     private function motivoDeOmision(ArchivoRemoto $archivo, bool $esAccesoDirecto): ?MotivoOmision

@@ -79,6 +79,21 @@ return [
         // Tope de lo que se lista de un origen (carpeta). Lo que sobra se
         // cuenta como omitido en el resumen.
         'max_archivos_por_origen' => (int) env('SECCIONES_NUBE_MAX_ARCHIVOS', 2000),
+        // Topes globales por listado (contra carpetas enormes, ciclos y paginación sin fin).
+        // Entradas revisadas (incluye omitidas y carpetas) = 10 x max_archivos_por_origen.
+        'max_peticiones_listado' => 200,
+        'max_segundos_listado' => 120,
+        // inspeccionar() corre dentro de la petición web: topes más bajos.
+        'max_peticiones_inspeccion' => 20,
+        'max_segundos_inspeccion' => 20,
+        // APIs que reciben el Bearer (host exacto). La lista ancha de arriba
+        // solo vale para saltos de descarga SIN token.
+        'hosts_api' => [
+            'graph.microsoft.com',
+            'www.googleapis.com',
+            'api.dropboxapi.com',
+            'content.dropboxapi.com',
+        ],
         'max_profundidad' => 10,
         // Espera máxima (s) ante un 429 y reintentos antes de rendirse.
         'max_espera_429_segundos' => 30,

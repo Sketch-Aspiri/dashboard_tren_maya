@@ -2,6 +2,7 @@
 
 namespace App\Services\Secciones;
 
+use App\Enums\CodigoErrorNube;
 use App\Enums\MotivoOmision;
 use App\Models\SeccionArchivo;
 use App\Models\SeccionOrigen;
@@ -71,11 +72,11 @@ final class AplicadorDiferencias
         } catch (NubeSyncException $e) {
             $tipo = $this->clasificador->clasificar($e, $origen->cuenta);
 
-            if ($tipo === ClasificadorErrorNube::RECONEXION) {
+            if ($tipo === CodigoErrorNube::Reconexion) {
                 throw $e;
             }
 
-            if ($tipo === ClasificadorErrorNube::TRANSITORIO) {
+            if ($tipo === CodigoErrorNube::Transitorio) {
                 throw new NubeTransitoriaException($e->getMessage(), 0, $e);
             }
 

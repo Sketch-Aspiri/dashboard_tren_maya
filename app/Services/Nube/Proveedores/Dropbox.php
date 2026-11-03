@@ -31,13 +31,13 @@ final class Dropbox extends ProveedorConCuenta
         $meta = $this->metadatosEnlace($cuenta, $enlace);
         $id = (string) ($meta['id'] ?? $enlace);
         $nombre = (string) ($meta['name'] ?? $id);
-        $acumulador = new AcumuladorListado;
+        $acumulador = new AcumuladorListado(inspeccion: true);
 
         if (($meta['.tag'] ?? null) === 'folder') {
             $this->recorrer($cuenta, $enlace, true, $acumulador);
             $listado = $acumulador->resultado();
 
-            return new OrigenRemoto(OrigenRemoto::CARPETA, null, $id, $nombre, count($listado->archivos), $listado->omitidos, $listado->excel());
+            return new OrigenRemoto(OrigenRemoto::CARPETA, null, $id, $nombre, count($listado->archivos), $listado->omitidos, $listado->excel(), $listado->truncado);
         }
 
         $acumulador->agregar($this->archivoSuelto($meta, $nombre));
@@ -92,6 +92,10 @@ final class Dropbox extends ProveedorConCuenta
 
     private function recorrer(NubeCuenta $cuenta, string $enlace, bool $incluirSub, AcumuladorListado $acumulador): void
     {
+        if (! $acumulador->permitirPeticion()) {
+            return;
+        }
+
         $respuesta = $this->cliente->json($cuenta, 'POST', self::API.'/files/list_folder', ['json' => [
             'path' => '',
             'shared_link' => ['url' => $enlace],
@@ -101,6 +105,10 @@ final class Dropbox extends ProveedorConCuenta
 
         while (true) {
             foreach ($respuesta['entries'] ?? [] as $entrada) {
+                if (! $acumulador->permitirEntrada()) {
+                    return;
+                }
+
                 if ($acumulador->lleno()) {
                     $acumulador->omitir(MotivoOmision::TopeArchivos);
 
@@ -113,6 +121,10 @@ final class Dropbox extends ProveedorConCuenta
             $cursor = $respuesta['cursor'] ?? null;
 
             if (($respuesta['has_more'] ?? false) !== true || ! is_string($cursor)) {
+                return;
+            }
+
+            if (! $acumulador->permitirPeticion()) {
                 return;
             }
 
