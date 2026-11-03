@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Empleado;
 use App\Models\User;
+use App\Support\Roles;
 
 /**
  * Authorization for the "Agenda Zona Oriente" -> Personal directory.
@@ -12,9 +13,9 @@ use App\Models\User;
  */
 class EmpleadoPolicy
 {
-    private const READ_ROLES = ['Jefe de Zona', 'Administrador'];
+    private const READ_ROLES = Roles::ZONA;
 
-    private const WRITE_ROLES = ['Administrador'];
+    private const WRITE_ROLES = Roles::ZONA;
 
     /**
      * Determine whether the user can view any models.

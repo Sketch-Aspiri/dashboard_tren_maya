@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\Estacion;
 use App\Models\RegistroDiario;
 use App\Models\User;
+use App\Support\Roles;
 use Carbon\CarbonInterface;
 
 /**
@@ -22,7 +23,16 @@ use Carbon\CarbonInterface;
  */
 class RegistroDiarioPolicy
 {
-    private const READ_ROLES = ['Jefe de Zona', 'Administrador', 'Estación'];
+    private const READ_ROLES = [...Roles::ZONA, Roles::ESTACION];
+
+    /**
+     * Roles de zona (Jefe, Administrador, Edificio): eligen la estación y la
+     * fecha de la captura; una cuenta Estación solo captura la suya, hoy.
+     */
+    public function captureAnyEstacion(User $user): bool
+    {
+        return $user->hasAnyRole(Roles::ZONA);
+    }
 
     public function viewAny(User $user): bool
     {
@@ -31,7 +41,7 @@ class RegistroDiarioPolicy
 
     public function view(User $user, RegistroDiario $registroDiario): bool
     {
-        return $user->hasAnyRole(['Jefe de Zona', 'Administrador'])
+        return $user->hasAnyRole(Roles::ZONA)
             || ($user->hasRole('Estación') && $user->estacion_id === $registroDiario->estacion_id);
     }
 
@@ -41,7 +51,7 @@ class RegistroDiarioPolicy
      */
     public function captureFor(User $user, Estacion $estacion): bool
     {
-        return $user->hasRole('Administrador')
+        return $user->hasAnyRole(Roles::ZONA)
             || ($user->hasRole('Estación') && $user->estacion_id === $estacion->id);
     }
 
@@ -62,7 +72,7 @@ class RegistroDiarioPolicy
             return false;
         }
 
-        if ($user->hasRole('Administrador')) {
+        if ($user->hasAnyRole(Roles::ZONA)) {
             return true;
         }
 

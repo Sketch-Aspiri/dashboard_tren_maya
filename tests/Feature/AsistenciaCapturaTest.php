@@ -183,17 +183,17 @@ class AsistenciaCapturaTest extends TestCase
 
     // --- Authorization: Jefe de Zona (read-only, no capture access) ------
 
-    public function test_zone_chief_cannot_view_captura_index(): void
+    public function test_zone_chief_can_view_captura_index(): void
     {
         $estacion = $this->estacionOperativa();
         $this->actingAsTwoFactorVerified($this->zoneChief());
 
         $response = $this->get(route('asistencia.captura.index', ['estacion' => $estacion->id]));
 
-        $response->assertForbidden();
+        $response->assertOk();
     }
 
-    public function test_zone_chief_cannot_save_captura(): void
+    public function test_zone_chief_can_save_captura(): void
     {
         $estacion = $this->estacionOperativa();
         $empleado = $this->empleadoActivo($estacion);
@@ -206,8 +206,8 @@ class AsistenciaCapturaTest extends TestCase
             ],
         ]);
 
-        $response->assertForbidden();
-        $this->assertDatabaseCount('registros_diarios', 0);
+        $response->assertRedirect();
+        $this->assertDatabaseCount('registros_diarios', 1);
     }
 
     // --- Authorization: Administrador -------------------------------------

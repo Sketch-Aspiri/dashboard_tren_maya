@@ -6,6 +6,7 @@ use App\Enums\TipoDocumentoAsistencia;
 use App\Http\Requests\GenerarOficioEstacionRequest;
 use App\Http\Requests\GenerarOficioZonaRequest;
 use App\Models\DocumentoAsistencia;
+use App\Models\RegistroDiario;
 use App\Services\AsistenciaDocumentoService;
 use App\Services\Documentos\ConversionPdfException;
 use App\Services\Documentos\MetadatosOficio;
@@ -45,7 +46,7 @@ class AsistenciaDocumentoController extends Controller
         }
 
         return redirect()
-            ->route('asistencia.captura.index', $request->user()->hasRole('Administrador')
+            ->route('asistencia.captura.index', $request->user()->can('captureAnyEstacion', RegistroDiario::class)
                 ? ['estacion' => $estacion->id, 'fecha' => $fecha->toDateString()]
                 : [])
             ->with('status', __('Oficio generado correctamente.'));

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreComisionadoFueraRequest;
 use App\Http\Requests\UpdateComisionadoFueraRequest;
 use App\Models\ComisionadoFuera;
+use App\Models\RegistroDiario;
 use App\Services\ComisionadoFueraService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -55,7 +56,7 @@ class ComisionadoFueraController extends Controller
      */
     private function volverACaptura(Request $request): RedirectResponse
     {
-        return redirect()->route('asistencia.captura.index', $request->user()->hasRole('Administrador')
+        return redirect()->route('asistencia.captura.index', $request->user()->can('captureAnyEstacion', RegistroDiario::class)
             ? array_filter([
                 'estacion' => $request->input('estacion'),
                 'fecha' => $request->input('fecha'),

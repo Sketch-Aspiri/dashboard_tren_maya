@@ -181,7 +181,7 @@ class ComisionadoVisitanteCrudTest extends TestCase
 
     // --- Authorization: Jefe de Zona (read-only) ----------------------------
 
-    public function test_zone_chief_cannot_create_visitante(): void
+    public function test_zone_chief_can_create_visitante(): void
     {
         $estacion = $this->estacionOperativa();
         $this->actingAsTwoFactorVerified($this->zoneChief());
@@ -191,8 +191,8 @@ class ComisionadoVisitanteCrudTest extends TestCase
             $this->storePayload(['estacion' => $estacion->id]),
         );
 
-        $response->assertForbidden();
-        $this->assertDatabaseCount('comisionados_visitantes', 0);
+        $response->assertRedirect();
+        $this->assertDatabaseCount('comisionados_visitantes', 1);
     }
 
     // --- Authorization: Administrador ---------------------------------------

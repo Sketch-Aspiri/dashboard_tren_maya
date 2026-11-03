@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreComisionadoVisitanteRequest;
 use App\Http\Requests\UpdateComisionadoVisitanteRequest;
 use App\Models\ComisionadoVisitante;
+use App\Models\RegistroDiario;
 use App\Services\ComisionadoVisitanteService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -57,7 +58,7 @@ class ComisionadoVisitanteController extends Controller
      */
     private function volverACaptura(Request $request): RedirectResponse
     {
-        return redirect()->route('asistencia.captura.index', $request->user()->hasRole('Administrador')
+        return redirect()->route('asistencia.captura.index', $request->user()->can('captureAnyEstacion', RegistroDiario::class)
             ? array_filter([
                 'estacion' => $request->input('estacion'),
                 'fecha' => $request->input('fecha'),

@@ -105,23 +105,23 @@ class EmpleadoCrudTest extends TestCase
         $response->assertForbidden();
     }
 
-    public function test_zone_chief_cannot_create_empleado(): void
+    public function test_zone_chief_can_create_empleado(): void
     {
         $this->actingAsTwoFactorVerified($this->zoneChief());
 
         $response = $this->get(route('agenda.personal.create'));
 
-        $response->assertForbidden();
+        $response->assertOk();
     }
 
-    public function test_zone_chief_cannot_store_empleado(): void
+    public function test_zone_chief_can_store_empleado(): void
     {
         $this->actingAsTwoFactorVerified($this->zoneChief());
 
         $response = $this->post(route('agenda.personal.store'), $this->validPayload());
 
-        $response->assertForbidden();
-        $this->assertDatabaseCount('empleados', 0);
+        $response->assertRedirect();
+        $this->assertDatabaseCount('empleados', 1);
     }
 
     public function test_administrador_can_create_empleado(): void
@@ -133,7 +133,7 @@ class EmpleadoCrudTest extends TestCase
         $response->assertOk();
     }
 
-    public function test_zone_chief_cannot_update_empleado(): void
+    public function test_zone_chief_can_update_empleado(): void
     {
         $this->actingAsTwoFactorVerified($this->zoneChief());
         $empleado = Empleado::factory()->create();
@@ -143,19 +143,19 @@ class EmpleadoCrudTest extends TestCase
             'nombre_completo' => 'Cambiado',
         ]));
 
-        $response->assertForbidden();
-        $this->assertDatabaseHas('empleados', ['id' => $empleado->id, 'nombre_completo' => $empleado->nombre_completo]);
+        $response->assertRedirect();
+        $this->assertDatabaseHas('empleados', ['id' => $empleado->id, 'nombre_completo' => 'Cambiado']);
     }
 
-    public function test_zone_chief_cannot_delete_empleado(): void
+    public function test_zone_chief_can_delete_empleado(): void
     {
         $this->actingAsTwoFactorVerified($this->zoneChief());
         $empleado = Empleado::factory()->create();
 
         $response = $this->delete(route('agenda.personal.destroy', $empleado));
 
-        $response->assertForbidden();
-        $this->assertDatabaseHas('empleados', ['id' => $empleado->id]);
+        $response->assertRedirect();
+        $this->assertDatabaseMissing('empleados', ['id' => $empleado->id]);
     }
 
     public function test_administrador_can_delete_empleado(): void

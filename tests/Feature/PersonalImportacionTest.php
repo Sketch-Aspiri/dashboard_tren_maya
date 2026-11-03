@@ -82,10 +82,10 @@ class PersonalImportacionTest extends TestCase
             ->assertJsonValidationErrors('archivo');
     }
 
-    public function test_zone_chief_without_admin_role_cannot_import(): void
+    public function test_zone_chief_can_import(): void
     {
         $this->actingAsTwoFactorVerified($this->usuarioConRol('Jefe de Zona'));
 
-        $this->post(route('agenda.personal.importar.store'), ['archivo' => $this->excelPersonal()])->assertForbidden();
+        $this->post(route('agenda.personal.importar.store'), ['archivo' => $this->excelPersonal()])->assertRedirect();
     }
 }

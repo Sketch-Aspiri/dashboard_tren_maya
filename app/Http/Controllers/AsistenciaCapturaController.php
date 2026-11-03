@@ -47,7 +47,7 @@ class AsistenciaCapturaController extends Controller
         // values (see code review finding).
         $fecha = CarbonImmutable::today();
 
-        if ($request->user()->hasRole('Administrador') && $request->filled('fecha')) {
+        if ($request->user()->can('captureAnyEstacion', RegistroDiario::class) && $request->filled('fecha')) {
             try {
                 $fecha = CarbonImmutable::parse($request->query('fecha'));
             } catch (\Throwable) {
@@ -61,7 +61,7 @@ class AsistenciaCapturaController extends Controller
             'fecha' => $fecha,
             'roster' => $this->service->rosterFor($estacion, $fecha),
             'estatuses' => EstatusAsistencia::cases(),
-            'estaciones' => $request->user()->hasRole('Administrador')
+            'estaciones' => $request->user()->can('captureAnyEstacion', RegistroDiario::class)
                 ? Estacion::orderBy('orden')->orderBy('nombre')->get()
                 : collect(),
             // Etapa 2 — comisionados_visitantes / comisionados_fuera (ver
@@ -85,7 +85,7 @@ class AsistenciaCapturaController extends Controller
         $this->service->guardar($estacion, $fecha, $request->validated('registros'), $request->user());
 
         return redirect()
-            ->route('asistencia.captura.index', $request->user()->hasRole('Administrador')
+            ->route('asistencia.captura.index', $request->user()->can('captureAnyEstacion', RegistroDiario::class)
                 ? ['estacion' => $estacion->id, 'fecha' => $fecha->toDateString()]
                 : [])
             ->with('status', __('Asistencia guardada correctamente.'));

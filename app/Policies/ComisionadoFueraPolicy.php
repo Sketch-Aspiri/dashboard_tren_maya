@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\ComisionadoFuera;
 use App\Models\Estacion;
 use App\Models\User;
+use App\Support\Roles;
 
 /**
  * Authorization for "Personal de Zona Oriente comisionado fuera hoy"
@@ -13,7 +14,7 @@ use App\Models\User;
  */
 class ComisionadoFueraPolicy
 {
-    private const READ_ROLES = ['Jefe de Zona', 'Administrador', 'Estación'];
+    private const READ_ROLES = [...Roles::ZONA, Roles::ESTACION];
 
     public function viewAny(User $user): bool
     {
@@ -22,7 +23,7 @@ class ComisionadoFueraPolicy
 
     public function view(User $user, ComisionadoFuera $comisionadoFuera): bool
     {
-        return $user->hasAnyRole(['Jefe de Zona', 'Administrador'])
+        return $user->hasAnyRole(Roles::ZONA)
             || ($user->hasRole('Estación') && $user->estacion_id === $comisionadoFuera->estacion_id);
     }
 
@@ -34,13 +35,13 @@ class ComisionadoFueraPolicy
      */
     public function createFor(User $user, Estacion $estacion): bool
     {
-        return $user->hasRole('Administrador')
+        return $user->hasAnyRole(Roles::ZONA)
             || ($user->hasRole('Estación') && $user->estacion_id === $estacion->id);
     }
 
     public function update(User $user, ComisionadoFuera $comisionadoFuera): bool
     {
-        if ($user->hasRole('Administrador')) {
+        if ($user->hasAnyRole(Roles::ZONA)) {
             return true;
         }
 

@@ -7,7 +7,7 @@
     /** @var \Illuminate\Database\Eloquent\Collection<int, \App\Models\ComisionadoVisitante> $comisionadosVisitantes */
     /** @var \Illuminate\Database\Eloquent\Collection<int, \App\Models\ComisionadoFuera> $comisionadosFuera */
     /** @var bool $puedeGestionarComisionados */
-    $esAdministrador = auth()->user()->hasRole('Administrador');
+    $esAdministrador = auth()->user()->can('captureAnyEstacion', \App\Models\RegistroDiario::class);
     $queryComisionados = array_filter(['estacion' => $estacion->id, 'fecha' => $fecha->toDateString()]);
 @endphp
 

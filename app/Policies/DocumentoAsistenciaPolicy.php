@@ -6,6 +6,7 @@ use App\Enums\TipoDocumentoAsistencia;
 use App\Models\DocumentoAsistencia;
 use App\Models\Estacion;
 use App\Models\User;
+use App\Support\Roles;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\Access\Response;
 
@@ -26,11 +27,11 @@ use Illuminate\Auth\Access\Response;
  */
 class DocumentoAsistenciaPolicy
 {
-    private const ZONA_ROLES = ['Jefe de Zona', 'Administrador'];
+    private const ZONA_ROLES = Roles::ZONA;
 
     public function generarEstacion(User $user, Estacion $estacion, CarbonInterface $fecha): bool
     {
-        if ($user->hasRole('Administrador')) {
+        if ($user->hasAnyRole(Roles::ZONA)) {
             return true;
         }
 

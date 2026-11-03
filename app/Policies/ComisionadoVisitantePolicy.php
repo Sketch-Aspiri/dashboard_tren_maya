@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\ComisionadoVisitante;
 use App\Models\Estacion;
 use App\Models\User;
+use App\Support\Roles;
 
 /**
  * Authorization for "Personal comisionado de otras coordinaciones presentes
@@ -16,7 +17,7 @@ use App\Models\User;
  */
 class ComisionadoVisitantePolicy
 {
-    private const READ_ROLES = ['Jefe de Zona', 'Administrador', 'Estación'];
+    private const READ_ROLES = [...Roles::ZONA, Roles::ESTACION];
 
     public function viewAny(User $user): bool
     {
@@ -25,7 +26,7 @@ class ComisionadoVisitantePolicy
 
     public function view(User $user, ComisionadoVisitante $comisionadoVisitante): bool
     {
-        return $user->hasAnyRole(['Jefe de Zona', 'Administrador'])
+        return $user->hasAnyRole(Roles::ZONA)
             || ($user->hasRole('Estación') && $user->estacion_id === $comisionadoVisitante->estacion_id);
     }
 
@@ -37,13 +38,13 @@ class ComisionadoVisitantePolicy
      */
     public function createFor(User $user, Estacion $estacion): bool
     {
-        return $user->hasRole('Administrador')
+        return $user->hasAnyRole(Roles::ZONA)
             || ($user->hasRole('Estación') && $user->estacion_id === $estacion->id);
     }
 
     public function update(User $user, ComisionadoVisitante $comisionadoVisitante): bool
     {
-        if ($user->hasRole('Administrador')) {
+        if ($user->hasAnyRole(Roles::ZONA)) {
             return true;
         }
 

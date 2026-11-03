@@ -200,7 +200,7 @@ class ComisionadoFueraCrudTest extends TestCase
 
     // --- Authorization: Jefe de Zona (read-only) ----------------------------
 
-    public function test_zone_chief_cannot_create_comisionado_fuera(): void
+    public function test_zone_chief_can_create_comisionado_fuera(): void
     {
         $estacion = $this->estacionOperativa();
         $empleado = $this->empleadoActivo($estacion);
@@ -211,8 +211,8 @@ class ComisionadoFueraCrudTest extends TestCase
             $this->storePayload($empleado->id, ['estacion' => $estacion->id]),
         );
 
-        $response->assertForbidden();
-        $this->assertDatabaseCount('comisionados_fuera', 0);
+        $response->assertRedirect();
+        $this->assertDatabaseCount('comisionados_fuera', 1);
     }
 
     // --- Authorization: Administrador ---------------------------------------

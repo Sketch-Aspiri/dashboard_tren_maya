@@ -54,7 +54,7 @@
         <form method="POST" action="{{ route('asistencia.captura.oficio.store') }}" class="space-y-4 border-t border-brand-green/10 pt-4">
             @csrf
             <input type="hidden" name="fecha" value="{{ $fecha->toDateString() }}">
-            @if (auth()->user()->hasRole('Administrador'))
+            @if (auth()->user()->can('captureAnyEstacion', \App\Models\RegistroDiario::class))
                 <input type="hidden" name="estacion" value="{{ $estacion->id }}">
             @endif
 

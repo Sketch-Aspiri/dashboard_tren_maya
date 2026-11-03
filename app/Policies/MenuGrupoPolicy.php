@@ -4,13 +4,14 @@ namespace App\Policies;
 
 use App\Models\MenuGrupo;
 use App\Models\User;
+use App\Support\Roles;
 
 /**
  * Grupos del menú principal ("Administrar menú").
  */
 class MenuGrupoPolicy
 {
-    private const ROLES = ['Jefe de Zona', 'Administrador'];
+    private const ROLES = Roles::ZONA;
 
     public function viewAny(User $user): bool
     {

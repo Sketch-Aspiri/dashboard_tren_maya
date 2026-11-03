@@ -213,13 +213,13 @@ class OficioEstacionTest extends TestCase
         $this->assertSame(0, DocumentoAsistencia::count());
     }
 
-    public function test_jefe_de_zona_no_puede_generar_oficios_de_estacion(): void
+    public function test_jefe_de_zona_puede_generar_oficios_de_estacion(): void
     {
         $estacion = $this->estacionCapturada();
         $this->actingAsTwoFactorVerified($this->usuario('Jefe de Zona'));
 
         $this->post(route('asistencia.captura.oficio.store'), $this->payload(['estacion' => $estacion->id]))
-            ->assertForbidden();
+            ->assertRedirect();
     }
 
     public function test_administrador_puede_generar_de_cualquier_estacion_y_fecha(): void

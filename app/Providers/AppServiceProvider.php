@@ -10,6 +10,8 @@ use App\Services\Documentos\ConvertidorPdfLibreOffice;
 use App\Services\Nube\Contracts\ProveedorNube;
 use App\Services\Nube\Proveedores\EnlacePublico;
 use App\Services\Secciones\ExtractorDocumentos;
+use App\Services\Secciones\VisibilidadSecciones;
+use App\Support\Roles;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -30,7 +32,7 @@ class AppServiceProvider extends ServiceProvider
      *
      * @var list<string>
      */
-    private const ZONA_ROLES = ['Jefe de Zona', 'Administrador'];
+    private const ZONA_ROLES = Roles::ZONA;
 
     /**
      * Register any application services.
@@ -50,6 +52,7 @@ class AppServiceProvider extends ServiceProvider
         // Una instancia por petición: comparte la caché de tablas leídas
         // entre ArchivoService e ImportacionService (no relee el archivo).
         $this->app->scoped(ExtractorDocumentos::class);
+        $this->app->scoped(VisibilidadSecciones::class);
     }
 
     /**
@@ -145,6 +148,9 @@ class AppServiceProvider extends ServiceProvider
      */
     private function configureGates(): void
     {
+        // Inicio propio de una cuenta Estación (el dashboard de zona queda cerrado para ella).
+        Gate::define('view-inicio-estacion', fn (User $user): bool => $user->hasRole(Roles::ESTACION));
+
         Gate::define('view-dashboard', function (User $user): bool {
             return $user->hasAnyRole(self::ZONA_ROLES);
         });
@@ -160,7 +166,7 @@ class AppServiceProvider extends ServiceProvider
         // Asistente de preguntas del dashboard (Claude API): consulta toda la
         // información de la zona, así que solo la Jefatura de Zona.
         Gate::define('usar-asistente', function (User $user): bool {
-            return $user->hasAnyRole(self::ZONA_ROLES);
+            return $user->hasAnyRole(Roles::JEFATURA);
         });
     }
 }
