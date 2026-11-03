@@ -27,7 +27,7 @@ class RetenidoMapeoRequest extends FormRequest
         $origen = $this->route('origen');
 
         return [
-            'mapeo' => ['required', 'integer', Rule::exists('seccion_mapeos', 'id')->where('seccion_origen_id', $origen->id)],
+            'mapeo' => ['required', 'integer', Rule::exists('seccion_mapeos', 'id')->where('seccion_origen_id', $origen->id)->whereNotNull('retenido')],
         ];
     }
 

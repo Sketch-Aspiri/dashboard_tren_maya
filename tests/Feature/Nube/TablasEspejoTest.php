@@ -18,10 +18,12 @@ use App\Services\Nube\Proveedores\EnlacePublico;
 use App\Services\Nube\Proveedores\MicrosoftGraph;
 use App\Services\Secciones\LibroImportacionService;
 use App\Services\Secciones\SincronizadorOrigen;
+use App\Support\Roles;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Activitylog\Models\Activity;
 use Tests\Concerns\InteractsWithSecciones;
 use Tests\Concerns\ProveedorNubeFalso;
@@ -496,6 +498,127 @@ class TablasEspejoTest extends TestCase
 
         $this->assertSame(EstadoOrigen::Activo, $origen->fresh()->estado);
         $this->assertSame(0, $origen->tablas()->count());
+    }
+
+    /**
+     * @return array<string, array{0: string, 1: string}> [método HTTP, nombre de ruta]
+     */
+    public static function rutasDeMapeo(): array
+    {
+        return [
+            'editar' => ['get', 'secciones.origenes.mapeo.edit'],
+            'guardar' => ['post', 'secciones.origenes.mapeo.update'],
+            'aplicar retenido' => ['post', 'secciones.origenes.mapeo.aplicar-retenido'],
+            'ignorar retenido' => ['post', 'secciones.origenes.mapeo.ignorar-retenido'],
+        ];
+    }
+
+    #[DataProvider('rutasDeMapeo')]
+    public function test_stations_and_users_without_role_cannot_use_the_mapping_routes(string $metodo, string $ruta): void
+    {
+        [$origen] = $this->origenMapeado();
+        $mapeo = SeccionMapeo::query()->sole();
+        $datos = ['mapeo' => $mapeo->id, 'mapeos' => [$mapeo->id => ['fila_encabezado' => 0, 'llave_clave' => 'equipo']]];
+
+        foreach ([Roles::ESTACION, null] as $rol) {
+            $this->actingAsTwoFactorVerified($this->usuarioConRol($rol));
+            $this->{$metodo}(route($ruta, [$origen->seccion, $origen]), $metodo === 'post' ? $datos : [])->assertForbidden();
+        }
+
+        $this->assertSame('folio', $mapeo->fresh()->llave_clave);
+    }
+
+    #[DataProvider('rutasDeMapeo')]
+    public function test_the_mapping_routes_return_404_for_an_origin_of_another_section(string $metodo, string $ruta): void
+    {
+        [$origen] = $this->origenMapeado();
+        $mapeo = SeccionMapeo::query()->sole();
+        $otraSeccion = Seccion::factory()->create();
+        $datos = ['mapeo' => $mapeo->id, 'mapeos' => [$mapeo->id => ['fila_encabezado' => 0, 'llave_clave' => 'equipo']]];
+
+        $this->{$metodo}(route($ruta, [$otraSeccion, $origen]), $metodo === 'post' ? $datos : [])->assertNotFound();
+    }
+
+    public function test_only_a_held_mapping_can_be_applied_or_ignored(): void
+    {
+        [$origen, $tabla] = $this->origenMapeado();
+        $mapeo = SeccionMapeo::query()->sole();
+        $this->assertNull($mapeo->retenido);
+
+        $this->post(route('secciones.origenes.mapeo.aplicar-retenido', [$origen->seccion, $origen]), ['mapeo' => $mapeo->id])->assertSessionHasErrors('mapeo');
+        $this->post(route('secciones.origenes.mapeo.ignorar-retenido', [$origen->seccion, $origen]), ['mapeo' => $mapeo->id])->assertSessionHasErrors('mapeo');
+
+        $this->assertSame(3, $tabla->filas()->count());
+        $this->assertSame(0, Activity::query()->whereIn('event', ['cambio_masivo_aplicado', 'cambio_masivo_ignorado'])->count());
+    }
+
+    public function test_editing_the_mapping_that_would_archive_many_rows_needs_explicit_confirmation(): void
+    {
+        [$origen, $tabla] = $this->origenMapeado();
+        $this->nube->poner('x1', 'Equipos.xlsx', $this->hoja([['Folio', 'Equipo'], ['A1', 'uno']]), 'v2');
+        $this->sincronizar($origen);
+        $mapeo = SeccionMapeo::query()->sole();
+        $motivoAntes = $mapeo->retenido['motivo'];
+        $ruta = route('secciones.origenes.mapeo.update', [$origen->seccion, $origen]);
+        $cambio = ['mapeos' => [$mapeo->id => ['fila_encabezado' => 0, 'llave_clave' => 'equipo']]];
+
+        $this->post($ruta, $cambio)->assertSessionHasErrors('mapeo');
+
+        $this->assertSame(3, $tabla->filas()->count(), 'Sin confirmar no se archiva nada.');
+        $this->assertSame('folio', $mapeo->fresh()->llave_clave, 'El mapeo no cambia si el cambio no se aplicó.');
+        $this->assertSame($motivoAntes, $mapeo->fresh()->retenido['motivo']);
+
+        $this->post($ruta, $cambio + ['confirmar_masivo' => 1])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame(1, $tabla->filas()->count());
+        $this->assertSame('equipo', $mapeo->fresh()->llave_clave);
+        $registro = Activity::query()->where('event', 'mapeo_confirmado')->where('description', 'Mapeo de columnas editado.')->sole();
+        $this->assertSame($this->auth(), $registro->causer_id);
+        $this->assertTrue($registro->properties['confirmado_masivo']);
+    }
+
+    public function test_editing_several_sheets_is_all_or_nothing(): void
+    {
+        $this->comoAdministrador();
+        $origen = $this->origen();
+        $this->nube->poner('x1', 'Equipos.xlsx', $this->libro([
+            'Equipos' => [['Folio', 'Equipo'], ['A1', 'uno']],
+            'Otros' => [['Folio', 'Otro'], ['B1', 'dos']],
+        ]), 'v1');
+        $this->sincronizar($origen);
+        $this->confirmar($origen);
+        $mapeos = SeccionMapeo::query()->orderBy('id')->get();
+        $this->assertCount(2, $mapeos);
+
+        $this->post(route('secciones.origenes.mapeo.update', [$origen->seccion, $origen]), ['mapeos' => [
+            $mapeos[0]->id => ['fila_encabezado' => 0, 'llave_clave' => 'equipo'],
+            $mapeos[1]->id => ['fila_encabezado' => 0, 'llave_clave' => 'no_existe'],
+        ]])->assertSessionHasErrors();
+
+        $this->assertSame('folio', $mapeos[0]->fresh()->llave_clave, 'La primera hoja no queda a medias.');
+        $this->assertSame(0, Activity::query()->where('description', 'Mapeo de columnas editado.')->count());
+    }
+
+    public function test_applying_and_ignoring_held_changes_are_audited_with_their_author(): void
+    {
+        [$origen] = $this->origenMapeado();
+        $this->nube->poner('x1', 'Equipos.xlsx', $this->hoja([['Folio', 'Equipo'], ['A1', 'uno']]), 'v2');
+        $this->sincronizar($origen);
+        $mapeo = SeccionMapeo::query()->sole();
+        $this->assertSame(1, Activity::query()->where('event', 'cambio_masivo_retenido')->count());
+
+        $this->post(route('secciones.origenes.mapeo.ignorar-retenido', [$origen->seccion, $origen]), ['mapeo' => $mapeo->id]);
+        $ignorado = Activity::query()->where('event', 'cambio_masivo_ignorado')->sole();
+        $this->assertSame($this->auth(), $ignorado->causer_id);
+        $this->assertSame($origen->seccion_id, $ignorado->subject_id);
+
+        $this->nube->poner('x1', 'Equipos.xlsx', $this->hoja([['Folio', 'Equipo'], ['A1', 'cambiado']]), 'v3');
+        $this->sincronizar($origen);
+        $this->post(route('secciones.origenes.mapeo.aplicar-retenido', [$origen->seccion, $origen]), ['mapeo' => $mapeo->id]);
+        $aplicado = Activity::query()->where('event', 'cambio_masivo_aplicado')->sole();
+        $this->assertSame($this->auth(), $aplicado->causer_id);
+        $this->assertSame($origen->seccion_id, $aplicado->subject_id);
+        $this->assertStringNotContainsString('Administrador', $aplicado->description);
     }
 
     private function auth(): int

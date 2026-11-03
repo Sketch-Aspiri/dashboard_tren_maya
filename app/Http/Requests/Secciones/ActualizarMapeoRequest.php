@@ -27,6 +27,7 @@ class ActualizarMapeoRequest extends FormRequest
             'mapeos' => ['required', 'array', 'max:50'],
             'mapeos.*.fila_encabezado' => ['required', 'integer', 'min:0', 'max:200'],
             'mapeos.*.llave_clave' => ['nullable', 'string', 'max:100'],
+            'confirmar_masivo' => ['sometimes', 'boolean'],
         ];
     }
 

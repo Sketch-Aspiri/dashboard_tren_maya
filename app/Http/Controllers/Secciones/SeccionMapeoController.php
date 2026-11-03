@@ -13,7 +13,8 @@ use Illuminate\Http\RedirectResponse;
 
 /**
  * Mapeo de las tablas espejo de un origen: editarlo y resolver los cambios
- * masivos retenidos (aplicar / ignorar). Solo quien gestiona los datos.
+ * masivos retenidos (aplicar / ignorar). Solo quien gestiona los datos
+ * (roles de zona, igual que el resto de las acciones de nube).
  */
 class SeccionMapeoController extends Controller
 {
@@ -34,9 +35,7 @@ class SeccionMapeoController extends Controller
     {
         $this->authorize('gestionarDatos', $seccion);
 
-        foreach ($request->cambios() as $cambio) {
-            $this->mapeos->actualizar($cambio['mapeo'], $cambio['fila_encabezado'], $cambio['llave_clave'], $request->user());
-        }
+        $this->mapeos->actualizarVarios($request->cambios(), $request->user(), $request->boolean('confirmar_masivo'));
 
         return redirect()->route('secciones.origenes.mapeo.edit', [$seccion, $origen])->with('status', __('Mapeo guardado y tablas actualizadas.'));
     }

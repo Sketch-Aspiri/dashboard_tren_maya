@@ -112,7 +112,11 @@ class NubeDiagnosticoCommand extends Command
     {
         try {
             return Schema::hasTable($tabla) ? (string) DB::table($tabla)->count() : 'sin tabla';
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            if ($this->output->isVerbose()) {
+                $this->warn("No se pudo contar {$tabla}: {$e->getMessage()}");
+            }
+
             return 'n/d';
         }
     }

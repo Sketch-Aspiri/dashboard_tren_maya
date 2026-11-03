@@ -81,6 +81,10 @@
                         </fieldset>
                     @endforeach
                     <p class="text-xs text-gray-600">{{ __('Cambiar la fila de encabezados puede crear columnas nuevas; las anteriores se conservan.') }}</p>
+                    <label class="flex min-h-[44px] items-center gap-2 text-sm text-gray-700">
+                        <input type="checkbox" name="confirmar_masivo" value="1" class="h-5 w-5 rounded border-gray-300 text-brand-green focus:ring-brand-teal">
+                        {{ __('Confirmo el cambio masivo si archiva muchas filas de la tabla') }}
+                    </label>
                     <div class="flex justify-end gap-2">
                         <a href="{{ route('secciones.show', $seccion) }}" class="inline-flex min-h-[44px] items-center rounded-md px-4 text-sm font-medium text-gray-700 hover:bg-gray-100">{{ __('Volver a la sección') }}</a>
                         <button type="submit" class="min-h-[44px] rounded-md bg-brand-green px-5 text-sm font-semibold text-white hover:bg-brand-green-dark focus:outline-none focus:ring-2 focus:ring-brand-teal focus:ring-offset-2">{{ __('Guardar mapeo') }}</button>

@@ -71,6 +71,7 @@ final class EstadoSincronizacion
     private function fallosRecientes(): ColeccionBase
     {
         return DB::table('failed_jobs')
+            ->where('queue', SincronizarOrigenJob::COLA)
             ->where('payload', 'like', '%'.class_basename(SincronizarOrigenJob::class).'%')
             ->orderByDesc('id')
             ->limit(self::MAX_FALLOS)
