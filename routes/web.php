@@ -8,6 +8,9 @@ use App\Http\Controllers\ComisionadoFueraController;
 use App\Http\Controllers\ComisionadoVisitanteController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmpleadoController;
+use App\Http\Controllers\Nube\NubeCredencialController;
+use App\Http\Controllers\Nube\NubeCuentaController;
+use App\Http\Controllers\Nube\NubeOAuthController;
 use App\Http\Controllers\PersonalImportacionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Secciones\AdministrarMenuController;
@@ -212,6 +215,17 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
             Route::put('/{user}', [UserManagementController::class, 'update'])->name('update');
             Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('destroy');
         });
+    });
+
+    // Conexiones de nube (OneDrive/SharePoint, Google Drive, Dropbox): solo
+    // Administrador (NubeCuentaPolicy). Las credenciales OAuth se cargan aquí,
+    // no en el .env. Los tokens nunca salen del servidor.
+    Route::prefix('nube')->name('nube.')->middleware('throttle:nube-oauth')->group(function () {
+        Route::get('/cuentas', [NubeCuentaController::class, 'index'])->name('cuentas.index');
+        Route::delete('/cuentas/{cuenta}', [NubeCuentaController::class, 'destroy'])->name('cuentas.destroy');
+        Route::put('/credenciales/{proveedor}', [NubeCredencialController::class, 'update'])->name('credenciales.update');
+        Route::get('/{proveedor}/conectar', [NubeOAuthController::class, 'conectar'])->name('conectar');
+        Route::get('/{proveedor}/callback', [NubeOAuthController::class, 'callback'])->name('callback');
     });
 });
 

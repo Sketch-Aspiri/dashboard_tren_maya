@@ -45,6 +45,9 @@
                             <x-dropdown-link :href="route('usuarios.index')">
                                 {{ __('Usuarios') }}
                             </x-dropdown-link>
+                            <x-dropdown-link :href="route('nube.cuentas.index')">
+                                {{ __('Conexiones de nube') }}
+                            </x-dropdown-link>
                         @endhasrole
                         <x-dropdown-link :href="route('profile.edit')">
                             {{ __('Mi perfil') }}
@@ -176,6 +179,9 @@
                 @hasrole('Administrador')
                     <x-responsive-nav-link :href="route('usuarios.index')" :active="request()->routeIs('usuarios.*')">
                         {{ __('Usuarios') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('nube.cuentas.index')" :active="request()->routeIs('nube.*')">
+                        {{ __('Conexiones de nube') }}
                     </x-responsive-nav-link>
                 @endhasrole
                 <x-responsive-nav-link :href="route('profile.edit')">

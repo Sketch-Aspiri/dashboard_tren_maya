@@ -10,8 +10,12 @@ registrar una "app" y entregarnos un **Client ID** y un **Client Secret**.
   - Microsoft: `https://<dominio>/nube/microsoft/callback`
   - Google: `https://<dominio>/nube/google/callback`
   - Dropbox: `https://<dominio>/nube/dropbox/callback`
-- Entregar las credenciales por canal seguro (gestor de contraseñas o
-  directamente en el `.env` del servidor). **Nunca por chat, correo ni git.**
+- Las URIs de arriba también aparecen, ya calculadas y con botón *Copiar*, en
+  la app: menú de usuario → **Conexiones de nube** (solo Administrador), en la
+  tarjeta de cada proveedor ("Redirect URI"). Es la fuente de verdad: dásela a TI tal cual.
+- Entregar las credenciales por canal seguro (gestor de contraseñas). El
+  Administrador las captura en **Conexiones de nube**; no hace falta tocar el
+  `.env` del servidor. **Nunca por chat, correo ni git.**
 - Registrar **fecha de vencimiento del secret** y quién lo renueva.
 
 ## 1. Microsoft (Entra ID / Azure) — OneDrive personal, institucional y SharePoint
@@ -26,8 +30,8 @@ Portal: https://entra.microsoft.com → *Identidad → Aplicaciones → Registro
    `offline_access`, `User.Read`, `Files.Read.All`, `Sites.Read.All`.
 6. Para el tenant institucional, un administrador debe pulsar
    **Conceder consentimiento de administrador** (`Files.Read.All` / `Sites.Read.All`).
-7. Entregar: **Application (client) ID** → `MICROSOFT_CLIENT_ID`,
-   **secreto** → `MICROSOFT_CLIENT_SECRET`. `MICROSOFT_TENANT=common`.
+7. Entregar: **Application (client) ID** (→ campo *Client ID*) y **secreto**
+   (→ campo *Client Secret*). Tenant: `common` (campo *Tenant*).
 
 ## 2. Google Cloud — Google Drive
 Consola: https://console.cloud.google.com
@@ -41,7 +45,7 @@ Consola: https://console.cloud.google.com
 3. Alcance: `https://www.googleapis.com/auth/drive.readonly`.
 4. *Credenciales → Crear credenciales → ID de cliente OAuth* → tipo **Aplicación web**,
    URI de redirección de Google.
-5. Entregar: **ID de cliente** → `GOOGLE_CLIENT_ID`, **secreto** → `GOOGLE_CLIENT_SECRET`.
+5. Entregar: **ID de cliente** (→ *Client ID*) y **secreto** (→ *Client Secret*).
 
 ## 3. Dropbox
 Consola: https://www.dropbox.com/developers/apps → *Create app*.
@@ -49,27 +53,36 @@ Consola: https://www.dropbox.com/developers/apps → *Create app*.
 1. API: *Scoped access*. Acceso: *Full Dropbox*. Nombre único (p. ej. `dashboard-jefe-zona`).
 2. Pestaña *Permissions*: marcar `files.metadata.read`, `files.content.read`, `sharing.read` → *Submit*.
 3. Pestaña *Settings*: agregar la URI de redirección de Dropbox.
-4. Entregar: **App key** → `DROPBOX_CLIENT_ID`, **App secret** → `DROPBOX_CLIENT_SECRET`.
+4. Entregar: **App key** (→ *Client ID*) y **App secret** (→ *Client Secret*).
 
 ## Dónde se configuran
-En el `.env` **del servidor** (ver `deploy/vps/env.produccion.example`):
+**Desde la app (lo normal).** Entra como Administrador → menú de usuario →
+**Conexiones de nube**. Cada proveedor tiene su tarjeta con:
+1. **Client ID**, **Client Secret** (y **Tenant** en Microsoft). El secreto se
+   guarda cifrado y nunca se vuelve a mostrar; la pantalla solo dice
+   "Configurado" y los últimos 4 caracteres del Client ID. Si guardas con un
+   campo en blanco se conserva el valor actual (útil para cambiar solo el tenant).
+2. La **Redirect URI** de solo lectura (botón *Copiar*), que se registra en el
+   proveedor. Se calcula con el dominio real de la app; no se escribe a mano.
+3. **Conectar cuenta** (abre el inicio de sesión del proveedor, con permiso de
+   solo lectura) y la lista de cuentas conectadas con **Desconectar**.
+
+Cada guardado, conexión y desconexión queda en la bitácora (sin secretos ni tokens).
+
+**Alternativa: `.env` del servidor (opcional).** Solo si no hay credenciales
+guardadas en la app (lo guardado en la app tiene prioridad). Ver
+`deploy/vps/env.produccion.example`:
 
 ```dotenv
 MICROSOFT_CLIENT_ID=…       MICROSOFT_CLIENT_SECRET=…       MICROSOFT_TENANT=common
-MICROSOFT_REDIRECT_URI=https://<dominio>/nube/microsoft/callback
 GOOGLE_CLIENT_ID=…          GOOGLE_CLIENT_SECRET=…
-GOOGLE_REDIRECT_URI=https://<dominio>/nube/google/callback
 DROPBOX_CLIENT_ID=…         DROPBOX_CLIENT_SECRET=…
-DROPBOX_REDIRECT_URI=https://<dominio>/nube/dropbox/callback
 ```
-Después: `php artisan config:cache`. Comprobar sin imprimir secretos:
-```bash
-php artisan tinker --execute="foreach(['microsoft','google','dropbox'] as \$p) echo \$p.': '.(config(\"services.\$p.client_id\") && config(\"services.\$p.client_secret\") ? 'configurado' : 'FALTA').PHP_EOL;"
-```
+Las variables `*_REDIRECT_URI` ya no se usan. Después: `php artisan config:cache`.
 
 ## Rotación y revocación
-- Antes de que venza un secret: crear uno nuevo, actualizar `.env`, `config:cache`,
-  y recién entonces borrar el viejo.
+- Antes de que venza un secret: crear uno nuevo, pegarlo en *Conexiones de nube*
+  (Client Secret → Guardar) y recién entonces borrar el viejo en el proveedor.
 - Si un secret se expuso (chat, correo, log, git): **rotarlo de inmediato**.
 - Revocar acceso de una cuenta: desde el dashboard (*Conexiones de nube → Desconectar*)
   y, en el proveedor, quitar la app de las aplicaciones autorizadas de esa cuenta.

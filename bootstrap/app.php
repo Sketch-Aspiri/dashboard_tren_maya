@@ -17,5 +17,6 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Nunca devolver al formulario (ni a la sesión) el secreto OAuth tras un error de validación.
+        $exceptions->dontFlash(['client_secret']);
     })->create();

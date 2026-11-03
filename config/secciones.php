@@ -66,7 +66,20 @@ return [
             'microsoftpersonalcontent.com',
             'dropbox.com',
             'dropboxusercontent.com',
+            // APIs con cuenta OAuth (también valen para las redirecciones de descarga).
+            'graph.microsoft.com',
+            'www.googleapis.com',
+            'api.dropboxapi.com',
+            'content.dropboxapi.com',
         ],
+
+        // Tope de lo que se lista de un origen (carpeta). Lo que sobra se
+        // cuenta como omitido en el resumen.
+        'max_archivos_por_origen' => (int) env('SECCIONES_NUBE_MAX_ARCHIVOS', 2000),
+        'max_profundidad' => 10,
+        // Espera máxima (s) ante un 429 y reintentos antes de rendirse.
+        'max_espera_429_segundos' => 30,
+        'max_reintentos_429' => 3,
         // Token anónimo "Badger" que Microsoft exige para descargar
         // shares personales vía api.onedrive.com (sin OAuth). El appId
         // es el cliente público que usan sus propios clientes; no es un secreto.

@@ -21,6 +21,8 @@ class SeccionOrigen extends Model
 
     public const TIPO_ARCHIVO = 'archivo';
 
+    public const TIPO_CARPETA = 'carpeta';
+
     protected $table = 'seccion_origenes';
 
     /**
@@ -38,6 +40,7 @@ class SeccionOrigen extends Model
         return [
             'estado' => EstadoOrigen::class,
             'alimenta_tablas' => 'boolean',
+            'incluir_subcarpetas' => 'boolean',
             'sincronizado_en' => 'datetime',
             'resumen' => 'array',
         ];
@@ -58,6 +61,16 @@ class SeccionOrigen extends Model
     public function seccion(): BelongsTo
     {
         return $this->belongsTo(Seccion::class);
+    }
+
+    /**
+     * Cuenta OAuth con la que se lee; null = enlace público.
+     *
+     * @return BelongsTo<NubeCuenta, $this>
+     */
+    public function cuenta(): BelongsTo
+    {
+        return $this->belongsTo(NubeCuenta::class, 'nube_cuenta_id');
     }
 
     /**

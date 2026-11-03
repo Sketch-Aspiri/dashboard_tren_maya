@@ -130,6 +130,12 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
         });
 
+        // Conexiones de nube (solo Administrador): credenciales, inicio y
+        // retorno del OAuth, desconexión. Pocas operaciones legítimas.
+        RateLimiter::for('nube-oauth', function (Request $request) {
+            return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
+        });
+
         // Todo lo que llama a la Claude API (asistente y "Extraer con IA"):
         // por minuto y tope diario, para acotar costo y abuso.
         RateLimiter::for('ia', function (Request $request) {
