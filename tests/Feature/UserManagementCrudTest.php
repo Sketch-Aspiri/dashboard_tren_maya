@@ -202,7 +202,7 @@ class UserManagementCrudTest extends TestCase
 
         $response = $this->post(route('usuarios.store'), []);
 
-        $response->assertInvalid(['name', 'email', 'role', 'password']);
+        $response->assertInvalid(['name', 'email', 'roles', 'password']);
         $this->assertDatabaseCount('users', 1);
     }
 
@@ -222,7 +222,7 @@ class UserManagementCrudTest extends TestCase
 
         $response = $this->post(route('usuarios.store'), $this->validPayload(['role' => 'Superadmin']));
 
-        $response->assertInvalid(['role']);
+        $response->assertInvalid(['roles.0']);
     }
 
     public function test_store_requires_estacion_id_when_role_is_estacion(): void

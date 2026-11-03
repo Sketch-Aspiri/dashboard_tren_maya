@@ -3,7 +3,10 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Support\Roles;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Business logic for the "Gestión de usuarios" panel. Keeps
@@ -15,8 +18,6 @@ use Illuminate\Support\Facades\Hash;
  */
 final class UserManagementService
 {
-    private const ESTACION_ROLE = 'Estación';
-
     /**
      * @param  array<string, mixed>  $data  Validated StoreUserRequest data.
      */
@@ -30,8 +31,9 @@ final class UserManagementService
             'email_verified_at' => now(),
         ]);
 
-        $user->assignRole($data['role']);
-        $this->logRoleChange($user, [], [$data['role']]);
+        $roles = array_values($data['roles']);
+        $user->assignRole($roles);
+        $this->logRoleChange($user, [], $roles);
 
         return $user;
     }
@@ -41,21 +43,50 @@ final class UserManagementService
      */
     public function update(User $user, array $data): User
     {
-        $user->fill([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'estacion_id' => $this->resolveEstacionId($data),
-        ]);
+        return DB::transaction(function () use ($user, $data): User {
+            $roles = array_values($data['roles']);
 
-        if (! empty($data['password'])) {
-            $user->password = Hash::make($data['password']);
+            $this->assertAdministradorSobrevive($user, $roles);
+
+            $user->fill([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'estacion_id' => $this->resolveEstacionId($data),
+            ]);
+
+            if (! empty($data['password'])) {
+                $user->password = Hash::make($data['password']);
+            }
+
+            $user->save();
+
+            $this->syncRolesIfChanged($user, $roles);
+
+            return $user;
+        });
+    }
+
+    /**
+     * Guarda defensiva (además del Form Request y la Policy): bloquea las
+     * filas de los Administradores y revalida que, tras el cambio, siga
+     * existiendo al menos uno. Evita que dos peticiones simultáneas dejen el
+     * sistema sin quien gestione cuentas.
+     *
+     * @param  list<string>|null  $nuevosRoles  null = la cuenta se elimina.
+     */
+    private function assertAdministradorSobrevive(User $user, ?array $nuevosRoles): void
+    {
+        if ($nuevosRoles !== null && in_array(Roles::ADMINISTRADOR, $nuevosRoles, true)) {
+            return;
         }
 
-        $user->save();
+        $administradores = User::role(Roles::ADMINISTRADOR)->lockForUpdate()->pluck('users.id');
 
-        $this->syncRoleIfChanged($user, $data['role']);
-
-        return $user;
+        if ($administradores->contains($user->id) && $administradores->count() <= 1) {
+            throw ValidationException::withMessages([
+                'roles' => __('No se puede dejar al sistema sin un Administrador.'),
+            ]);
+        }
     }
 
     /**
@@ -65,7 +96,11 @@ final class UserManagementService
      */
     public function delete(User $user): void
     {
-        $user->delete();
+        DB::transaction(function () use ($user): void {
+            $this->assertAdministradorSobrevive($user, null);
+
+            $user->delete();
+        });
     }
 
     /**
@@ -77,24 +112,32 @@ final class UserManagementService
      */
     private function resolveEstacionId(array $data): ?int
     {
-        if ($data['role'] !== self::ESTACION_ROLE) {
+        if (! in_array(Roles::ESTACION, $data['roles'], true)) {
             return null;
         }
 
         return $data['estacion_id'] ?? null;
     }
 
-    private function syncRoleIfChanged(User $user, string $role): void
+    /**
+     * @param  list<string>  $roles
+     */
+    private function syncRolesIfChanged(User $user, array $roles): void
     {
         $currentRoles = $user->getRoleNames()->all();
 
-        if ($currentRoles === [$role]) {
+        $nuevos = $roles;
+        $actuales = $currentRoles;
+        sort($nuevos);
+        sort($actuales);
+
+        if ($nuevos === $actuales) {
             return;
         }
 
-        $user->syncRoles([$role]);
+        $user->syncRoles($roles);
 
-        $this->logRoleChange($user, $currentRoles, [$role]);
+        $this->logRoleChange($user, $currentRoles, $roles);
     }
 
     /**

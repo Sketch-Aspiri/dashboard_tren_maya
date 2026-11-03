@@ -2,7 +2,7 @@
     /** @var \App\Models\User|null $user */
     /** @var list<string> $roles */
     /** @var \Illuminate\Support\Collection<int, \App\Models\Estacion> $estaciones */
-    $selectedRole = old('role', $user?->roles?->first()?->name);
+    $selectedRoles = old('roles', $user?->roles?->pluck('name')->all() ?? []);
 @endphp
 
 {{-- x-model just toggles which fields are visible client-side — the
@@ -10,7 +10,7 @@
      / UpdateUserRequest / UserManagementService) is the real source of
      truth for "estacion_id only applies to role Estación", never this
      toggle alone. --}}
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-4" x-data="{ role: @js($selectedRole) }">
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4" x-data="{ roles: @js(array_values($selectedRoles)) }">
     <div>
         <x-input-label for="name" :value="__('Nombre')" />
         <x-text-input id="name" name="name" type="text" class="block mt-1 w-full"
@@ -25,19 +25,24 @@
         <x-input-error :messages="$errors->get('email')" class="mt-2" />
     </div>
 
-    <div>
-        <x-input-label for="role" :value="__('Rol')" />
-        <select id="role" name="role" x-model="role" required
-                class="mt-1 block w-full min-h-[44px] rounded-md border-gray-300 shadow-sm focus:border-brand-teal focus:ring-brand-teal">
-            <option value="">{{ __('Selecciona un rol') }}</option>
+    <fieldset>
+        <legend class="block text-sm font-medium text-gray-700">{{ __('Roles') }}</legend>
+        <div class="mt-1 space-y-2">
             @foreach ($roles as $roleName)
-                <option value="{{ $roleName }}" @selected($selectedRole === $roleName)>{{ $roleName }}</option>
+                <label class="flex min-h-[44px] items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" name="roles[]" value="{{ $roleName }}" x-model="roles"
+                           @checked(in_array($roleName, $selectedRoles, true))
+                           class="rounded border-gray-300 text-brand-teal shadow-sm focus:ring-brand-teal">
+                    {{ $roleName }}
+                </label>
             @endforeach
-        </select>
-        <x-input-error :messages="$errors->get('role')" class="mt-2" />
-    </div>
+        </div>
+        <p class="mt-1 text-xs text-gray-500">{{ __('Jefe de Zona y Administrador pueden combinarse. Edificio y Estación van solos.') }}</p>
+        <x-input-error :messages="$errors->get('roles')" class="mt-2" />
+        <x-input-error :messages="$errors->get('roles.*')" class="mt-2" />
+    </fieldset>
 
-    <div x-show="role === 'Estación'" x-cloak>
+    <div x-show="roles.includes('Estación')" x-cloak>
         <x-input-label for="estacion_id" :value="__('Estación')" />
         <select id="estacion_id" name="estacion_id"
                 class="mt-1 block w-full min-h-[44px] rounded-md border-gray-300 shadow-sm focus:border-brand-teal focus:ring-brand-teal">

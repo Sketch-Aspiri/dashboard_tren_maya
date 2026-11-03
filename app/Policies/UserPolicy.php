@@ -47,6 +47,11 @@ class UserPolicy
             return false;
         }
 
+        // Nunca borrar al último Administrador: nadie podría gestionar cuentas.
+        if ($target->hasRole(self::MANAGE_ROLE) && User::role(self::MANAGE_ROLE)->count() <= 1) {
+            return false;
+        }
+
         return $actor->hasRole(self::MANAGE_ROLE);
     }
 }

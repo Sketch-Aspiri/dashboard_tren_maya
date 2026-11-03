@@ -2,14 +2,12 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Estacion;
+use App\Http\Requests\Concerns\ValidatesAccountRoles;
 use App\Models\User;
-use Closure;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\Validator;
 
 /**
  * Validates + authorizes creating a user account from the "Gestión de
@@ -21,23 +19,16 @@ use Illuminate\Validation\Rules\Password;
  */
 class StoreUserRequest extends FormRequest
 {
-    private const ESTACION_ROLE = 'Estación';
+    use ValidatesAccountRoles;
 
     public function authorize(): bool
     {
         return $this->user()?->can('create', User::class) ?? false;
     }
 
-    /**
-     * A blank <select> submits an empty string, not the absence of the
-     * field — normalize it to null so the "nullable"/requiredIf rules
-     * below see a real null rather than failing type checks.
-     */
     protected function prepareForValidation(): void
     {
-        if ($this->input('estacion_id') === '') {
-            $this->merge(['estacion_id' => null]);
-        }
+        $this->normalizeAccountInput();
     }
 
     /**
@@ -48,37 +39,17 @@ class StoreUserRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'role' => ['required', 'string', Rule::in(RoleSeeder::ROLES)],
-            'estacion_id' => [
-                Rule::requiredIf(fn () => $this->input('role') === self::ESTACION_ROLE),
-                'nullable',
-                'integer',
-                'exists:estaciones,id',
-                $this->estacionMustBeOperativaWhenRoleIsEstacion(),
-            ],
             'password' => ['required', 'confirmed', Password::defaults()],
-        ];
+        ] + $this->roleRules();
     }
 
     /**
-     * An "Estación" account tied to the non-operational "Edificio Zonal
-     * Este" wouldn't make sense — only Administrador may act on that one
-     * (see RegistroDiarioPolicy). Only enforced when role === Estación;
-     * an Administrador/Jefe de Zona account's estacion_id is ignored by
-     * the service regardless of what's submitted here.
+     * @return array<int, \Closure(Validator): void>
      */
-    private function estacionMustBeOperativaWhenRoleIsEstacion(): Closure
+    public function after(): array
     {
-        return function (string $attribute, mixed $value, Closure $fail): void {
-            if ($this->input('role') !== self::ESTACION_ROLE || $value === null) {
-                return;
-            }
-
-            $isOperativa = Estacion::whereKey($value)->value('is_operativa');
-
-            if (! $isOperativa) {
-                $fail(__('La estación seleccionada no está operativa.'));
-            }
-        };
+        return [
+            fn (Validator $validator) => $this->validateExclusiveRoles($validator),
+        ];
     }
 }

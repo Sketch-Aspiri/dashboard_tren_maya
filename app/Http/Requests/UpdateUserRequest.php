@@ -2,13 +2,14 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Estacion;
-use Closure;
-use Database\Seeders\RoleSeeder;
+use App\Http\Requests\Concerns\ValidatesAccountRoles;
+use App\Models\User;
+use App\Support\Roles;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\Validator;
 
 /**
  * Validates + authorizes editing a user account from the "Gestión de
@@ -18,7 +19,7 @@ use Illuminate\Validation\Rules\Password;
  */
 class UpdateUserRequest extends FormRequest
 {
-    private const ESTACION_ROLE = 'Estación';
+    use ValidatesAccountRoles;
 
     public function authorize(): bool
     {
@@ -26,16 +27,11 @@ class UpdateUserRequest extends FormRequest
     }
 
     /**
-     * Blank <select>/password inputs submit an empty string, not the
-     * absence of the field — normalize to null so "nullable" rules treat
-     * "left blank" as "no change requested" rather than as an invalid
-     * short/weak password.
+     * Un campo de contraseña vacío significa "no cambiar".
      */
     protected function prepareForValidation(): void
     {
-        if ($this->input('estacion_id') === '') {
-            $this->merge(['estacion_id' => null]);
-        }
+        $this->normalizeAccountInput();
 
         if ($this->input('password') === '') {
             $this->merge(['password' => null, 'password_confirmation' => null]);
@@ -53,33 +49,39 @@ class UpdateUserRequest extends FormRequest
                 'required', 'string', 'email', 'max:255',
                 Rule::unique('users', 'email')->ignore($this->route('user')),
             ],
-            'role' => ['required', 'string', Rule::in(RoleSeeder::ROLES)],
-            'estacion_id' => [
-                Rule::requiredIf(fn () => $this->input('role') === self::ESTACION_ROLE),
-                'nullable',
-                'integer',
-                'exists:estaciones,id',
-                $this->estacionMustBeOperativaWhenRoleIsEstacion(),
-            ],
             'password' => ['nullable', 'confirmed', Password::defaults()],
+        ] + $this->roleRules();
+    }
+
+    /**
+     * @return array<int, \Closure(Validator): void>
+     */
+    public function after(): array
+    {
+        return [
+            fn (Validator $validator) => $this->validateExclusiveRoles($validator),
+            fn (Validator $validator) => $this->validateAdministradorIsKept($validator),
         ];
     }
 
     /**
-     * Same rule as StoreUserRequest — see that class for the rationale.
+     * Nadie puede quitarse a sí mismo el rol Administrador, y el último
+     * Administrador del sistema no puede perderlo (evita quedarse sin quien
+     * gestione cuentas).
      */
-    private function estacionMustBeOperativaWhenRoleIsEstacion(): Closure
+    private function validateAdministradorIsKept(Validator $validator): void
     {
-        return function (string $attribute, mixed $value, Closure $fail): void {
-            if ($this->input('role') !== self::ESTACION_ROLE || $value === null) {
-                return;
-            }
+        /** @var User $target */
+        $target = $this->route('user');
 
-            $isOperativa = Estacion::whereKey($value)->value('is_operativa');
+        if (! $target->hasRole(Roles::ADMINISTRADOR) || $this->hasRole(Roles::ADMINISTRADOR)) {
+            return;
+        }
 
-            if (! $isOperativa) {
-                $fail(__('La estación seleccionada no está operativa.'));
-            }
-        };
+        $esElUltimo = User::role(Roles::ADMINISTRADOR)->count() <= 1;
+
+        if ($target->is($this->user()) || $esElUltimo) {
+            $validator->errors()->add('roles', __('No se puede quitar el rol Administrador a esta cuenta.'));
+        }
     }
 }
