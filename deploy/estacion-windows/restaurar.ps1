@@ -29,8 +29,22 @@ Write-Host "Respaldo: $Respaldo"
 $confirmacion = Read-Host 'Escriba RESTAURAR para continuar'
 if ($confirmacion -cne 'RESTAURAR') { Write-Host 'Cancelado.'; exit 0 }
 
+# El respaldo debe coincidir con la huella SHA-256 que dejo backup.ps1.
+$archivoHuella = "$Respaldo.sha256"
+if (Test-Path -LiteralPath $archivoHuella) {
+    $esperada = (Get-Content -LiteralPath $archivoHuella -Raw).Trim().ToLowerInvariant()
+    $real = (Get-FileHash -LiteralPath $Respaldo -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($esperada -ne $real) { throw 'El respaldo NO coincide con su huella SHA-256: esta alterado o danado. Se cancela.' }
+    Escribir-Ok 'Huella del respaldo verificada'
+} else {
+    Escribir-Aviso 'Este respaldo no tiene huella .sha256: no se puede comprobar que sea autentico.'
+    if ((Read-Host 'Escriba CONTINUAR solo si confia en este archivo') -cne 'CONTINUAR') { Write-Host 'Cancelado.'; exit 0 }
+}
+
 $puerto = Leer-Env 'DB_PORT'
 $base = Leer-Env 'DB_DATABASE'
+$usuarioApp = Leer-Env 'DB_USERNAME'
+$claveApp = Leer-Env 'DB_PASSWORD'
 $claveRoot = (Get-Content -LiteralPath (Join-Path $Secretos 'mysql-root.txt') -Raw).Trim()
 $mysql = Join-Path $MysqlDir 'bin\mysql.exe'
 $archivoClaves = Join-Path $Secretos 'restaurar.cnf'
@@ -50,13 +64,16 @@ try {
     $salida = [IO.File]::Create($sqlTemporal)
     try { $gz.CopyTo($salida) } finally { $salida.Dispose(); $gz.Dispose(); $entrada.Dispose() }
 
-    Set-Content -LiteralPath $archivoClaves -Encoding ASCII -Value @('[client]', 'user=root', "password=$claveRoot", 'host=127.0.0.1', "port=$puerto")
-    Proteger-Archivo $archivoClaves
+    Escribir-Archivo-Protegido $archivoClaves @('[client]', 'user=root', "password=$claveRoot", 'host=127.0.0.1', "port=$puerto")
 
     Escribir-Paso 'Cargando la base de datos'
     "DROP DATABASE IF EXISTS ``$base``; CREATE DATABASE ``$base`` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" |
         & $mysql "--defaults-extra-file=$archivoClaves"
     if ($LASTEXITCODE -ne 0) { throw 'No se pudo recrear la base.' }
+
+    # root solo recrea la base vacia; el SQL del respaldo se carga con el usuario de la app
+    # (permisos unicamente sobre esta base), no con root.
+    Escribir-Archivo-Protegido $archivoClaves @('[client]', "user=$usuarioApp", "password=$claveApp", 'host=127.0.0.1', "port=$puerto")
 
     # La redireccion de entrada la hace cmd para no cargar el archivo completo en memoria.
     cmd.exe /c "`"$mysql`" --defaults-extra-file=`"$archivoClaves`" --default-character-set=utf8mb4 $base < `"$sqlTemporal`""

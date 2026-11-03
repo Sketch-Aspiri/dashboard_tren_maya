@@ -201,7 +201,7 @@ Nuevo-Servicio $ServicioDb $mysqld "--defaults-file=$myIni --console" $MysqlDir 
 & $Nssm set $ServicioDb AppStopMethodConsole 30000 | Out-Null
 
 # La cuenta de servicio necesita escribir en la carpeta de datos antes de arrancar.
-& icacls $Raiz /grant '*S-1-5-19:(OI)(CI)M' /T /C /Q | Out-Null
+Aplicar-Permisos-Servicio
 Start-Service $ServicioDb
 if (-not (Esperar-Puerto $PuertoMysql 90)) { throw 'MySQL no arranco. Revise C:\dashboard\logs\mysql-error.log' }
 
@@ -276,8 +276,7 @@ foreach ($puertoPhp in $puertosPhp) {
 Nuevo-Servicio 'DashboardNginx' $Nginx "-p $($Srv.Replace('\', '/'))/nginx" (Join-Path $Srv 'nginx') 'Servidor web del Dashboard'
 
 Copy-Item -Path (Join-Path $paquete '*.ps1') -Destination $Scripts -Force
-& icacls $Raiz /grant '*S-1-5-19:(OI)(CI)M' /T /C /Q | Out-Null
-& icacls $Scripts /inheritance:r /grant:r '*S-1-5-32-544:(OI)(CI)(F)' '*S-1-5-18:(OI)(CI)(F)' | Out-Null
+Aplicar-Permisos-Servicio
 
 Invoke-Artisan @('config:cache')
 Invoke-Artisan @('route:cache')
@@ -291,7 +290,7 @@ Escribir-Paso 'Firewall, energia y respaldo nocturno'
 Get-NetFirewallRule -DisplayName 'Dashboard Tren Maya (web)' -ErrorAction SilentlyContinue | Remove-NetFirewallRule
 # Solo equipos de la misma red local pueden abrir el sitio; nunca internet. MySQL no se abre.
 New-NetFirewallRule -DisplayName 'Dashboard Tren Maya (web)' -Direction Inbound -Protocol TCP -LocalPort $Puerto `
-    -RemoteAddress LocalSubnet -Action Allow -Profile Any | Out-Null
+    -RemoteAddress LocalSubnet -Action Allow -Profile Domain,Private | Out-Null
 Escribir-Ok "Firewall: puerto $Puerto solo para la red local"
 
 & powercfg /change standby-timeout-ac 0 | Out-Null

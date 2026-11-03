@@ -134,6 +134,48 @@ function Proteger-Archivo([string]$ruta) {
     & icacls $ruta /inheritance:r /grant:r '*S-1-5-32-544:(F)' '*S-1-5-18:(F)' | Out-Null
 }
 
+# Crea el archivo YA restringido y despues escribe en el: la clave nunca queda legible por otros.
+function Escribir-Archivo-Protegido([string]$ruta, [string[]]$lineas) {
+    New-Item -ItemType File -Force -Path $ruta | Out-Null
+    Proteger-Archivo $ruta
+    Set-Content -LiteralPath $ruta -Encoding ASCII -Value $lineas
+}
+
+# Permisos minimos de la cuenta de servicio (LocalService, S-1-5-19).
+# Lectura/ejecucion sobre todo C:\dashboard y escritura SOLO donde la app lo necesita
+# (storage, bootstrap\cache, logs y datos de MySQL). Asi un fallo en la app no puede
+# reescribir el codigo, los ejecutables de los servicios ni leer los secretos.
+# Idempotente: tambien limpia los permisos recursivos de versiones anteriores del instalador.
+function Aplicar-Permisos-Servicio {
+    $ls = '*S-1-5-19'
+    $admin = '*S-1-5-32-544'
+    $sistema = '*S-1-5-18'
+
+    & icacls $Raiz /reset /T /C /Q | Out-Null
+    & icacls $Raiz /inheritance:r /grant:r "${admin}:(OI)(CI)(F)" "${sistema}:(OI)(CI)(F)" "${ls}:(OI)(CI)(RX)" | Out-Null
+
+    # Secretos y scripts: solo Administradores y SYSTEM (los scripts se ejecutan como administrador).
+    foreach ($carpeta in @($Secretos, $Scripts)) {
+        if (Test-Path -LiteralPath $carpeta) {
+            & icacls $carpeta /inheritance:r /grant:r "${admin}:(OI)(CI)(F)" "${sistema}:(OI)(CI)(F)" | Out-Null
+        }
+    }
+
+    $escribibles = @(
+        (Join-Path $App 'storage'), (Join-Path $App 'bootstrap\cache'), $Logs, $Datos
+    )
+    foreach ($carpeta in $escribibles) {
+        New-Item -ItemType Directory -Force -Path $carpeta | Out-Null
+        & icacls $carpeta /grant "${ls}:(OI)(CI)M" /T /C /Q | Out-Null
+    }
+
+    $env = Join-Path $App '.env'
+    if (Test-Path -LiteralPath $env) {
+        Proteger-Archivo $env
+        & icacls $env /grant "${ls}:(R)" | Out-Null
+    }
+}
+
 # Primer .zip / .msi / .exe de la carpeta de componentes que coincida con el patron.
 function Buscar-Componente([string]$carpeta, [string]$patron) {
     # Orden descendente: si hay dos versiones, se usa la de numero mayor.

@@ -24,7 +24,11 @@ param(
     # y Windows PowerShell 5.1 no puede comprimirlas.
     [string]$Salida = 'C:\dashboard-build',
 
-    [switch]$SinZip
+    [switch]$SinZip,
+
+    # Anota en componentes.sha256.json el hash de los componentes que aun no estan fijados.
+    # Usar SOLO despues de revisar a mano que los archivos descargados son los legitimos.
+    [switch]$RegistrarHashes
 )
 
 $ErrorActionPreference = 'Stop'
@@ -73,6 +77,46 @@ function Ejecutar([string]$exe, [string[]]$argumentos, [string]$directorio) {
         & $exe @argumentos
         if ($LASTEXITCODE -ne 0) { throw "$exe $($argumentos -join ' ') fallo (codigo $LASTEXITCODE)" }
     } finally { Pop-Location }
+}
+
+# Integridad de los componentes ----------------------------------------------
+# Cada componente tiene su SHA-256 fijado en componentes.sha256.json (versionado en Git).
+# Un archivo con hash distinto, o sin hash fijado, detiene el armado del paquete.
+$archivoHashes = Join-Path $aqui 'componentes.sha256.json'
+$hashesFijados = @{}
+if (Test-Path -LiteralPath $archivoHashes) {
+    (Get-Content -LiteralPath $archivoHashes -Raw -Encoding UTF8 | ConvertFrom-Json).PSObject.Properties |
+        ForEach-Object { $hashesFijados[$_.Name] = $_.Value }
+}
+
+function Verificar-Componente([string]$archivo, [string]$firmante = '') {
+    $ruta = Join-Path $componentes $archivo
+    $hash = (Get-FileHash -LiteralPath $ruta -Algorithm SHA256).Hash.ToLowerInvariant()
+
+    if ($hashesFijados.ContainsKey($archivo)) {
+        if ($hashesFijados[$archivo] -ne $hash) {
+            throw "$archivo no coincide con el hash fijado (esperado $($hashesFijados[$archivo]), obtenido $hash). Posible archivo alterado o version nueva: revisela y use -RegistrarHashes si es legitima."
+        }
+    } elseif ($RegistrarHashes) {
+        $hashesFijados[$archivo] = $hash
+        Write-Host "    hash fijado para ${archivo}: $hash" -ForegroundColor Yellow
+    } else {
+        throw "$archivo no tiene hash fijado (SHA-256 $hash). Verifiquelo contra el sitio oficial y ejecute con -RegistrarHashes."
+    }
+
+    if ($firmante) {
+        $firma = Get-AuthenticodeSignature -LiteralPath $ruta
+        if ($firma.Status -ne 'Valid' -or $firma.SignerCertificate.Subject -notmatch $firmante) {
+            throw "$archivo no tiene una firma Authenticode valida de '$firmante' (estado: $($firma.Status))."
+        }
+    }
+    Write-Host "    verificado: $archivo"
+}
+
+function Guardar-Hashes {
+    $ordenado = [ordered]@{}
+    $hashesFijados.GetEnumerator() | Sort-Object Name | ForEach-Object { $ordenado[$_.Name] = $_.Value }
+    $ordenado | ConvertTo-Json | Set-Content -LiteralPath $archivoHashes -Encoding UTF8
 }
 
 # 1. Verificaciones ----------------------------------------------------------
@@ -128,6 +172,15 @@ if ($faltan) {
     $faltan | ForEach-Object { Write-Host "  - $_" }
     throw 'Faltan componentes. Cuando los copie, vuelva a ejecutar build-release.ps1.'
 }
+
+Paso 'Verificando integridad de los componentes'
+foreach ($zip in (Get-ChildItem -Path (Join-Path $componentes '*') -Include 'php-8.4-*.zip', 'nginx-*.zip', 'mysql-8.0*-winx64.zip', 'nssm-*.zip' -File)) {
+    Verificar-Componente $zip.Name
+}
+Verificar-Componente 'cacert.pem'
+Verificar-Componente 'vc_redist.x64.exe' 'Microsoft'
+Verificar-Componente "LibreOffice_${VersionLibreOffice}_Win_x86-64.msi" 'Document Foundation'
+if ($RegistrarHashes) { Guardar-Hashes }
 
 # 3. Codigo ------------------------------------------------------------------
 Paso 'Extrayendo el codigo de Git'

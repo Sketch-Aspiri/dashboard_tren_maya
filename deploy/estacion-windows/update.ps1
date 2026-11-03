@@ -55,7 +55,7 @@ try {
     foreach ($sub in @('storage\framework\cache\data', 'storage\framework\sessions', 'storage\framework\views', 'storage\logs', 'bootstrap\cache')) {
         New-Item -ItemType Directory -Force -Path (Join-Path $App $sub) | Out-Null
     }
-    & icacls $App /grant '*S-1-5-19:(OI)(CI)M' /T /C /Q | Out-Null
+    Aplicar-Permisos-Servicio
 
     Escribir-Paso 'Migraciones y cachés'
     Invoke-Artisan @('optimize:clear')

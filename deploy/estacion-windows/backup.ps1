@@ -45,8 +45,7 @@ try {
     $usuario = Leer-Env 'DB_USERNAME'
 
     # La clave va en un archivo protegido, no en la linea de comandos.
-    Set-Content -LiteralPath $archivoClaves -Encoding ASCII -Value @('[client]', "user=$usuario", "password=$clave", 'host=127.0.0.1', "port=$puerto")
-    Proteger-Archivo $archivoClaves
+    Escribir-Archivo-Protegido $archivoClaves @('[client]', "user=$usuario", "password=$clave", 'host=127.0.0.1', "port=$puerto")
 
     $mysqldump = Join-Path $MysqlDir 'bin\mysqldump.exe'
     & $mysqldump "--defaults-extra-file=$archivoClaves" --single-transaction --routines --default-character-set=utf8mb4 `
@@ -63,6 +62,10 @@ try {
     $gz = New-Object IO.Compression.GZipStream($salida, [IO.Compression.CompressionMode]::Compress)
     try { $entrada.CopyTo($gz) } finally { $gz.Dispose(); $salida.Dispose(); $entrada.Dispose() }
 
+    # Huella junto al respaldo: restaurar.ps1 la comprueba antes de cargar el SQL.
+    $huella = (Get-FileHash -LiteralPath $destinoGz -Algorithm SHA256).Hash.ToLowerInvariant()
+    Set-Content -LiteralPath "$destinoGz.sha256" -Value $huella -Encoding ASCII
+
     Registrar ('Base respaldada: {0} ({1:N1} MB)' -f $nombre, ((Get-Item -LiteralPath $destinoGz).Length / 1MB))
 
     $documentos = Join-Path $App 'storage\app\private'
@@ -72,7 +75,7 @@ try {
 
     Get-ChildItem -LiteralPath $Destino -Filter 'dashboard_*.sql.gz' |
         Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-$Dias) } |
-        ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force; Registrar "Respaldo antiguo eliminado: $($_.Name)" }
+        ForEach-Object { Remove-Item -LiteralPath $_.FullName, "$($_.FullName).sha256" -Force -ErrorAction SilentlyContinue; Registrar "Respaldo antiguo eliminado: $($_.Name)" }
 
     Registrar 'Respaldo terminado correctamente.'
 } catch {
