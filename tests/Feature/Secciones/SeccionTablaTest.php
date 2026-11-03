@@ -114,7 +114,7 @@ class SeccionTablaTest extends TestCase
         $seccion = $this->seccionPersonal();
         $this->actingAsTwoFactorVerified($this->usuarioConRol('Estación'));
 
-        $this->post(route('secciones.filas.store', $seccion), ['datos' => ['nombre' => 'X']])->assertForbidden();
+        $this->post(route('secciones.filas.store', $seccion), ['datos' => ['nombre' => 'X']])->assertNotFound();
     }
 
     public function test_search_ignores_accents_and_case(): void

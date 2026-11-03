@@ -2,8 +2,11 @@
 
 namespace App\Http\Requests\Secciones;
 
+use App\Support\AlcanceEstacion;
+use Illuminate\Auth\Access\Response;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 /**
@@ -27,9 +30,10 @@ class StoreSeccionArchivoRequest extends FormRequest
      */
     private const MIMES_EXTRA = ['txt', 'cfb', 'zip'];
 
-    public function authorize(): bool
+    public function authorize(): bool|Response
     {
-        return $this->user()?->can('gestionarDatos', $this->route('seccion')) ?? false;
+        // Gate::inspect: una sección no aprobada para la estación responde 404, no 403.
+        return $this->user() ? Gate::forUser($this->user())->inspect('subirDocumentos', $this->route('seccion')) : false;
     }
 
     /**
@@ -45,7 +49,9 @@ class StoreSeccionArchivoRequest extends FormRequest
                 'integer',
                 Rule::exists('seccion_filas', 'id')
                     ->where('seccion_id', $this->route('seccion')->id)
-                    ->whereNull('deleted_at'),
+                    ->whereNull('deleted_at')
+                    // Una estación solo adjunta a sus propias filas.
+                    ->when(AlcanceEstacion::estacionId($this->user()) !== null, fn ($regla) => $regla->where('estacion_id', AlcanceEstacion::estacionId($this->user()))),
             ],
         ];
     }

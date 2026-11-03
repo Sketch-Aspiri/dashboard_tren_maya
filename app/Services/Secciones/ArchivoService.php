@@ -6,6 +6,7 @@ use App\Models\Seccion;
 use App\Models\SeccionArchivo;
 use App\Models\SeccionFila;
 use App\Models\User;
+use App\Support\AlcanceEstacion;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -35,7 +36,12 @@ final class ArchivoService
                 : null,
         ]);
 
-        $registro->forceFill(['seccion_id' => $seccion->id, 'subido_por' => $usuario->id])->save();
+        // Estación del documento: la de su fila; si no, la de la cuenta Estación que lo sube; si no, ninguna.
+        $registro->forceFill([
+            'seccion_id' => $seccion->id,
+            'subido_por' => $usuario->id,
+            'estacion_id' => $fila?->estacion_id ?? AlcanceEstacion::estacionId($usuario),
+        ])->save();
 
         return $registro;
     }

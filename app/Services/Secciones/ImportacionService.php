@@ -12,6 +12,7 @@ use App\Models\SeccionFila;
 use App\Models\SeccionImportacion;
 use App\Models\SeccionTabla;
 use App\Models\User;
+use App\Support\ResolutorEstacion;
 use App\Support\Texto;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -173,7 +174,7 @@ final class ImportacionService
 
             $columnasCreadas = $this->crearColumnas($destino, $plan['columnas_nuevas']);
             $this->insertarFilas($destino, $importacion, $plan['nuevas'], $usuario, $ahora);
-            $this->actualizarFilas($plan['actualizadas'], $usuario, $ahora);
+            $this->actualizarFilas($plan['actualizadas'], $usuario, $ahora, $destino);
             $this->eliminarFilas($plan['eliminadas'], $ahora);
 
             $resumen = [
@@ -413,10 +414,15 @@ final class ImportacionService
      */
     public function insertarFilas(SeccionTabla $tabla, SeccionImportacion $importacion, array $nuevas, ?User $usuario, CarbonInterface $ahora): void
     {
+        // Si la tabla recuerda qué columna trae la estación, las filas nuevas se etiquetan solas.
+        $clave = $tabla->columna_estacion_clave;
+        $resolutor = $clave !== null ? new ResolutorEstacion : null;
+
         foreach (array_chunk($nuevas, self::CHUNK) as $bloque) {
             SeccionFila::query()->insert(array_map(fn (array $datos) => [
                 'seccion_id' => $tabla->seccion_id,
                 'seccion_tabla_id' => $tabla->id,
+                'estacion_id' => $resolutor?->resolver($datos[$clave] ?? null),
                 'datos' => self::json($datos),
                 'texto_busqueda' => SeccionFila::textoBusqueda($datos),
                 'seccion_importacion_id' => $importacion->id,
@@ -431,8 +437,11 @@ final class ImportacionService
     /**
      * @param  array<int, array{antes: array<string, mixed>, despues: array<string, mixed>}>  $actualizadas
      */
-    public function actualizarFilas(array $actualizadas, ?User $usuario, CarbonInterface $ahora): void
+    public function actualizarFilas(array $actualizadas, ?User $usuario, CarbonInterface $ahora, ?SeccionTabla $tabla = null): void
     {
+        $clave = $tabla?->columna_estacion_clave;
+        $resolutor = $clave !== null ? new ResolutorEstacion : null;
+
         foreach ($actualizadas as $id => $cambio) {
             SeccionFila::query()->whereKey($id)->toBase()->update([
                 'datos' => self::json($cambio['despues']),
@@ -440,6 +449,13 @@ final class ImportacionService
                 'actualizado_por' => $usuario?->id,
                 'updated_at' => $ahora,
             ]);
+
+            // Solo rellena filas sin etiqueta: una etiqueta puesta a mano no se pisa.
+            $estacionId = $resolutor?->resolver($cambio['despues'][$clave] ?? null);
+
+            if ($estacionId !== null) {
+                SeccionFila::query()->whereKey($id)->whereNull('estacion_id')->toBase()->update(['estacion_id' => $estacionId]);
+            }
         }
     }
 

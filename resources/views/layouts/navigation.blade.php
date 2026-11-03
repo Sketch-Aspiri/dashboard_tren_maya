@@ -85,13 +85,11 @@
          overflow-hidden aquí: los desplegables salen hacia abajo. --}}
     <div class="hidden bg-brand-green xl:block">
         <div class="mx-auto flex max-w-screen-2xl items-center gap-1 px-4 sm:px-6 lg:px-8">
-            @unlessrole('Estación')
                 <a href="{{ route('dashboard') }}"
                    @if (request()->routeIs('dashboard')) aria-current="page" @endif
                    class="{{ request()->routeIs('dashboard') ? 'border-brand-mint bg-white/10 font-semibold text-white' : 'border-transparent font-medium text-white/85 hover:bg-white/10 hover:text-white' }} inline-flex h-12 shrink-0 items-center whitespace-nowrap border-b-4 px-4 text-sm transition duration-150 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white">
-                    {{ __('Dashboard') }}
+                    {{ auth()->user()->hasRole('Estación') ? __('Inicio') : __('Dashboard') }}
                 </a>
-            @endunlessrole
             {{-- Grupos ($gruposNav): módulos fijos (Personal, Asistencia) y
                  secciones administrables desde "Administrar menú", ya
                  filtrados por rol (App\Support\MenuNavegacion). --}}
@@ -130,11 +128,9 @@
             <x-buscador-menu id="buscar-nav-movil" :items="$navegacionBuscable" />
         </div>
         <div class="space-y-1 pb-3 pt-3">
-            @unlessrole('Estación')
                 <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                    {{ __('Dashboard') }}
+                    {{ auth()->user()->hasRole('Estación') ? __('Inicio') : __('Dashboard') }}
                 </x-responsive-nav-link>
-            @endunlessrole
             {{-- Mismos grupos que la barra de escritorio, como acordeón Alpine
                  con su propio x-data ("abierto"), distinto del "open" de la
                  hamburguesa. El grupo activo arranca abierto. --}}

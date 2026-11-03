@@ -41,6 +41,9 @@
                                 </div>
                             </th>
                         @endforeach
+                        @if ($puedeEtiquetar)
+                            <th scope="col" class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase text-brand-green">{{ __('Estación') }}</th>
+                        @endif
                         <th scope="col" class="px-4 py-3"><span class="sr-only">{{ __('Acciones') }}</span></th>
                     </tr>
                 </thead>
@@ -59,13 +62,18 @@
                                     </td>
                                 @endif
                             @endforeach
+                            @if ($puedeEtiquetar)
+                                <td class="whitespace-nowrap px-4 py-3 text-xs {{ $fila->estacion ? 'text-brand-green' : 'text-gray-400' }}">
+                                    {{ $fila->estacion?->nombre ?? __('Sin estación') }}
+                                </td>
+                            @endif
                             <td class="whitespace-nowrap px-4 py-2 text-right">
                                 @include('secciones.partials.acciones-fila')
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ $columnas->count() + 1 }}" class="px-4 py-8 text-center text-sm text-gray-500">
+                            <td colspan="{{ $columnas->count() + ($puedeEtiquetar ? 2 : 1) }}" class="px-4 py-8 text-center text-sm text-gray-500">
                                 {{ $filtros['q'] ? __('Ningún registro coincide con la búsqueda.') : __('La tabla está vacía. Agrega un registro o arrastra un documento.') }}
                             </td>
                         </tr>
@@ -112,6 +120,12 @@
                                 </dd>
                             </div>
                         @endforeach
+                        @if ($puedeEtiquetar)
+                            <div class="flex gap-2">
+                                <dt class="w-1/3 shrink-0 text-xs text-gray-500">{{ __('Estación') }}</dt>
+                                <dd class="min-w-0 text-gray-800">{{ $fila->estacion?->nombre ?? __('Sin estación') }}</dd>
+                            </div>
+                        @endif
                     </dl>
                     <div class="mt-2 flex flex-wrap justify-end gap-1">
                         @include('secciones.partials.acciones-fila')

@@ -114,7 +114,7 @@ class DashboardTest extends TestCase
      * sends them to their own capture screen instead of a dead-end 403, and
      * never renders any dashboard data for them.
      */
-    public function test_estacion_user_is_sent_to_the_capture_screen_and_never_sees_the_dashboard(): void
+    public function test_estacion_user_gets_its_own_home_and_never_sees_the_zone_dashboard(): void
     {
         $estacion = Estacion::factory()->create(['is_operativa' => true]);
         $user = User::factory()->create(['estacion_id' => $estacion->id]);
@@ -123,7 +123,7 @@ class DashboardTest extends TestCase
 
         $response = $this->get(route('dashboard'));
 
-        $response->assertRedirect(route('asistencia.captura.index'));
+        $response->assertOk()->assertSee('Secciones para tu estación')->assertDontSee('Indicadores clave');
     }
 
     public function test_the_gate_still_denies_estacion_accounts(): void

@@ -3,7 +3,12 @@
         📎 {{ $fila->archivos->count() }}
     </span>
 @endif
-@if ($puedeGestionar)
+@php
+    // Una estación solo edita sus filas y nunca borra; la zona hace ambas cosas.
+    $puedeEditarFila = auth()->user()->can('actualizarFila', [$seccion, $fila]);
+    $puedeBorrarFila = auth()->user()->can('eliminarFila', [$seccion, $fila]);
+@endphp
+@if ($puedeEditarFila)
     @php
         $valoresFormulario = $columnas->mapWithKeys(function ($columna) use ($fila) {
             $valor = $fila->datos[$columna->clave] ?? null;
@@ -12,9 +17,11 @@
         });
     @endphp
     <button type="button" x-data
-            @click="$dispatch('fila-editar', { id: {{ $fila->id }}, valores: @js($valoresFormulario) })"
+            @click="$dispatch('fila-editar', { id: {{ $fila->id }}, valores: @js($valoresFormulario), estacion: @js($fila->estacion_id) })"
             class="min-h-[36px] rounded-md px-2 text-sm font-medium text-brand-teal hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">
         {{ __('Editar') }}
     </button>
+@endif
+@if ($puedeBorrarFila)
     <x-confirmar-eliminar :action="route('secciones.filas.destroy', [$seccion, $fila])" />
 @endif

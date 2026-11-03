@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\AlcanceEstacion;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -98,6 +100,25 @@ class SeccionArchivo extends Model
     }
 
     /**
+     * @return BelongsTo<Estacion, $this>
+     */
+    public function estacion(): BelongsTo
+    {
+        return $this->belongsTo(Estacion::class);
+    }
+
+    /**
+     * Solo los documentos que el usuario puede ver: la zona ve todos; una
+     * cuenta Estación, solo los etiquetados con su estación.
+     *
+     * @param  Builder<SeccionArchivo>  $consulta
+     */
+    public function scopeVisiblePara(Builder $consulta, User $usuario): void
+    {
+        AlcanceEstacion::aplicar($consulta, $usuario, $this->qualifyColumn('estacion_id'));
+    }
+
+    /**
      * @return BelongsTo<User, $this>
      */
     public function autor(): BelongsTo
@@ -137,7 +158,7 @@ class SeccionArchivo extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['seccion_id', 'seccion_fila_id', 'nombre_original', 'extension', 'tamano'])
+            ->logOnly(['seccion_id', 'seccion_fila_id', 'estacion_id', 'nombre_original', 'extension', 'tamano'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->useLogName('seccion');

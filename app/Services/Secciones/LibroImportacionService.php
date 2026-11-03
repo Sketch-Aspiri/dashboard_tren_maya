@@ -278,7 +278,7 @@ final class LibroImportacionService
         $plan = $this->planificador->planear($destino, $importacion->tablas, $hoja);
         $columnas = $this->importaciones->crearColumnas($destino, $plan['columnas_nuevas']);
         $this->importaciones->insertarFilas($destino, $importacion, $plan['nuevas'], $usuario, $ahora);
-        $this->importaciones->actualizarFilas($plan['actualizadas'], $usuario, $ahora);
+        $this->importaciones->actualizarFilas($plan['actualizadas'], $usuario, $ahora, $destino);
         $this->importaciones->eliminarFilas($plan['eliminadas'], $ahora);
 
         $linea = [

@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Services\Secciones\FotoService;
+use App\Support\AlcanceEstacion;
 use App\Support\Texto;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -93,10 +95,29 @@ class SeccionFila extends Model
         return $this->hasMany(SeccionArchivo::class);
     }
 
+    /**
+     * @return BelongsTo<Estacion, $this>
+     */
+    public function estacion(): BelongsTo
+    {
+        return $this->belongsTo(Estacion::class);
+    }
+
+    /**
+     * Solo las filas que el usuario puede ver: la zona ve todas; una cuenta
+     * Estación, solo las etiquetadas con su estación.
+     *
+     * @param  Builder<SeccionFila>  $consulta
+     */
+    public function scopeVisiblePara(Builder $consulta, User $usuario): void
+    {
+        AlcanceEstacion::aplicar($consulta, $usuario, $this->qualifyColumn('estacion_id'));
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['seccion_id', 'seccion_tabla_id', 'datos'])
+            ->logOnly(['seccion_id', 'seccion_tabla_id', 'estacion_id', 'datos'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->useLogName('seccion');

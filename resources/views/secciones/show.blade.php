@@ -1,6 +1,10 @@
 @php
     $puedeGestionar = auth()->user()->can('gestionarDatos', $seccion);
+    // Una estación no gestiona datos, pero sí captura filas propias y sube documentos.
+    $puedeCrearFila = auth()->user()->can('crearFila', $seccion);
+    $puedeSubir = auth()->user()->can('subirDocumentos', $seccion);
     $puedeEditarSeccion = auth()->user()->can('update', $seccion);
+    $puedeEtiquetar = auth()->user()->can('etiquetarEstacion', $seccion);
     // "Solo documentos": sin tabla, columnas, exportación ni cargas.
     $soloDocumentos = $seccion->solo_documentos;
     $columnas = $tablaActiva->columnas;
@@ -43,14 +47,23 @@
 
             @include('secciones.partials.subsecciones')
 
-            @if ($puedeGestionar)
+            @if ($puedeSubir)
                 <x-zona-arrastre id="zona-seccion" :url="route('secciones.archivos.store', array_merge([$seccion], $parametroTabla))"
                                  :compacta="$soloDocumentos ? $documentos->isNotEmpty() : $filas->total() > 0"
-                                 :titulo="$soloDocumentos ? __('Arrastra aquí tus documentos') : __('Arrastra aquí Excel, Word, PDF o imágenes')"
-                                 :ayuda="$soloDocumentos
+                                 :titulo="$soloDocumentos || ! $puedeGestionar ? __('Arrastra aquí tus documentos') : __('Arrastra aquí Excel, Word, PDF o imágenes')"
+                                 :ayuda="$soloDocumentos || ! $puedeGestionar
                                      ? __('Esta sección solo guarda documentos: los archivos se guardan tal cual, sin leer sus tablas.')
                                      : __('Si el archivo trae una tabla, el sistema la detecta y te muestra una vista previa antes de crear o actualizar la tabla de esta sección. Todo archivo queda guardado en Documentos.')" />
             @endif
+
+            @can('aprobarEstaciones', $seccion)
+                <div class="flex justify-end">
+                    <button type="button" x-data @click="$dispatch('compartir-estaciones')"
+                            class="inline-flex min-h-[44px] items-center rounded-md border border-brand-green/20 bg-white px-4 text-sm font-medium text-brand-green hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">
+                        {{ __('Estaciones que la ven') }}: {{ $seccion->compartida_todas ? __('todas') : $seccion->estacionesAprobadas()->count() }}
+                    </button>
+                </div>
+            @endcan
 
             {{-- Barra: búsqueda + acciones --}}
             <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -63,12 +76,23 @@
                     <input id="buscar-seccion" type="search" name="q" value="{{ $filtros['q'] }}"
                            placeholder="{{ $soloDocumentos ? __('Buscar en los documentos…') : __('Buscar en la tabla y en los documentos…') }}"
                            class="min-h-[44px] w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal">
+                    @if ($puedeEtiquetar && ! $soloDocumentos)
+                        <label for="filtro-estacion" class="sr-only">{{ __('Filtrar por estación') }}</label>
+                        <select id="filtro-estacion" name="estacion" onchange="this.form.submit()"
+                                class="min-h-[44px] rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal">
+                            <option value="">{{ __('Todas las estaciones') }}</option>
+                            <option value="sin" @selected(($filtros['estacion'] ?? null) === 'sin')>{{ __('Sin estación') }}</option>
+                            @foreach ($estaciones as $estacion)
+                                <option value="{{ $estacion->id }}" @selected((string) ($filtros['estacion'] ?? '') === (string) $estacion->id)>{{ $estacion->nombre }}</option>
+                            @endforeach
+                        </select>
+                    @endif
                     <button type="submit" class="min-h-[44px] rounded-md bg-brand-green px-4 text-sm font-semibold text-white hover:bg-brand-green-dark focus:outline-none focus:ring-2 focus:ring-brand-teal focus:ring-offset-2">{{ __('Buscar') }}</button>
                 </form>
 
                 @unless ($soloDocumentos)
                 <div class="flex flex-wrap gap-2">
-                    @if ($puedeGestionar && $columnas->isNotEmpty())
+                    @if ($puedeCrearFila && $columnas->isNotEmpty())
                         <button type="button" x-data @click="$dispatch('fila-nueva')"
                                 class="inline-flex min-h-[44px] items-center gap-2 rounded-md bg-brand-green px-4 text-xs font-semibold uppercase tracking-widest text-white hover:bg-brand-green-dark focus:outline-none focus:ring-2 focus:ring-brand-teal focus:ring-offset-2">
                             + {{ __('Agregar registro') }}
@@ -79,6 +103,12 @@
                            class="inline-flex min-h-[44px] items-center rounded-md border border-brand-green/20 bg-white px-4 text-sm font-medium text-brand-green hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">
                             {{ __('Columnas') }}
                         </a>
+                    @endif
+                    @if ($puedeEtiquetar && $columnas->isNotEmpty())
+                        <button type="button" x-data @click="$dispatch('etiquetar-estacion')"
+                                class="inline-flex min-h-[44px] items-center rounded-md border border-brand-green/20 bg-white px-4 text-sm font-medium text-brand-green hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">
+                            {{ __('Asignar estación por columna') }}
+                        </button>
                     @endif
                     @if ($columnas->isNotEmpty())
                         <a href="{{ route('secciones.exportar', array_merge([$seccion, 'q' => $filtros['q']], $parametroTabla)) }}"
@@ -93,17 +123,20 @@
             {{-- Pestañas --}}
             <div class="border-b border-brand-green/15" role="tablist" aria-label="{{ __('Contenido de la sección') }}">
                 <nav class="-mb-px flex gap-4 overflow-x-auto">
-                    @foreach ($soloDocumentos
+                    @foreach ($soloDocumentos && ! $puedeGestionar ? ['documentos' => __('Documentos').' ('.$documentos->count().')'] : ($soloDocumentos
                         ? [
                             'documentos' => __('Documentos').' ('.$documentos->count().')',
                             'enlaces' => __('Enlaces').' ('.$enlaces->count().')',
                         ]
-                        : [
+                        : ($puedeGestionar ? [
                             'tabla' => __('Tabla').' ('.$filas->total().')',
                             'documentos' => __('Documentos').' ('.$documentos->count().')',
                             'enlaces' => __('Enlaces').' ('.$enlaces->count().')',
                             'cargas' => __('Cargas').' ('.$cargas->count().')',
-                        ] as $clave => $etiqueta)
+                        ] : [
+                            'tabla' => __('Tabla').' ('.$filas->total().')',
+                            'documentos' => __('Documentos').' ('.$documentos->count().')',
+                        ])) as $clave => $etiqueta)
                         <button type="button" role="tab" @click="tab = @js($clave)" :aria-selected="(tab === @js($clave)).toString()"
                                 :class="tab === @js($clave) ? 'border-brand-teal text-brand-green font-semibold' : 'border-transparent text-gray-600 hover:text-brand-green'"
                                 class="min-h-[44px] whitespace-nowrap border-b-4 px-1 text-sm">
@@ -163,8 +196,16 @@
             @endunless
         </div>
 
-        @if ($puedeGestionar && $columnas->isNotEmpty() && ! $soloDocumentos)
+        @if ($puedeCrearFila && $columnas->isNotEmpty() && ! $soloDocumentos)
             @include('secciones.partials.fila-modal')
+        @endif
+
+        @can('aprobarEstaciones', $seccion)
+            @include('secciones.partials.compartir-estaciones-modal')
+        @endcan
+
+        @if ($puedeEtiquetar && $columnas->isNotEmpty() && ! $soloDocumentos)
+            @include('secciones.partials.etiquetar-estacion-modal')
         @endif
     </div>
 </x-app-layout>

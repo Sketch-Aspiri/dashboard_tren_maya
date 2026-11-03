@@ -161,7 +161,7 @@ class VistaPreviaDocumentosTest extends TestCase
         $this->vistaPrevia(Seccion::factory()->create(), $archivo)->assertNotFound();
 
         $this->actingAsTwoFactorVerified($this->usuarioConRol('Estación'));
-        $this->vistaPrevia($seccion, $archivo)->assertForbidden();
+        $this->vistaPrevia($seccion, $archivo)->assertNotFound();
     }
 
     public function test_guest_cannot_preview(): void

@@ -31,7 +31,7 @@ class SeccionArchivoController extends Controller
 
     public function store(StoreSeccionArchivoRequest $request, Seccion $seccion): JsonResponse|RedirectResponse
     {
-        $this->authorize('gestionarDatos', $seccion);
+        $this->authorize('subirDocumentos', $seccion);
 
         $fila = $request->validated('seccion_fila_id') ? SeccionFila::query()->find($request->validated('seccion_fila_id')) : null;
         // Tabla en pantalla al soltar el archivo: recibirá la carga de una sola tabla.
@@ -40,8 +40,8 @@ class SeccionArchivoController extends Controller
 
         foreach ($request->file('archivos') as $subido) {
             $archivo = $this->archivos->guardar($seccion, $subido, $request->user(), $fila);
-            // Un adjunto de fila o de una sección "solo documentos" nunca dispara importación: solo se guarda.
-            $importacion = ($fila || $seccion->solo_documentos) ? null : $this->importaciones->desdeArchivo($seccion, $archivo, $request->user(), $destino);
+            // Un adjunto de fila, una sección "solo documentos" o una cuenta sin gestión de datos (Estación) nunca dispara importación: solo se guarda.
+            $importacion = ($fila || $seccion->solo_documentos || ! $request->user()->can('gestionarDatos', $seccion)) ? null : $this->importaciones->desdeArchivo($seccion, $archivo, $request->user(), $destino);
 
             $resultados[] = [
                 'id' => $archivo->id,
@@ -70,7 +70,7 @@ class SeccionArchivoController extends Controller
 
     public function show(Request $request, Seccion $seccion, SeccionArchivo $archivo): StreamedResponse
     {
-        $this->authorize('view', $seccion);
+        $this->authorize('verArchivo', [$seccion, $archivo]);
 
         $enLinea = $request->boolean('ver') && $archivo->mimeEnLinea() !== null;
 
@@ -94,7 +94,7 @@ class SeccionArchivoController extends Controller
      */
     public function vistaPrevia(VistaPreviaArchivoRequest $request, Seccion $seccion, SeccionArchivo $archivo): JsonResponse
     {
-        $this->authorize('view', $seccion);
+        $this->authorize('verArchivo', [$seccion, $archivo]);
 
         $hoja = (int) $request->validated('hoja', 0);
         $datos = $this->previsualizador->previsualizar($archivo, $hoja);

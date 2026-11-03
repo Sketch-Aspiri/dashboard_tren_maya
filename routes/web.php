@@ -17,6 +17,8 @@ use App\Http\Controllers\Secciones\SeccionArchivoNubeController;
 use App\Http\Controllers\Secciones\SeccionColumnaController;
 use App\Http\Controllers\Secciones\SeccionController;
 use App\Http\Controllers\Secciones\SeccionEnlaceController;
+use App\Http\Controllers\Secciones\SeccionEstacionController;
+use App\Http\Controllers\Secciones\SeccionEtiquetadoController;
 use App\Http\Controllers\Secciones\SeccionExportacionController;
 use App\Http\Controllers\Secciones\SeccionFilaController;
 use App\Http\Controllers\Secciones\SeccionFotoController;
@@ -147,6 +149,7 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
 
             Route::middleware('throttle:secciones-write')->group(function () {
                 Route::put('/{seccion}', [SeccionController::class, 'update'])->name('update');
+                Route::put('/{seccion}/estaciones', [SeccionEstacionController::class, 'update'])->name('estaciones.update');
                 Route::post('/{seccion}/mover', [SeccionController::class, 'mover'])->name('mover');
                 Route::delete('/{seccion}', [SeccionController::class, 'destroy'])->name('destroy');
 
@@ -156,6 +159,11 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
                 Route::delete('/{seccion}/columnas/{columna}', [SeccionColumnaController::class, 'destroy'])->name('columnas.destroy');
 
                 Route::delete('/{seccion}/tablas/{tabla}', [SeccionTablaController::class, 'destroy'])->name('tablas.destroy');
+
+                // Estación de filas (en bloque por columna) y de documentos; solo roles de zona.
+                Route::post('/{seccion}/tablas/{tabla}/estaciones/previsualizar', [SeccionEtiquetadoController::class, 'previsualizar'])->name('tablas.estaciones.previsualizar');
+                Route::post('/{seccion}/tablas/{tabla}/estaciones', [SeccionEtiquetadoController::class, 'aplicar'])->name('tablas.estaciones.aplicar');
+                Route::put('/{seccion}/archivos/{archivo}/estacion', [SeccionEtiquetadoController::class, 'archivo'])->name('archivos.estacion');
 
                 Route::post('/{seccion}/filas', [SeccionFilaController::class, 'store'])->name('filas.store');
                 Route::put('/{seccion}/filas/{fila}', [SeccionFilaController::class, 'update'])->name('filas.update');

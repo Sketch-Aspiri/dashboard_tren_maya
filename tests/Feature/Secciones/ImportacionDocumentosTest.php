@@ -396,7 +396,7 @@ class ImportacionDocumentosTest extends TestCase
         $this->assertTrue(Activity::query()->where('event', 'documento_descargado')->exists());
 
         $this->actingAsTwoFactorVerified($this->usuarioConRol('Estación'));
-        $this->get(route('secciones.archivos.show', [$seccion, $archivo]))->assertForbidden();
+        $this->get(route('secciones.archivos.show', [$seccion, $archivo]))->assertNotFound();
     }
 
     public function test_deleting_a_document_is_soft_and_logged(): void

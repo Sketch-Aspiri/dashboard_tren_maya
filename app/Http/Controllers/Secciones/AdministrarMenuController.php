@@ -23,7 +23,7 @@ class AdministrarMenuController extends Controller
         $grupos = MenuGrupo::query()
             ->orderBy('orden')
             ->orderBy('id')
-            ->with(['secciones' => fn ($consulta) => $consulta->withCount(['filas', 'archivos'])])
+            ->with(['secciones' => fn ($consulta) => $consulta->withCount(['filas', 'archivos', 'estacionesAprobadas'])])
             ->get();
 
         return view('secciones.administrar', [

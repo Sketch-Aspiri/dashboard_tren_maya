@@ -6,6 +6,7 @@ use Database\Factories\SeccionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
@@ -51,7 +52,20 @@ class Seccion extends Model
             'orden' => 'integer',
             'is_visible' => 'boolean',
             'solo_documentos' => 'boolean',
+            'compartida_todas' => 'boolean',
         ];
+    }
+
+    /**
+     * Estaciones a las que el administrador aprobó esta sección (y, por
+     * herencia, sus descendientes). "compartida_todas" no está en $fillable:
+     * solo lo asigna AprobacionSeccionesService.
+     *
+     * @return BelongsToMany<Estacion, $this>
+     */
+    public function estacionesAprobadas(): BelongsToMany
+    {
+        return $this->belongsToMany(Estacion::class, 'seccion_estacion')->withPivot('aprobado_por')->withTimestamps();
     }
 
     public function getRouteKeyName(): string
@@ -228,7 +242,7 @@ class Seccion extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['menu_grupo_id', 'parent_id', 'nombre', 'slug', 'descripcion', 'orden', 'is_visible', 'solo_documentos'])
+            ->logOnly(['menu_grupo_id', 'parent_id', 'nombre', 'slug', 'descripcion', 'orden', 'is_visible', 'solo_documentos', 'compartida_todas'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->useLogName('seccion');

@@ -5,6 +5,7 @@ namespace App\Services\Secciones;
 use App\Models\SeccionColumna;
 use App\Models\SeccionFila;
 use App\Models\SeccionTabla;
+use App\Models\User;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -27,9 +28,9 @@ final class ExportacionService
     /**
      * @param  array{q: ?string, sort: ?string, direction: string}  $filtros
      */
-    public function descargar(SeccionTabla $tabla, array $filtros): StreamedResponse
+    public function descargar(SeccionTabla $tabla, array $filtros, ?User $usuario = null): StreamedResponse
     {
-        $libro = $this->libro($tabla, $filtros);
+        $libro = $this->libro($tabla, $filtros, $usuario);
         // Con varias tablas el nombre del archivo dice cuál se exportó.
         $partes = $tabla->seccion->tablas()->count() > 1 ? [$tabla->seccion->nombre, $tabla->nombre] : [$tabla->seccion->nombre];
         $nombre = Str::slug(implode(' ', $partes)).'-'.now()->format('Y-m-d').'.xlsx';
@@ -43,7 +44,7 @@ final class ExportacionService
     /**
      * @param  array{q: ?string, sort: ?string, direction: string}  $filtros
      */
-    public function libro(SeccionTabla $tabla, array $filtros): Spreadsheet
+    public function libro(SeccionTabla $tabla, array $filtros, ?User $usuario = null): Spreadsheet
     {
         $libro = new Spreadsheet;
         $hoja = $libro->getActiveSheet();
@@ -60,7 +61,7 @@ final class ExportacionService
         $hoja->getStyle([1, 1, max(1, $columnas->count()), 1])->getFont()->setBold(true);
         $renglon = 2;
 
-        $this->consulta->consultaFilas($tabla, $filtros)
+        $this->consulta->consultaFilas($tabla, $filtros, $usuario)
             ->chunk(self::CHUNK, function ($filas) use ($hoja, $columnas, &$renglon): void {
                 /** @var SeccionFila $fila */
                 foreach ($filas as $fila) {

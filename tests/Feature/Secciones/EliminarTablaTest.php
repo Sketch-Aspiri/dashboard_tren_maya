@@ -207,8 +207,8 @@ class EliminarTablaTest extends TestCase
         [$seccion] = $this->seccionConDosTablas();
         $this->actingAsTwoFactorVerified($this->usuarioConRol('Estación'));
 
-        // Estación no tiene view en SeccionPolicy; el control nunca se renderiza.
-        $this->get(route('secciones.show', $seccion))->assertForbidden();
+        // Una estación no ve secciones que no le aprobaron: 404, no 403 (no se revela que existe).
+        $this->get(route('secciones.show', $seccion))->assertNotFound();
     }
 
     public function test_guest_is_redirected_from_section_show(): void

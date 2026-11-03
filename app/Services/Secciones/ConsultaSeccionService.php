@@ -8,6 +8,8 @@ use App\Models\SeccionArchivo;
 use App\Models\SeccionColumna;
 use App\Models\SeccionFila;
 use App\Models\SeccionTabla;
+use App\Models\User;
+use App\Support\AlcanceEstacion;
 use App\Support\Texto;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -22,13 +24,25 @@ final class ConsultaSeccionService
     private const MAX_DOCUMENTOS = 200;
 
     /**
-     * @param  array{q: ?string, sort: ?string, direction: string, per_page: int}  $filtros
+     * $usuario restringe a lo que ese usuario puede ver (una cuenta Estación
+     * solo ve sus filas y documentos); null = sin restricción (proceso interno).
+     *
+     * @param  array{q: ?string, sort: ?string, direction: string, per_page: int, estacion?: ?string}  $filtros
      * @return LengthAwarePaginator<int, SeccionFila>
      */
-    public function filas(SeccionTabla $tabla, array $filtros): LengthAwarePaginator
+    public function filas(SeccionTabla $tabla, array $filtros, ?User $usuario = null): LengthAwarePaginator
     {
-        return $this->consultaFilas($tabla, $filtros)
-            ->with('archivos:id,seccion_fila_id,nombre_original,extension')
+        return $this->consultaFilas($tabla, $filtros, $usuario)
+            ->with([
+                'archivos' => function ($q) use ($usuario): void {
+                    $q->select('id', 'seccion_fila_id', 'nombre_original', 'extension', 'estacion_id');
+
+                    if ($usuario !== null) {
+                        $q->visiblePara($usuario);
+                    }
+                },
+                'estacion:id,nombre',
+            ])
             ->paginate($filtros['per_page'])
             ->withQueryString();
     }
@@ -37,12 +51,23 @@ final class ConsultaSeccionService
      * Consulta (sin paginar) con búsqueda y orden; la exportación la recorre
      * en bloques.
      *
-     * @param  array{q: ?string, sort: ?string, direction: string}  $filtros
+     * @param  array{q: ?string, sort: ?string, direction: string, estacion?: ?string}  $filtros
      * @return Builder<SeccionFila>
      */
-    public function consultaFilas(SeccionTabla $tabla, array $filtros): Builder
+    public function consultaFilas(SeccionTabla $tabla, array $filtros, ?User $usuario = null): Builder
     {
         $consulta = $tabla->filas()->getQuery();
+
+        if ($usuario !== null) {
+            $consulta->visiblePara($usuario);
+        }
+
+        // El filtro por estación solo existe para quien lo ve todo.
+        if (($usuario === null || AlcanceEstacion::esTotal($usuario)) && ($filtros['estacion'] ?? null) !== null) {
+            $filtros['estacion'] === 'sin'
+                ? $consulta->whereNull('estacion_id')
+                : $consulta->where('estacion_id', (int) $filtros['estacion']);
+        }
         $termino = Texto::normalizar($filtros['q'] ?? null);
 
         if ($termino !== '') {
@@ -66,9 +91,14 @@ final class ConsultaSeccionService
      *
      * @return Collection<int, SeccionArchivo>
      */
-    public function documentos(Seccion $seccion, ?string $busqueda, string $orden = 'recientes', ?string $tipo = null): Collection
+    public function documentos(Seccion $seccion, ?string $busqueda, string $orden = 'recientes', ?string $tipo = null, ?User $usuario = null): Collection
     {
-        $consulta = $seccion->archivos()->with(['autor:id,name', 'origen:id,proveedor,sincronizado_en,sincronizacion_error'])->latest()->latest('id');
+        $consulta = $seccion->archivos()->with(['autor:id,name', 'estacion:id,nombre', 'origen:id,proveedor,sincronizado_en,sincronizacion_error'])->latest()->latest('id');
+
+        if ($usuario !== null) {
+            $consulta->visiblePara($usuario);
+        }
+
         $busqueda = trim((string) $busqueda);
 
         if ($tipo !== null && $tipo !== '') {
@@ -93,9 +123,15 @@ final class ConsultaSeccionService
      *
      * @return list<string>
      */
-    public function tiposDeDocumento(Seccion $seccion): array
+    public function tiposDeDocumento(Seccion $seccion, ?User $usuario = null): array
     {
-        return $seccion->archivos()->distinct()->orderBy('extension')->pluck('extension')->all();
+        $consulta = $seccion->archivos();
+
+        if ($usuario !== null) {
+            $consulta->visiblePara($usuario);
+        }
+
+        return $consulta->distinct()->orderBy('extension')->pluck('extension')->all();
     }
 
     /**

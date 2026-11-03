@@ -65,7 +65,7 @@ class MenuSeccionesTest extends TestCase
         $seccion = Seccion::factory()->create();
 
         $this->get(route('secciones.administrar'))->assertForbidden();
-        $this->get(route('secciones.show', $seccion))->assertForbidden();
+        $this->get(route('secciones.show', $seccion))->assertNotFound();
         $this->post(route('secciones.store'), ['menu_grupo_id' => $seccion->menu_grupo_id, 'nombre' => 'X'])->assertForbidden();
     }
 

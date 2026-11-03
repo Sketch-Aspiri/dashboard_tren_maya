@@ -6,6 +6,7 @@ use App\Models\SeccionColumna;
 use App\Models\SeccionFila;
 use App\Models\SeccionTabla;
 use App\Models\User;
+use App\Support\AlcanceEstacion;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
 
@@ -24,12 +25,14 @@ final class FilaService
      * @param  array<string, mixed>  $valores  indexado por clave de columna (ya validado)
      * @param  array<string, UploadedFile>  $fotos  archivos subidos, por clave de columna Foto
      */
-    public function crear(SeccionTabla $tabla, array $valores, User $usuario, array $fotos = []): SeccionFila
+    public function crear(SeccionTabla $tabla, array $valores, User $usuario, array $fotos = [], ?int $estacionElegida = null): SeccionFila
     {
         $fila = new SeccionFila(['datos' => $this->normalizar($tabla, $valores + $this->guardarFotos($fotos), [])]);
         $fila->forceFill([
             'seccion_id' => $tabla->seccion_id,
             'seccion_tabla_id' => $tabla->id,
+            // Una cuenta Estación siempre etiqueta con SU estación, sin importar lo que envíe.
+            'estacion_id' => AlcanceEstacion::esTotal($usuario) ? $estacionElegida : $usuario->estacion_id,
             'creado_por' => $usuario->id,
             'actualizado_por' => $usuario->id,
         ])->save();
@@ -38,13 +41,28 @@ final class FilaService
     }
 
     /**
+     * La estación solo la cambia quien ve todo ($cambiaEstacion = true); al
+     * cambiarla, los adjuntos de la fila la siguen.
+     *
      * @param  array<string, mixed>  $valores
      * @param  array<string, UploadedFile>  $fotos
      */
-    public function actualizar(SeccionFila $fila, array $valores, User $usuario, array $fotos = []): SeccionFila
+    public function actualizar(SeccionFila $fila, array $valores, User $usuario, array $fotos = [], ?int $estacionElegida = null, bool $cambiaEstacion = false): SeccionFila
     {
         $fila->datos = $this->normalizar($fila->tabla, $valores + $this->guardarFotos($fotos), $fila->datos ?? []);
-        $fila->forceFill(['actualizado_por' => $usuario->id])->save();
+        $fila->forceFill(['actualizado_por' => $usuario->id]);
+
+        $cambiaEstacion = $cambiaEstacion && AlcanceEstacion::esTotal($usuario);
+
+        if ($cambiaEstacion) {
+            $fila->estacion_id = $estacionElegida;
+        }
+
+        $fila->save();
+
+        if ($cambiaEstacion) {
+            $fila->archivos()->update(['estacion_id' => $estacionElegida]);
+        }
 
         return $fila;
     }

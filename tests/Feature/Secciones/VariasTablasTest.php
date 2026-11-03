@@ -233,11 +233,11 @@ class VariasTablasTest extends TestCase
         $fila = $tulum->filas()->first();
         $this->actingAsTwoFactorVerified($this->usuarioConRol('Estación'));
 
-        $this->get(route('secciones.show', [$seccion, 'tabla' => $tulum->id]))->assertForbidden();
-        $this->get(route('secciones.exportar', [$seccion, 'tabla' => $tulum->id]))->assertForbidden();
-        $this->get(route('secciones.columnas.index', [$seccion, 'tabla' => $tulum->id]))->assertForbidden();
-        $this->post(route('secciones.filas.store', $seccion), ['tabla' => $tulum->id, 'datos' => ['turno' => 'X']])->assertForbidden();
-        $this->put(route('secciones.filas.update', [$seccion, $fila]), ['datos' => ['turno' => 'X']])->assertForbidden();
+        $this->get(route('secciones.show', [$seccion, 'tabla' => $tulum->id]))->assertNotFound();
+        $this->get(route('secciones.exportar', [$seccion, 'tabla' => $tulum->id]))->assertNotFound();
+        $this->get(route('secciones.columnas.index', [$seccion, 'tabla' => $tulum->id]))->assertNotFound();
+        $this->post(route('secciones.filas.store', $seccion), ['tabla' => $tulum->id, 'datos' => ['turno' => 'X']])->assertNotFound();
+        $this->put(route('secciones.filas.update', [$seccion, $fila]), ['datos' => ['turno' => 'X']])->assertNotFound();
         $this->post(route('secciones.columnas.store', $seccion), ['tabla' => $tulum->id, 'nombre' => 'X', 'tipo' => 'texto'])->assertForbidden();
         $this->assertSame('Matutino', $fila->fresh()->datos['turno']);
     }

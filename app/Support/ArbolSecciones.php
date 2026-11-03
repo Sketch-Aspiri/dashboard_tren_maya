@@ -18,9 +18,12 @@ final class ArbolSecciones
      * @param  Collection<int, Seccion>  $secciones
      * @return Collection<int, Seccion>
      */
-    public static function construir(Collection $secciones): Collection
+    public static function construir(Collection $secciones, bool $huerfanasComoRaiz = false): Collection
     {
-        $porPadre = $secciones->groupBy(fn (Seccion $seccion) => $seccion->parent_id ?? 0);
+        $ids = $secciones->pluck('id')->flip();
+        // Con $huerfanasComoRaiz, una hija cuyo padre no está en la lista (p. ej. el padre no está
+        // aprobado para una estación) se muestra como raíz en lugar de desaparecer.
+        $porPadre = $secciones->groupBy(fn (Seccion $seccion) => $huerfanasComoRaiz && ! $ids->has($seccion->parent_id) ? 0 : ($seccion->parent_id ?? 0));
 
         foreach ($secciones as $seccion) {
             $seccion->setRelation('hijas', $porPadre->get($seccion->id, collect())->values());

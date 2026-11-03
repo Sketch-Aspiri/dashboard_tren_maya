@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\MenuGrupo;
 use App\Models\Seccion;
 use App\Models\User;
+use App\Services\Secciones\VisibilidadSecciones;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
@@ -19,6 +20,8 @@ class MenuNavegacion
     /** Subsecciones que se listan por nivel en la rama abierta antes de resumir el resto. */
     private const SUBSECCIONES_VISIBLES = 5;
 
+    public function __construct(private readonly VisibilidadSecciones $visibilidad) {}
+
     /**
      * Cada item trae 'nivel' (0 = primer nivel), 'oculto' (subsección de una rama
      * cerrada: no se pinta, pero sí entra al buscador) y 'busqueda' (ruta completa).
@@ -29,6 +32,8 @@ class MenuNavegacion
     {
         $puedeVerSecciones = $usuario->can('viewAny', Seccion::class);
         $fijos = collect(config('navegacion.grupos'))->keyBy('slug');
+        // Una cuenta Estación solo ve las secciones aprobadas para su estación (null = sin restricción).
+        $visibles = $this->visibilidad->idsVisiblesPara($usuario);
         $seccionActual = $request->routeIs('secciones.*') ? $request->route('seccion') : null;
         // La rama de la sección abierta (ella y sus ancestros) muestra sus subsecciones.
         $rama = $seccionActual instanceof Seccion
@@ -38,9 +43,9 @@ class MenuNavegacion
         return MenuGrupo::query()
             ->orderBy('orden')
             ->orderBy('id')
-            ->when($puedeVerSecciones, fn ($consulta) => $consulta->with(['secciones' => fn ($secciones) => $secciones->where('is_visible', true)]))
+            ->when($puedeVerSecciones, fn ($consulta) => $consulta->with(['secciones' => fn ($secciones) => $secciones->where('is_visible', true)->when($visibles !== null, fn ($q) => $q->whereIn('id', array_keys($visibles)))]))
             ->get()
-            ->map(function (MenuGrupo $grupo) use ($usuario, $request, $fijos, $puedeVerSecciones, $seccionActual, $rama): array {
+            ->map(function (MenuGrupo $grupo) use ($usuario, $request, $fijos, $puedeVerSecciones, $seccionActual, $rama, $visibles): array {
                 $config = $fijos->get($grupo->slug, ['items' => [], 'patrones' => []]);
 
                 $items = collect($config['items'])
@@ -57,7 +62,7 @@ class MenuNavegacion
                 if ($puedeVerSecciones) {
                     $porId = $grupo->secciones->keyBy('id');
                     $items = $items->concat($this->itemsDeSecciones(
-                        ArbolSecciones::construir($grupo->secciones), 0, true, $seccionActual, $rama, $porId,
+                        ArbolSecciones::construir($grupo->secciones, $visibles !== null), 0, true, $seccionActual, $rama, $porId,
                     ));
                 }
 

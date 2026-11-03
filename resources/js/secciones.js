@@ -131,6 +131,8 @@ function filaFormulario(opciones) {
         id: null,
         url: opciones.urlNueva,
         valores: {},
+        // Estación de la fila (solo la ven y eligen los roles de zona).
+        estacion: '',
         init() {
             if (opciones.reabrir) {
                 this.abrir(opciones.idAnterior, { ...opciones.valoresAnteriores });
@@ -140,9 +142,10 @@ function filaFormulario(opciones) {
             this.abrir(null, {});
         },
         editar(detalle) {
-            this.abrir(detalle.id, { ...detalle.valores });
+            this.abrir(detalle.id, { ...detalle.valores }, detalle.estacion);
         },
-        abrir(id, valores) {
+        abrir(id, valores, estacion = null) {
+            this.estacion = estacion === null || estacion === undefined ? '' : String(estacion);
             this.id = Number.isInteger(id) ? id : null;
             this.url = this.id ? opciones.urlEditar.replace('__ID__', String(this.id)) : opciones.urlNueva;
             this.valores = valores;

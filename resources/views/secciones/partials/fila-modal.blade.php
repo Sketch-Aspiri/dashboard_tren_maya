@@ -28,6 +28,19 @@
                 <input type="hidden" name="tabla" value="{{ $tablaActiva->id }}">
 
                 <div class="grid flex-1 grid-cols-1 gap-4 overflow-y-auto px-5 py-4 sm:grid-cols-2">
+                    @if ($puedeEtiquetar)
+                        <div class="sm:col-span-2">
+                            <label for="campo-estacion" class="block text-sm font-medium text-gray-700">{{ __('Estación') }}</label>
+                            <select id="campo-estacion" name="estacion_id" x-model="estacion"
+                                    class="mt-1 block min-h-[44px] w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal">
+                                <option value="">{{ __('Sin estación (solo la zona la ve)') }}</option>
+                                @foreach ($estaciones as $estacion)
+                                    <option value="{{ $estacion->id }}">{{ $estacion->nombre }}</option>
+                                @endforeach
+                            </select>
+                            <x-input-error :messages="$errors->get('estacion_id')" class="mt-1" />
+                        </div>
+                    @endif
                     @foreach ($columnas as $columna)
                         @php $campo = 'campo-'.$columna->clave; @endphp
                         <div class="{{ $columna->tipo === \App\Enums\TipoColumna::Texto ? 'sm:col-span-2' : '' }}">

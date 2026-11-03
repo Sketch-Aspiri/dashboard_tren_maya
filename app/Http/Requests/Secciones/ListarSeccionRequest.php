@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Secciones;
 
+use Illuminate\Auth\Access\Response;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 /**
@@ -20,9 +22,9 @@ class ListarSeccionRequest extends FormRequest
         'numero_asc', 'numero_desc', 'tamano_desc', 'tamano_asc',
     ];
 
-    public function authorize(): bool
+    public function authorize(): bool|Response
     {
-        return $this->user()?->can('view', $this->route('seccion')) ?? false;
+        return $this->user() ? Gate::forUser($this->user())->inspect('view', $this->route('seccion')) : false;
     }
 
     /**
@@ -39,6 +41,8 @@ class ListarSeccionRequest extends FormRequest
             'tab' => ['nullable', Rule::in(['tabla', 'documentos', 'enlaces', 'cargas'])],
             'doc_orden' => ['nullable', Rule::in(self::ORDENES_DOCUMENTO)],
             'doc_tipo' => ['nullable', 'string', 'max:10', 'alpha_num'],
+            // Id de estación o "sin" (filas sin etiqueta); solo lo respeta la consulta para roles de zona.
+            'estacion' => ['nullable', 'regex:/^(\d+|sin)$/'],
         ];
     }
 
@@ -51,6 +55,7 @@ class ListarSeccionRequest extends FormRequest
             'doc_orden' => $this->validated('doc_orden') ?? self::ORDENES_DOCUMENTO[0],
             'doc_tipo' => $this->validated('doc_tipo'),
             'q' => $this->validated('q'),
+            'estacion' => $this->validated('estacion'),
             'sort' => $this->validated('sort'),
             'direction' => $this->validated('direction') ?? 'asc',
             'per_page' => (int) ($this->validated('per_page') ?? config('secciones.filas_por_pagina')[0]),

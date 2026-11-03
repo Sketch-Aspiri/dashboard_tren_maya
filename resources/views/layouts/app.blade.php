@@ -42,7 +42,7 @@
             $gruposNav = app(\App\Support\MenuNavegacion::class)->grupos($usuarioNav, request());
 
             $navegacionBuscable = collect([
-                $usuarioNav->hasRole('Estación') ? null : ['label' => __('Dashboard'), 'href' => route('dashboard')],
+                ['label' => $usuarioNav->hasRole('Estación') ? __('Inicio') : __('Dashboard'), 'href' => route('dashboard')],
             ])->concat(
                 $gruposNav->flatMap(fn (array $grupo) => collect($grupo['items'])
                     ->reject(fn (array $item) => $item['esMas'] ?? false)

@@ -5,12 +5,15 @@ namespace App\Http\Requests\Secciones;
 use App\Enums\TipoColumna;
 use App\Models\Seccion;
 use App\Models\SeccionColumna;
+use App\Models\SeccionFila;
 use App\Models\SeccionTabla;
 use App\Services\Secciones\NormalizadorValores;
 use Closure;
+use Illuminate\Auth\Access\Response;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 /**
@@ -25,9 +28,24 @@ class GuardarFilaRequest extends FormRequest
         tabla as private tablaElegidaEnFormulario;
     }
 
-    public function authorize(): bool
+    /**
+     * Crear exige crearFila; editar, actualizarFila (una estación solo edita
+     * sus filas y las ajenas responden 404). Zona: siempre permitido.
+     */
+    public function authorize(): bool|Response
     {
-        return $this->user()?->can('gestionarDatos', $this->seccion()) ?? false;
+        $usuario = $this->user();
+
+        if ($usuario === null) {
+            return false;
+        }
+
+        $fila = $this->route('fila');
+        $gate = Gate::forUser($usuario);
+
+        return $fila instanceof SeccionFila
+            ? $gate->inspect('actualizarFila', [$this->seccion(), $fila])
+            : $gate->inspect('crearFila', $this->seccion());
     }
 
     /**
@@ -45,6 +63,11 @@ class GuardarFilaRequest extends FormRequest
     public function rules(): array
     {
         $reglas = $this->reglaTabla();
+
+        // Solo los roles de zona eligen la estación de la fila.
+        if ($this->puedeEtiquetar()) {
+            $reglas['estacion_id'] = ['nullable', 'integer', 'exists:estaciones,id'];
+        }
 
         foreach ($this->tabla()->columnas as $columna) {
             if ($columna->tipo === TipoColumna::Foto) {
@@ -76,6 +99,27 @@ class GuardarFilaRequest extends FormRequest
             $this->validated('fotos', []),
             fn ($archivo) => $archivo instanceof UploadedFile,
         );
+    }
+
+    public function puedeEtiquetar(): bool
+    {
+        return $this->user()?->can('etiquetarEstacion', $this->seccion()) ?? false;
+    }
+
+    /**
+     * ¿El formulario trae el selector de estación? (si no, la estación de la
+     * fila no se toca).
+     */
+    public function enviaEstacion(): bool
+    {
+        return $this->puedeEtiquetar() && $this->has('estacion_id');
+    }
+
+    public function estacionElegida(): ?int
+    {
+        $id = $this->puedeEtiquetar() ? $this->validated('estacion_id') : null;
+
+        return $id === null ? null : (int) $id;
     }
 
     /**

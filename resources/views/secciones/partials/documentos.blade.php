@@ -73,6 +73,20 @@
                             @if ($documento->autor) · {{ $documento->autor->name }} @endif
                             @if ($documento->seccion_fila_id) · {{ __('adjunto de un registro') }} @endif
                         </p>
+                        @if ($puedeEtiquetar)
+                            <form method="POST" action="{{ route('secciones.archivos.estacion', [$seccion, $documento]) }}" class="mt-1 flex items-center gap-2">
+                                @csrf
+                                @method('PUT')
+                                <label for="estacion-doc-{{ $documento->id }}" class="text-xs text-gray-500">{{ __('Estación') }}</label>
+                                <select id="estacion-doc-{{ $documento->id }}" name="estacion_id" onchange="this.form.submit()"
+                                        class="min-h-[36px] rounded-md border-gray-300 py-1 text-xs shadow-sm focus:border-brand-teal focus:ring-brand-teal">
+                                    <option value="">{{ __('Sin estación') }}</option>
+                                    @foreach ($estaciones as $estacion)
+                                        <option value="{{ $estacion->id }}" @selected($documento->estacion_id === $estacion->id)>{{ $estacion->nombre }}</option>
+                                    @endforeach
+                                </select>
+                            </form>
+                        @endif
                         @if ($documento->origen)
                             <p class="mt-0.5 text-xs text-brand-teal">
                                 {{ __('Nube') }} ({{ $documento->origen->proveedor }}) ·

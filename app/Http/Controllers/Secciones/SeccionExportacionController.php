@@ -27,6 +27,6 @@ class SeccionExportacionController extends Controller
             ->withProperties(['q' => $request->validated('q'), 'tabla_id' => $tabla->id])
             ->log('Exportación de una tabla de la sección a Excel.');
 
-        return $exportacion->descargar($tabla, $request->filtros());
+        return $exportacion->descargar($tabla, $request->filtros(), $request->user());
     }
 }
