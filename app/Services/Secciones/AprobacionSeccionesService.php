@@ -2,60 +2,109 @@
 
 namespace App\Services\Secciones;
 
+use App\Enums\NivelAccesoEstacion;
 use App\Models\Estacion;
 use App\Models\Seccion;
+use App\Models\SeccionTabla;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Aprobar una sección para estaciones: "todas" o una lista. Aprobar una
- * sección aprueba también sus descendientes (VisibilidadSecciones). Cada
- * cambio deja un evento con el estado anterior y el nuevo.
+ * Permisos de las estaciones (Ver / Editar) sobre una sección completa
+ * (para todas las estaciones y/o para cada una) o sobre una hoja. Los de la
+ * sección se heredan a sus descendientes (VisibilidadSecciones). Cada cambio
+ * deja un evento con el estado anterior y el nuevo.
  */
 final class AprobacionSeccionesService
 {
+    public function __construct(private readonly VisibilidadSecciones $visibilidad) {}
+
     /**
-     * @param  list<int>  $estacionIds  estaciones operativas (ya validadas)
+     * @param  array<int, NivelAccesoEstacion>  $porEstacion  estación => nivel (ya validadas)
      */
-    public function actualizar(Seccion $seccion, bool $todas, array $estacionIds, User $usuario): void
+    public function actualizar(Seccion $seccion, ?NivelAccesoEstacion $todas, array $porEstacion, User $usuario): void
     {
-        $antes = $this->estado($seccion);
+        $antes = $this->estadoSeccion($seccion);
 
-        DB::transaction(function () use ($seccion, $todas, $estacionIds, $usuario): void {
-            $seccion->forceFill(['compartida_todas' => $todas])->saveQuietly();
-
-            // Con "todas" la lista específica no aporta nada: se vacía para no dejar aprobaciones huérfanas.
-            $seccion->estacionesAprobadas()->sync(
-                $todas ? [] : collect($estacionIds)->mapWithKeys(fn (int $id) => [$id => ['aprobado_por' => $usuario->id]])->all()
-            );
+        DB::transaction(function () use ($seccion, $todas, $porEstacion, $usuario): void {
+            $seccion->forceFill(['acceso_todas' => $todas])->saveQuietly();
+            $this->sincronizar($seccion->estacionesAprobadas(), $porEstacion, $usuario);
         });
 
-        $despues = $this->estado($seccion->refresh());
+        $this->visibilidad->olvidar();
+        $despues = $this->estadoSeccion($seccion->refresh());
 
-        if ($antes === $despues) {
-            return;
+        if ($antes !== $despues) {
+            activity('seccion')
+                ->causedBy($usuario)
+                ->performedOn($seccion)
+                ->event('seccion_compartida_estaciones')
+                ->withProperties(['old' => $antes, 'attributes' => $despues])
+                ->log('Cambiaron los permisos de las estaciones sobre la sección.');
         }
-
-        activity('seccion')
-            ->causedBy($usuario)
-            ->performedOn($seccion)
-            ->event('seccion_compartida_estaciones')
-            ->withProperties(['old' => $antes, 'attributes' => $despues])
-            ->log('Cambió la aprobación de la sección para estaciones.');
     }
 
     /**
-     * @return array{todas: bool, estaciones: list<string>}
+     * @param  array<int, NivelAccesoEstacion>  $porEstacion  estación => nivel (ya validadas)
      */
-    private function estado(Seccion $seccion): array
+    public function actualizarTabla(SeccionTabla $tabla, array $porEstacion, User $usuario): void
+    {
+        $antes = $this->niveles($tabla->estacionesAprobadas());
+
+        DB::transaction(fn () => $this->sincronizar($tabla->estacionesAprobadas(), $porEstacion, $usuario));
+
+        $this->visibilidad->olvidar();
+        $despues = $this->niveles($tabla->estacionesAprobadas());
+
+        if ($antes !== $despues) {
+            activity('seccion')
+                ->causedBy($usuario)
+                ->performedOn($tabla->seccion)
+                ->event('hoja_compartida_estaciones')
+                ->withProperties(['tabla_id' => $tabla->id, 'tabla' => $tabla->nombre, 'old' => $antes, 'attributes' => $despues])
+                ->log('Cambiaron los permisos de las estaciones sobre una hoja.');
+        }
+    }
+
+    /**
+     * @param  BelongsToMany<Estacion, *>  $relacion
+     * @param  array<int, NivelAccesoEstacion>  $porEstacion
+     */
+    private function sincronizar(BelongsToMany $relacion, array $porEstacion, User $usuario): void
+    {
+        // Un permiso que no cambia conserva a quien lo dio; solo los nuevos o cambiados llevan al usuario actual.
+        $actuales = (clone $relacion)->get(['estaciones.id'])->keyBy('id');
+
+        $relacion->sync(collect($porEstacion)
+            ->mapWithKeys(function (NivelAccesoEstacion $nivel, int $id) use ($actuales, $usuario): array {
+                $pivot = $actuales->get($id)?->pivot;
+                $sinCambio = $pivot !== null && $pivot->nivel === $nivel->value;
+
+                return [$id => ['nivel' => $nivel->value, 'aprobado_por' => $sinCambio ? $pivot->aprobado_por : $usuario->id]];
+            })
+            ->all());
+    }
+
+    /**
+     * @return array{todas: ?string, estaciones: array<string, string>}
+     */
+    private function estadoSeccion(Seccion $seccion): array
     {
         return [
-            'todas' => (bool) $seccion->compartida_todas,
-            'estaciones' => Estacion::query()
-                ->whereIn('id', DB::table('seccion_estacion')->where('seccion_id', $seccion->id)->select('estacion_id'))
-                ->orderBy('orden')
-                ->pluck('nombre')
-                ->all(),
+            'todas' => $seccion->acceso_todas?->value,
+            'estaciones' => $this->niveles($seccion->estacionesAprobadas()),
         ];
+    }
+
+    /**
+     * @param  BelongsToMany<Estacion, *>  $relacion
+     * @return array<string, string> nombre de la estación => nivel
+     */
+    private function niveles(BelongsToMany $relacion): array
+    {
+        return $relacion->orderBy('estaciones.orden')->get(['estaciones.id', 'estaciones.nombre'])
+            ->mapWithKeys(fn (Estacion $estacion) => [$estacion->nombre => (string) $estacion->pivot->nivel])
+            ->all();
     }
 }

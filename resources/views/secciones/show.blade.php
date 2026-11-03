@@ -1,9 +1,9 @@
 @php
     $puedeGestionar = auth()->user()->can('gestionarDatos', $seccion);
-    // Una estación no gestiona datos, pero sí captura filas propias y sube documentos.
+    // Una estación no gestiona datos; con permiso Editar sobre la hoja/sección captura filas y sube documentos.
     // Una tabla espejo de la nube es de solo lectura: sin agregar, columnas, borrar hoja ni zona de arrastre.
     $esEspejo = $tablaActiva->esEspejo();
-    $puedeCrearFila = ! $esEspejo && auth()->user()->can('crearFila', $seccion);
+    $puedeCrearFila = ! $esEspejo && auth()->user()->can('crearFila', [$seccion, $tablaActiva]);
     $puedeSubir = ! $esEspejo && auth()->user()->can('subirDocumentos', $seccion);
     $puedeEditarSeccion = ! $esEspejo && auth()->user()->can('update', $seccion);
     $puedeEtiquetar = auth()->user()->can('etiquetarEstacion', $seccion);
@@ -64,11 +64,15 @@
                                      : __('Si el archivo trae una tabla, el sistema la detecta y te muestra una vista previa antes de crear o actualizar la tabla de esta sección. Todo archivo queda guardado en Documentos.')" />
             @endif
 
+            @if ($soloDocumentos && $nivelHoja?->value === 'ver')
+                <p class="rounded-md bg-brand-mist px-3 py-2 text-sm text-brand-green" role="status">{{ __('Solo lectura: tu estación puede consultar estos documentos, pero no agregar ni borrar.') }}</p>
+            @endif
+
             @can('aprobarEstaciones', $seccion)
                 <div class="flex justify-end">
                     <button type="button" x-data @click="$dispatch('compartir-estaciones')"
                             class="inline-flex min-h-[44px] items-center rounded-md border border-brand-green/20 bg-white px-4 text-sm font-medium text-brand-green hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">
-                        {{ __('Estaciones que la ven') }}: {{ $seccion->compartida_todas ? __('todas') : $seccion->estacionesAprobadas()->count() }}
+                        {{ __('Permisos de estaciones') }}: {{ $seccion->acceso_todas ? __('todas (:nivel)', ['nivel' => mb_strtolower($seccion->acceso_todas->label())]) : $seccion->estacionesAprobadas()->wherePivotNotNull('nivel')->count() }}
                     </button>
                 </div>
             @endcan
@@ -185,6 +189,19 @@
                     @endif
                 @endif
 
+                @can('aprobarEstaciones', $seccion)
+                    <div class="mb-3 flex justify-end">
+                        <button type="button" x-data @click="$dispatch('compartir-hoja')"
+                                class="inline-flex min-h-[44px] items-center rounded-md border border-brand-green/20 bg-white px-4 text-sm font-medium text-brand-green hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">
+                            {{ __('Permisos de estaciones en la hoja «:hoja»: :n', ['hoja' => $tablaActiva->nombre, 'n' => $tablaActiva->estacionesAprobadas()->count()]) }}
+                        </button>
+                    </div>
+                @endcan
+
+                @if ($nivelHoja?->value === 'ver')
+                    <p class="mb-3 rounded-md bg-brand-mist px-3 py-2 text-sm text-brand-green" role="status">{{ __('Solo lectura: tu estación puede consultar esta hoja, pero no modificarla.') }}</p>
+                @endif
+
                 @if ($esEspejo)
                     <p class="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md bg-brand-mist px-3 py-2 text-sm text-brand-green" role="status">
                         <span class="font-semibold">{{ __('Sincronizada con :nube', ['nube' => $tablaActiva->origen->nombreProveedor()]) }}</span>
@@ -221,6 +238,9 @@
 
         @can('aprobarEstaciones', $seccion)
             @include('secciones.partials.compartir-estaciones-modal')
+            @unless ($soloDocumentos)
+                @include('secciones.partials.compartir-hoja-modal')
+            @endunless
         @endcan
 
         @if ($puedeEtiquetar && $columnas->isNotEmpty() && ! $soloDocumentos)

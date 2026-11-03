@@ -40,7 +40,7 @@ class UserManagementController extends Controller
 
         return view('usuarios.create', [
             'roles' => RoleSeeder::ROLES,
-            'estaciones' => $this->operativeEstaciones(),
+            'estaciones' => $this->estaciones(),
         ]);
     }
 
@@ -59,7 +59,7 @@ class UserManagementController extends Controller
         return view('usuarios.edit', [
             'user' => $user,
             'roles' => RoleSeeder::ROLES,
-            'estaciones' => $this->operativeEstaciones(),
+            'estaciones' => $this->estaciones(),
         ]);
     }
 
@@ -82,12 +82,14 @@ class UserManagementController extends Controller
     }
 
     /**
+     * Every station in the catalog, including "Edificio Zonal Este": an
+     * Estación account can be tied to the zone office too.
+     *
      * @return Collection<int, Estacion>
      */
-    private function operativeEstaciones(): Collection
+    private function estaciones(): Collection
     {
         return Estacion::query()
-            ->where('is_operativa', true)
             ->orderBy('orden')
             ->get();
     }

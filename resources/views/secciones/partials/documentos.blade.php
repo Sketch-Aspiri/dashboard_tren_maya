@@ -170,7 +170,7 @@
                             </div>
                         @endif
                     @endif
-                    @if ($puedeGestionar && ! $documento->esEspejo())
+                    @if (auth()->user()->can('eliminarArchivo', [$seccion, $documento]))
                         <x-confirmar-eliminar :action="route('secciones.archivos.destroy', [$seccion, $documento])" />
                     @endif
                 </div>

@@ -31,7 +31,7 @@ final class FilaService
         $fila->forceFill([
             'seccion_id' => $tabla->seccion_id,
             'seccion_tabla_id' => $tabla->id,
-            // Una cuenta Estación siempre etiqueta con SU estación, sin importar lo que envíe.
+            // Una cuenta Estación siempre etiqueta con SU estación (quién capturó; no da permisos), sin importar lo que envíe.
             'estacion_id' => AlcanceEstacion::esTotal($usuario) ? $estacionElegida : $usuario->estacion_id,
             'creado_por' => $usuario->id,
             'actualizado_por' => $usuario->id,

@@ -4,8 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -39,6 +41,19 @@ class SeccionTabla extends Model
         return [
             'orden' => 'integer',
         ];
+    }
+
+    /**
+     * Al dar de baja una hoja se borran sus permisos de estación: si después
+     * se restaurara, no recupera accesos sin que un administrador los vuelva
+     * a dar (falla cerrada). VisibilidadSecciones ya ignora las hojas dadas
+     * de baja, incluso si una baja en bloque no pasa por este evento.
+     */
+    protected static function booted(): void
+    {
+        static::deleted(function (SeccionTabla $tabla): void {
+            DB::table('seccion_tabla_estacion')->where('seccion_tabla_id', $tabla->id)->delete();
+        });
     }
 
     /**
@@ -84,6 +99,18 @@ class SeccionTabla extends Model
     public function seccion(): BelongsTo
     {
         return $this->belongsTo(Seccion::class);
+    }
+
+    /**
+     * Estaciones con permiso sobre esta hoja en particular (pivot "nivel":
+     * ver o editar), además del que tengan sobre la sección completa. Solo
+     * lo asigna AprobacionSeccionesService.
+     *
+     * @return BelongsToMany<Estacion, $this>
+     */
+    public function estacionesAprobadas(): BelongsToMany
+    {
+        return $this->belongsToMany(Estacion::class, 'seccion_tabla_estacion')->withPivot('nivel', 'aprobado_por')->withTimestamps();
     }
 
     /**

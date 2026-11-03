@@ -143,7 +143,7 @@ class TablasSoloLecturaTest extends TestCase
             ->assertDontSee('Agregar registro')
             ->assertDontSee('Arrastra aquí')
             ->assertDontSee('Eliminar hoja')
-            ->assertDontSee('>Editar<', false)
+            ->assertDontSee("\$dispatch('fila-editar'", false)
             ->assertSee('Exportar a Excel');
     }
 
@@ -189,7 +189,8 @@ class TablasSoloLecturaTest extends TestCase
         $usuario->assignRole('Estación');
         $fila = $this->filaEnTabla($this->espejo, ['nombre' => 'Ana']);
         $fila->forceFill(['estacion_id' => $estacion->id])->save();
-        $this->seccion->forceFill(['compartida_todas' => true])->save();
+        // Aun con permiso Editar sobre toda la sección, la tabla espejo es de solo lectura.
+        $this->seccion->forceFill(['acceso_todas' => 'editar'])->save();
         $this->actingAsTwoFactorVerified($usuario);
 
         $this->put(route('secciones.filas.update', [$this->seccion, $fila]), ['datos' => ['nombre' => 'Otro']])->assertForbidden();

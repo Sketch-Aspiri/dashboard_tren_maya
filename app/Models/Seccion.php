@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\NivelAccesoEstacion;
 use Database\Factories\SeccionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -52,20 +53,21 @@ class Seccion extends Model
             'orden' => 'integer',
             'is_visible' => 'boolean',
             'solo_documentos' => 'boolean',
-            'compartida_todas' => 'boolean',
+            'acceso_todas' => NivelAccesoEstacion::class,
         ];
     }
 
     /**
-     * Estaciones a las que el administrador aprobó esta sección (y, por
-     * herencia, sus descendientes). "compartida_todas" no está en $fillable:
-     * solo lo asigna AprobacionSeccionesService.
+     * Estaciones a las que el administrador aprobó esta sección completa (y,
+     * por herencia, sus descendientes), con su nivel (pivot "nivel": ver o
+     * editar). "acceso_todas" (nivel para todas las estaciones) no está en
+     * $fillable: solo lo asigna AprobacionSeccionesService.
      *
      * @return BelongsToMany<Estacion, $this>
      */
     public function estacionesAprobadas(): BelongsToMany
     {
-        return $this->belongsToMany(Estacion::class, 'seccion_estacion')->withPivot('aprobado_por')->withTimestamps();
+        return $this->belongsToMany(Estacion::class, 'seccion_estacion')->withPivot('nivel', 'aprobado_por')->withTimestamps();
     }
 
     public function getRouteKeyName(): string
@@ -253,7 +255,7 @@ class Seccion extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['menu_grupo_id', 'parent_id', 'nombre', 'slug', 'descripcion', 'orden', 'is_visible', 'solo_documentos', 'compartida_todas'])
+            ->logOnly(['menu_grupo_id', 'parent_id', 'nombre', 'slug', 'descripcion', 'orden', 'is_visible', 'solo_documentos', 'acceso_todas'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->useLogName('seccion');

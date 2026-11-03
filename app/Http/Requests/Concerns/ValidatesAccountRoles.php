@@ -2,9 +2,7 @@
 
 namespace App\Http\Requests\Concerns;
 
-use App\Models\Estacion;
 use App\Support\Roles;
-use Closure;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -45,8 +43,8 @@ trait ValidatesAccountRoles
                 Rule::requiredIf(fn () => $this->hasRole(Roles::ESTACION)),
                 'nullable',
                 'integer',
+                // Cualquier estación del catálogo, incluido "Edificio Zonal Este".
                 'exists:estaciones,id',
-                $this->estacionMustBeOperativaWhenRoleIsEstacion(),
             ],
         ];
     }
@@ -69,22 +67,5 @@ trait ValidatesAccountRoles
                 __('Los roles Edificio y Estación no se pueden combinar con otros roles.')
             );
         }
-    }
-
-    /**
-     * Una cuenta Estación ligada a "Edificio Zonal Este" (no operativa) no
-     * tiene sentido: solo se acepta una estación operativa.
-     */
-    private function estacionMustBeOperativaWhenRoleIsEstacion(): Closure
-    {
-        return function (string $attribute, mixed $value, Closure $fail): void {
-            if (! $this->hasRole(Roles::ESTACION) || $value === null) {
-                return;
-            }
-
-            if (! Estacion::whereKey($value)->value('is_operativa')) {
-                $fail(__('La estación seleccionada no está operativa.'));
-            }
-        };
     }
 }

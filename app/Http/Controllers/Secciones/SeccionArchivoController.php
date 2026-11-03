@@ -7,7 +7,6 @@ use App\Http\Requests\Secciones\StoreSeccionArchivoRequest;
 use App\Http\Requests\Secciones\VistaPreviaArchivoRequest;
 use App\Models\Seccion;
 use App\Models\SeccionArchivo;
-use App\Models\SeccionFila;
 use App\Services\Secciones\ArchivoService;
 use App\Services\Secciones\ImportacionService;
 use App\Services\Secciones\PrevisualizadorArchivos;
@@ -31,9 +30,8 @@ class SeccionArchivoController extends Controller
 
     public function store(StoreSeccionArchivoRequest $request, Seccion $seccion): JsonResponse|RedirectResponse
     {
-        $this->authorize('subirDocumentos', $seccion);
-
-        $fila = $request->validated('seccion_fila_id') ? SeccionFila::query()->find($request->validated('seccion_fila_id')) : null;
+        $fila = $request->validated('seccion_fila_id') ? $request->filaElegida() : null;
+        $this->authorize('subirDocumentos', [$seccion, $fila]);
         // Tabla en pantalla al soltar el archivo: recibirá la carga de una sola tabla.
         $destino = $request->filled('tabla') ? $request->tabla() : null;
 
@@ -129,7 +127,7 @@ class SeccionArchivoController extends Controller
 
     public function destroy(Seccion $seccion, SeccionArchivo $archivo): RedirectResponse
     {
-        $this->authorize('administrarArchivo', [$seccion, $archivo]);
+        $this->authorize('eliminarArchivo', [$seccion, $archivo]);
 
         $this->archivos->eliminar($archivo);
 

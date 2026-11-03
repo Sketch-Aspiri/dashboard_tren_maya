@@ -45,7 +45,7 @@ class CreateEstacionAccountCommand extends Command
         $estacion = $this->promptForEstacion();
 
         if ($estacion === null) {
-            $this->components->error('No se encontró esa estación operativa. Revisa el nombre o corre primero el seeder (php artisan db:seed --class=EstacionSeeder).');
+            $this->components->error('No se encontró esa estación. Revisa el nombre o corre primero el seeder (php artisan db:seed --class=EstacionSeeder).');
 
             return self::FAILURE;
         }
@@ -96,8 +96,8 @@ class CreateEstacionAccountCommand extends Command
 
     private function promptForEstacion(): ?Estacion
     {
+        // Cualquier estación del catálogo, incluido "Edificio Zonal Este".
         $estaciones = Estacion::query()
-            ->where('is_operativa', true)
             ->orderBy('orden')
             ->get();
 

@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Secciones;
 
-use App\Support\AlcanceEstacion;
+use App\Models\SeccionFila;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -32,8 +32,22 @@ class StoreSeccionArchivoRequest extends FormRequest
 
     public function authorize(): bool|Response
     {
-        // Gate::inspect: una sección no aprobada para la estación responde 404, no 403.
-        return $this->user() ? Gate::forUser($this->user())->inspect('subirDocumentos', $this->route('seccion')) : false;
+        // Gate::inspect: una sección/hoja sin permiso para la estación responde 404, no 403.
+        return $this->user() ? Gate::forUser($this->user())->inspect('subirDocumentos', [$this->route('seccion'), $this->filaElegida()]) : false;
+    }
+
+    /**
+     * Fila a la que se adjuntan los documentos (de esta sección), o null.
+     * Se resuelve antes de validar para autorizar contra la hoja de la fila;
+     * un id inexistente se trata como sin fila y luego no pasa la validación.
+     */
+    public function filaElegida(): ?SeccionFila
+    {
+        $id = $this->input('seccion_fila_id');
+
+        return is_numeric($id)
+            ? SeccionFila::query()->where('seccion_id', $this->route('seccion')->id)->find((int) $id)
+            : null;
     }
 
     /**
@@ -49,9 +63,7 @@ class StoreSeccionArchivoRequest extends FormRequest
                 'integer',
                 Rule::exists('seccion_filas', 'id')
                     ->where('seccion_id', $this->route('seccion')->id)
-                    ->whereNull('deleted_at')
-                    // Una estación solo adjunta a sus propias filas.
-                    ->when(AlcanceEstacion::estacionId($this->user()) !== null, fn ($regla) => $regla->where('estacion_id', AlcanceEstacion::estacionId($this->user()))),
+                    ->whereNull('deleted_at'),
             ],
         ];
     }

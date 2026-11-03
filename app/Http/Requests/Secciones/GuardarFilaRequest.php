@@ -29,8 +29,9 @@ class GuardarFilaRequest extends FormRequest
     }
 
     /**
-     * Crear exige crearFila; editar, actualizarFila (una estación solo edita
-     * sus filas y las ajenas responden 404). Zona: siempre permitido.
+     * Crear exige crearFila; editar, actualizarFila (una estación necesita
+     * permiso Editar sobre la hoja; sin permiso responde 404). Zona: siempre
+     * permitido salvo tablas espejo.
      */
     public function authorize(): bool|Response
     {

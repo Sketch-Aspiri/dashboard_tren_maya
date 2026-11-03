@@ -2,13 +2,18 @@
 
 namespace App\Http\Requests\Secciones;
 
+use App\Enums\NivelAccesoEstacion;
+use App\Models\Estacion;
+use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * Aprobación de una sección para estaciones (solo Jefe de Zona /
- * Administrador): "todas" o una lista de estaciones operativas.
+ * Permisos de las estaciones sobre una sección completa (solo Jefe de Zona /
+ * Administrador): nivel para todas ("todas" = ver|editar, vacío = no) y
+ * nivel por estación ("estaciones[<id>]" = ver|editar, vacío = sin acceso).
+ * Cualquier estación del catálogo, incluido el Edificio Zonal.
  */
 class CompartirSeccionRequest extends FormRequest
 {
@@ -23,22 +28,55 @@ class CompartirSeccionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'todas' => ['nullable', 'boolean'],
-            'estaciones' => ['nullable', 'array'],
-            'estaciones.*' => ['integer', 'distinct', Rule::exists('estaciones', 'id')->where('is_operativa', true)],
+            // "present": un formulario incompleto (sin el campo) no revoca permisos en silencio.
+            'todas' => ['present', 'nullable', Rule::in(NivelAccesoEstacion::valores())],
+            'estaciones' => ['present', 'array', $this->clavesSonEstaciones()],
+            'estaciones.*' => ['nullable', Rule::in(NivelAccesoEstacion::valores())],
         ];
     }
 
-    public function todas(): bool
+    public function todas(): ?NivelAccesoEstacion
     {
-        return (bool) $this->validated('todas', false);
+        return NivelAccesoEstacion::tryFrom((string) $this->validated('todas'));
     }
 
     /**
-     * @return list<int>
+     * @return array<int, NivelAccesoEstacion> estación => nivel (sin las "sin acceso")
      */
     public function estaciones(): array
     {
-        return array_map('intval', $this->validated('estaciones', []) ?? []);
+        $niveles = [];
+
+        foreach ($this->validated('estaciones', []) ?? [] as $id => $valor) {
+            $nivel = NivelAccesoEstacion::tryFrom((string) $valor);
+
+            if ($nivel !== null) {
+                $niveles[(int) $id] = $nivel;
+            }
+        }
+
+        return $niveles;
+    }
+
+    /**
+     * Las claves de "estaciones" deben ser ids de estaciones existentes.
+     */
+    private function clavesSonEstaciones(): Closure
+    {
+        return function (string $atributo, mixed $valor, Closure $falla): void {
+            $ids = array_keys((array) $valor);
+
+            foreach ($ids as $id) {
+                if (! is_int($id) && ! ctype_digit((string) $id)) {
+                    $falla(__('Estación no válida.'));
+
+                    return;
+                }
+            }
+
+            if (Estacion::query()->whereIn('id', array_map('intval', $ids))->count() !== count($ids)) {
+                $falla(__('Estación no válida.'));
+            }
+        };
     }
 }

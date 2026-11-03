@@ -234,17 +234,26 @@ class UserManagementCrudTest extends TestCase
         $response->assertInvalid(['estacion_id']);
     }
 
-    public function test_store_rejects_a_non_operational_estacion(): void
+    public function test_store_accepts_the_edificio_zonal_as_the_estacion_of_a_station_account(): void
     {
         $this->actingAsTwoFactorVerified($this->administrador());
-        $noOperativa = Estacion::factory()->create(['is_operativa' => false]);
+        $edificioZonal = Estacion::factory()->create(['nombre' => 'Edificio Zonal Este', 'is_operativa' => false]);
 
         $response = $this->post(route('usuarios.store'), $this->validPayload([
             'role' => 'Estación',
-            'estacion_id' => $noOperativa->id,
+            'estacion_id' => $edificioZonal->id,
         ]));
 
-        $response->assertInvalid(['estacion_id']);
+        $response->assertValid();
+        $this->assertSame($edificioZonal->id, User::query()->where('email', $this->validPayload()['email'])->value('estacion_id'));
+    }
+
+    public function test_the_create_form_offers_the_edificio_zonal(): void
+    {
+        $this->actingAsTwoFactorVerified($this->administrador());
+        Estacion::factory()->create(['nombre' => 'Edificio Zonal Este', 'is_operativa' => false]);
+
+        $this->get(route('usuarios.create'))->assertOk()->assertSee('Edificio Zonal Este');
     }
 
     public function test_store_accepts_an_operational_estacion_for_role_estacion(): void

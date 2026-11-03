@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Services\Secciones\FotoService;
-use App\Support\AlcanceEstacion;
+use App\Services\Secciones\VisibilidadSecciones;
 use App\Support\Texto;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -105,13 +105,22 @@ class SeccionFila extends Model
 
     /**
      * Solo las filas que el usuario puede ver: la zona ve todas; una cuenta
-     * Estación, solo las etiquetadas con su estación.
+     * Estación, todas las filas de las secciones u hojas que tiene
+     * permitidas (la estación etiquetada en la fila no cuenta para permisos).
      *
      * @param  Builder<SeccionFila>  $consulta
      */
     public function scopeVisiblePara(Builder $consulta, User $usuario): void
     {
-        AlcanceEstacion::aplicar($consulta, $usuario, $this->qualifyColumn('estacion_id'));
+        $alcance = app(VisibilidadSecciones::class)->alcancePara($usuario);
+
+        if ($alcance === null) {
+            return;
+        }
+
+        $consulta->where(fn (Builder $q) => $q
+            ->whereIn($this->qualifyColumn('seccion_id'), $alcance['secciones'])
+            ->orWhereIn($this->qualifyColumn('seccion_tabla_id'), $alcance['tablas']));
     }
 
     public function getActivitylogOptions(): LogOptions

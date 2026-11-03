@@ -166,6 +166,8 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
                 Route::delete('/{seccion}/columnas/{columna}', [SeccionColumnaController::class, 'destroy'])->name('columnas.destroy');
 
                 Route::delete('/{seccion}/tablas/{tabla}', [SeccionTablaController::class, 'destroy'])->name('tablas.destroy');
+                // Permisos de las estaciones sobre una hoja (Jefe de Zona / Administrador).
+                Route::put('/{seccion}/tablas/{tabla}/acceso-estaciones', [SeccionEstacionController::class, 'updateTabla'])->name('tablas.acceso.update');
 
                 // Estación de filas (en bloque por columna) y de documentos; solo roles de zona.
                 Route::post('/{seccion}/tablas/{tabla}/estaciones/previsualizar', [SeccionEtiquetadoController::class, 'previsualizar'])->name('tablas.estaciones.previsualizar');

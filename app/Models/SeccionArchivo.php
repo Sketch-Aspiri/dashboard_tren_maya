@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
-use App\Support\AlcanceEstacion;
+use App\Services\Secciones\VisibilidadSecciones;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -129,13 +130,29 @@ class SeccionArchivo extends Model
 
     /**
      * Solo los documentos que el usuario puede ver: la zona ve todos; una
-     * cuenta Estación, solo los etiquetados con su estación.
+     * cuenta Estación, los de las secciones que tiene permitidas completas y
+     * los adjuntos de filas de las hojas que tiene permitidas.
      *
      * @param  Builder<SeccionArchivo>  $consulta
      */
     public function scopeVisiblePara(Builder $consulta, User $usuario): void
     {
-        AlcanceEstacion::aplicar($consulta, $usuario, $this->qualifyColumn('estacion_id'));
+        $alcance = app(VisibilidadSecciones::class)->alcancePara($usuario);
+
+        if ($alcance === null) {
+            return;
+        }
+
+        $consulta->where(function (Builder $q) use ($alcance): void {
+            $q->whereIn($this->qualifyColumn('seccion_id'), $alcance['secciones']);
+
+            if ($alcance['tablas'] !== []) {
+                $q->orWhereIn($this->qualifyColumn('seccion_fila_id'), DB::table('seccion_filas')
+                    ->select('id')
+                    ->whereIn('seccion_tabla_id', $alcance['tablas'])
+                    ->whereNull('deleted_at'));
+            }
+        });
     }
 
     /**

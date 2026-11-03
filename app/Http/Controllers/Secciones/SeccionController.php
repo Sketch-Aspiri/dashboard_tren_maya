@@ -78,7 +78,11 @@ class SeccionController extends Controller
                 ])->get(),
             'puedeAnidar' => $seccion->nivel() < Seccion::PROFUNDIDAD_MAXIMA,
             'tablaActiva' => $tabla,
-            'tablas' => $seccion->tablas()->withCount(['filas' => fn ($q) => $q->visiblePara($usuario)])->get(),
+            // Una estación con permiso solo sobre algunas hojas ve solo esas pestañas.
+            'tablas' => $seccion->tablas()
+                ->when(($hojas = $this->visibilidad->tablasVisiblesEn($usuario, $seccion)) !== null, fn ($q) => $q->whereIn('id', $hojas))
+                ->withCount(['filas' => fn ($q) => $q->visiblePara($usuario)])
+                ->get(),
             'filtros' => $filtros,
             // Sin parte de tabla solo existe la pestaña de documentos.
             'tab' => $seccion->solo_documentos ? 'documentos' : (in_array($tabPedida, $tabsPermitidas, true) ? $tabPedida : 'tabla'),
@@ -103,8 +107,10 @@ class SeccionController extends Controller
             'normalizador' => $normalizador,
             'tiposColumna' => TipoColumna::cases(),
             'iaDisponible' => $claude->disponible(),
-            // Catálogo para el selector de estación (solo roles de zona).
+            // Catálogo para el selector de estación y los permisos (solo roles de zona).
             'estaciones' => $request->user()->can('etiquetarEstacion', $seccion) ? Estacion::query()->orderBy('orden')->get(['id', 'nombre', 'is_operativa']) : collect(),
+            // Nivel de la cuenta Estación en la hoja en pantalla (para el aviso de "solo lectura").
+            'nivelHoja' => $this->visibilidad->nivelEnTabla($usuario, $tabla),
         ]);
     }
 

@@ -417,20 +417,26 @@ class OrigenesSeccionTest extends TestCase
             ->assertSee('persona@ejemplo.test');
     }
 
-    public function test_station_accounts_do_not_see_the_origins_panel_nor_synced_documents(): void
+    public function test_station_accounts_never_see_the_origins_panel_and_see_synced_documents_only_with_section_access(): void
     {
         $estacion = $this->estacion();
-        $this->seccion->estacionesAprobadas()->sync([$estacion->estacion_id]);
         $origen = $this->origenEn();
-        $this->espejo($origen, 'Secreto-de-zona.pdf');
+        $archivo = $this->espejo($origen, 'Documento-sincronizado.pdf');
         $this->actingAsTwoFactorVerified($estacion);
+
+        $this->get(route('secciones.show', ['seccion' => $this->seccion, 'tab' => 'documentos']))->assertNotFound();
+        $this->get(route('secciones.archivos.show', [$this->seccion, $archivo]))->assertNotFound();
+
+        // Con permiso Ver sobre la sección completa ve todos sus documentos, también los de la nube.
+        $this->seccion->estacionesAprobadas()->sync([$estacion->estacion_id => ['nivel' => 'ver']]);
 
         $this->get(route('secciones.show', ['seccion' => $this->seccion, 'tab' => 'documentos']))
             ->assertOk()
             ->assertDontSee('Orígenes de la sección')
             ->assertDontSee('Vincular desde la nube')
-            ->assertDontSee('Secreto-de-zona.pdf')
-            ->assertDontSee('Carpeta Mantenimiento');
+            ->assertDontSee('Carpeta Mantenimiento')
+            ->assertSee('Documento-sincronizado.pdf');
+        $this->delete(route('secciones.archivos.destroy', [$this->seccion, $archivo]))->assertForbidden();
     }
 
     public function test_folder_navigator_shows_breadcrumbs_subfolders_with_counts_and_only_the_current_folder(): void

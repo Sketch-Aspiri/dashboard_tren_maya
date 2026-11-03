@@ -93,7 +93,7 @@ final class ConsultaSeccionService
      */
     public function documentos(Seccion $seccion, ?string $busqueda, string $orden = 'recientes', ?string $tipo = null, ?User $usuario = null, ?string $carpeta = null): Collection
     {
-        $consulta = $seccion->archivos()->with(['autor:id,name', 'estacion:id,nombre', 'origen:id,proveedor,sincronizado_en,sincronizacion_error'])->latest()->latest('id');
+        $consulta = $seccion->archivos()->with(['autor:id,name', 'estacion:id,nombre', 'origen:id,proveedor,sincronizado_en,sincronizacion_error', 'fila:id,seccion_tabla_id', 'fila.tabla'])->latest()->latest('id');
 
         if ($usuario !== null) {
             $consulta->visiblePara($usuario);

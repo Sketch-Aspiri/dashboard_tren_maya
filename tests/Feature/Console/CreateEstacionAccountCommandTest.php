@@ -46,18 +46,20 @@ class CreateEstacionAccountCommandTest extends TestCase
         $this->assertTrue(Hash::check('Correct-horse-battery-staple-1', $user->password));
     }
 
-    public function test_it_only_offers_operational_stations(): void
+    public function test_it_can_create_an_account_for_the_edificio_zonal(): void
     {
-        // "Edificio Zonal Este" is is_operativa = false and must not be
-        // offered as a choice for a station account.
+        // "Edificio Zonal Este" (is_operativa = false) can also have an
+        // Estación account, so it can receive section/sheet permissions.
         $this->artisan('app:create-estacion-account')
-            ->expectsQuestion('Estación', 'Bacalar')
-            ->expectsQuestion('Nombre', 'Estación Bacalar')
-            ->expectsQuestion('Correo electrónico', 'bacalar@example.com')
+            ->expectsQuestion('Estación', 'Edificio Zonal Este')
+            ->expectsQuestion('Nombre', 'Edificio Zonal')
+            ->expectsQuestion('Correo electrónico', 'edificio@example.com')
             ->expectsQuestion('Contraseña', 'Correct-horse-battery-staple-1')
             ->expectsQuestion('Confirma la contraseña', 'Correct-horse-battery-staple-1')
-            ->doesntExpectOutputToContain('Edificio Zonal Este')
             ->assertExitCode(0);
+
+        $edificio = Estacion::where('nombre', 'Edificio Zonal Este')->firstOrFail();
+        $this->assertSame($edificio->id, User::where('email', 'edificio@example.com')->value('estacion_id'));
     }
 
     public function test_it_fails_when_password_confirmation_does_not_match(): void

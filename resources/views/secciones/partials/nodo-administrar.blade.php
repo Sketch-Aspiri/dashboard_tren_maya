@@ -28,8 +28,8 @@
             @unless ($seccion->is_visible)
                 <span class="ms-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">{{ __('Oculta') }}</span>
             @endunless
-            @if ($seccion->compartida_todas || $seccion->estaciones_aprobadas_count > 0)
-                <span class="ms-1 rounded-full bg-brand-teal/10 px-2 py-0.5 text-xs text-brand-teal">{{ $seccion->compartida_todas ? __('Todas las estaciones') : trans_choice(':count estación|:count estaciones', $seccion->estaciones_aprobadas_count) }}</span>
+            @if ($seccion->acceso_todas || $seccion->estaciones_aprobadas_count > 0)
+                <span class="ms-1 rounded-full bg-brand-teal/10 px-2 py-0.5 text-xs text-brand-teal">{{ $seccion->acceso_todas ? __('Todas las estaciones (:nivel)', ['nivel' => $seccion->acceso_todas->label()]) : trans_choice(':count estación|:count estaciones', $seccion->estaciones_aprobadas_count) }}</span>
             @endif
             @if ($seccion->solo_documentos)
                 <span class="ms-1 rounded-full bg-brand-mist px-2 py-0.5 text-xs text-brand-green">{{ __('Solo documentos') }}</span>
