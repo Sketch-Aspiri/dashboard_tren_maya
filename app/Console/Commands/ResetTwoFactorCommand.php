@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\User;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Recuperación cuando alguien pierde su teléfono: borra el secreto 2FA de la
@@ -32,7 +33,10 @@ class ResetTwoFactorCommand extends Command
             return self::FAILURE;
         }
 
-        $user->forceFill(['google2fa_secret' => null, 'google2fa_enabled_at' => null])->save();
+        // También se cierran las sesiones abiertas y el "recordarme": quien tenga una sesión
+        // verificada con el 2FA anterior no debe seguir dentro tras el reinicio.
+        $user->forceFill(['google2fa_secret' => null, 'google2fa_enabled_at' => null, 'remember_token' => null])->save();
+        DB::table('sessions')->where('user_id', $user->id)->delete();
 
         activity('user')
             ->performedOn($user)

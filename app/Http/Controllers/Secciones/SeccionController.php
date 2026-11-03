@@ -69,7 +69,8 @@ class SeccionController extends Controller
                 ->withCount([
                     'filas' => fn ($q) => $q->visiblePara($usuario),
                     'archivos' => fn ($q) => $q->visiblePara($usuario),
-                    'hijas',
+                    // Una estación no cuenta las subsecciones que no puede ver.
+                    'hijas' => fn ($q) => $q->when($visibles !== null, fn ($q2) => $q2->whereIn('id', array_keys($visibles))),
                 ])->get(),
             'puedeAnidar' => $seccion->nivel() < Seccion::PROFUNDIDAD_MAXIMA,
             'tablaActiva' => $tabla,

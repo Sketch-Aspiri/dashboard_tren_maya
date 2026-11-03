@@ -6,6 +6,7 @@ use App\Models\Estacion;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
 use Tests\TestCase;
 
@@ -51,6 +52,20 @@ class ResetTwoFactorCommandTest extends TestCase
         $evento = Activity::query()->where('event', 'two_factor_reset')->sole();
         $this->assertSame($user->id, $evento->subject_id);
         $this->assertSame('console', $evento->properties['channel']);
+    }
+
+    public function test_it_closes_the_open_sessions_of_the_account_only(): void
+    {
+        $user = $this->cuentaConRol('Administrador');
+        $otra = $this->cuentaConRol('Edificio');
+        foreach ([$user, $otra] as $cuenta) {
+            DB::table('sessions')->insert(['id' => 'sesion-'.$cuenta->id, 'user_id' => $cuenta->id, 'payload' => '', 'last_activity' => time()]);
+        }
+
+        $this->artisan('app:reset-two-factor', ['email' => $user->email])->assertExitCode(0);
+
+        $this->assertDatabaseMissing('sessions', ['user_id' => $user->id]);
+        $this->assertDatabaseHas('sessions', ['user_id' => $otra->id]);
     }
 
     public function test_it_fails_for_an_unknown_email(): void
