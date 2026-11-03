@@ -63,7 +63,7 @@ Arquitectura de tres capas, alojada en un VPS propio:
    registros (pendiente de definir el modelo de datos final).
 6. **Reportes y exportación** — PDF/Excel.
 7. **Auditoría y bitácora** — quién accede, qué consulta, qué modifica.
-8. **Administración de usuarios** (preparado a futuro, no activo en v1).
+8. **Administración de usuarios** — panel `/usuarios` (solo Administrador), cuentas individuales con roles Jefe de Zona, Administrador, Edificio y Estación.
 
 ## Requisitos de seguridad (no negociables)
 
@@ -112,7 +112,7 @@ npm run dev
 # dashboard_jefe_zona_test (phpunit.xml).
 php artisan migrate --seed
 
-# Provisionar la cuenta compartida (Jefe de Zona + Administrador; interactivo, sin
+# Provisionar la cuenta del Jefe de Zona + Administrador (interactivo, sin
 # contraseña por defecto)
 php artisan app:create-zone-chief
 
@@ -218,16 +218,42 @@ servidor ejecuta, y recibe únicamente el resultado. Requiere
 `ANTHROPIC_API_KEY`; límites en `ASISTENTE_LIMITE_POR_MINUTO` /
 `ASISTENTE_LIMITE_DIARIO`. Cada pregunta queda en la bitácora.
 
-## Cuenta compartida y 2FA
+## Cuentas, roles y 2FA
 
-Por decisión del Jefe de Zona (oct 2026) hay **una sola cuenta** con roles
-Jefe de Zona + Administrador que usa todo el equipo, y el 2FA está apagado
-con `TWO_FACTOR_ENABLED=false` (el código de 2FA sigue completo). El rol
-Estación existe pero sin cuentas.
+Cuentas **individuales** (una por persona), creadas por el Administrador desde
+*Usuarios* (`/usuarios`). Roles (`App\Support\Roles`):
 
-**Requisito antes de publicar el dominio en el VPS:** `TWO_FACTOR_ENABLED=true`
-y una cuenta por persona (`deploy/vps/LEEME.md`, paso V2). Mientras el servidor
-no sea público, la excepción sigue vigente.
+| Rol | Alcance |
+|---|---|
+| **Administrador** + **Jefe de Zona** (cuenta del Jefe, puede tener ambos) | Ve y edita todo; solo ellos **aprueban secciones para estaciones** y usan el asistente de Claude. Solo el Administrador gestiona usuarios. |
+| **Edificio** (empleados de la oficina zonal) | Ve y edita **todos los datos y la estructura** (secciones, columnas, tablas, Personal, asistencia de cualquier estación y fecha). No gestiona usuarios, no aprueba secciones, no usa el asistente. |
+| **Estación** (con `users.estacion_id`; varias cuentas por estación) | Solo las secciones aprobadas para su estación (y sus subsecciones) y, dentro de ellas, solo las filas y documentos **etiquetados con su estación**. Ve, agrega y edita sus filas, sube documentos; no borra, no importa, no toca la estructura. Captura la asistencia de su estación (solo hoy). |
+
+Edificio y Estación **no se combinan** con otros roles; Jefe de Zona +
+Administrador sí. Editar una cuenta desde el panel conserva todos sus roles y
+no se puede quitar el rol Administrador a la última cuenta que lo tiene.
+
+**Separación de datos entre estaciones:**
+- `seccion_filas.estacion_id` y `seccion_archivos.estacion_id` (nullable: lo sin
+  etiqueta solo lo ve la zona). Las cuentas Estación etiquetan solas lo que
+  capturan. La zona etiqueta en bloque desde la tabla (*Asignar estación por
+  columna*: vista previa y luego aplicar; se recuerda la columna en
+  `seccion_tablas.columna_estacion_clave` para que las cargas y sincronizaciones
+  siguientes etiqueten solas) o a mano en cada fila/documento. La coincidencia
+  con el catálogo es exacta tras normalizar (`App\Support\ResolutorEstacion`).
+- Aprobación: *Estaciones que la ven* en la sección (`seccion_estacion` o
+  `secciones.compartida_todas`); se hereda a las subsecciones
+  (`VisibilidadSecciones`). Una sección no aprobada responde **404** a la
+  estación, igual que cualquier fila/documento ajeno.
+- Todo acceso a filas/documentos pasa por `visiblePara($usuario)` /
+  `SeccionPolicy`; al añadir una consulta nueva sobre secciones hay que aplicarlo.
+- Los "Reemplazar" de una carga o sincronización de nube borran también las
+  filas capturadas por estaciones: avisar antes.
+
+**2FA:** obligatorio para todos los roles con dominio público
+(`TWO_FACTOR_ENABLED=true`, `deploy/vps/LEEME.md` paso V2). Si alguien pierde su
+teléfono: `php artisan app:reset-two-factor <correo>` (por SSH, queda en la
+bitácora) y vuelve a registrarlo en su siguiente acceso.
 
 ## Roles del proyecto
 

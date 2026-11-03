@@ -11,8 +11,8 @@ use Illuminate\Validation\Rules\Password;
 use Spatie\Permission\Models\Role;
 
 /**
- * Interactively provisions one shared station account (role "Estación").
- * Run once per operational station (9 times) — mirrors
+ * Interactively provisions one station account (role "Estación") for ONE person.
+ * Several accounts per station are allowed (individual accounts, see AGENTS.md) — mirrors
  * App\Console\Commands\CreateZoneChiefCommand's pattern: never a
  * known/default password, no mass-assignment from request input (see
  * CLAUDE.md and .claude/rules/server-conventions.md).
@@ -26,14 +26,14 @@ class CreateEstacionAccountCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'app:create-estacion-account';
+    protected $signature = 'app:create-estacion-account {--estacion= : Nombre de la estación (si se omite, se pregunta)}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Interactively provision a shared station account (role "Estación") with a freshly chosen password.';
+    protected $description = 'Interactively provision an individual station account (role "Estación") with a freshly chosen password.';
 
     /**
      * Execute the console command.
@@ -45,7 +45,7 @@ class CreateEstacionAccountCommand extends Command
         $estacion = $this->promptForEstacion();
 
         if ($estacion === null) {
-            $this->components->error('No hay estaciones operativas registradas. Corre primero el seeder (php artisan db:seed --class=EstacionSeeder).');
+            $this->components->error('No se encontró esa estación operativa. Revisa el nombre o corre primero el seeder (php artisan db:seed --class=EstacionSeeder).');
 
             return self::FAILURE;
         }
@@ -105,7 +105,7 @@ class CreateEstacionAccountCommand extends Command
             return null;
         }
 
-        $nombre = $this->choice('Estación', $estaciones->pluck('nombre')->all());
+        $nombre = $this->option('estacion') ?: $this->choice('Estación', $estaciones->pluck('nombre')->all());
 
         return $estaciones->firstWhere('nombre', $nombre);
     }

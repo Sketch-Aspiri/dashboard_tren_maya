@@ -54,8 +54,9 @@ Todo cambio de Nginx, firewall o PHP-FPM lo revisa `security-auditor`.
 4. DNS: registro A de `<dominio>` → IP del VPS. CloudPanel → Let's Encrypt (renovación automática).
 5. Pegar `nginx-seguridad.conf` en el vhost del sitio.
 6. **Requisito antes de abrir el DNS** (si falta uno, no se publica):
-   - [ ] `TWO_FACTOR_ENABLED=true`
-   - [ ] una cuenta por persona (sin cuenta compartida)
+   - [ ] `TWO_FACTOR_ENABLED=true` (al activarlo, **todas** las cuentas —incluida la del Jefe— registran su 2FA en la siguiente petición: coordinarlo con él presente; recuperación con `php artisan app:reset-two-factor <correo>`)
+   - [ ] una cuenta por persona (sin cuenta compartida), creadas en *Usuarios*: Edificio y Estación (varias por estación)
+   - [ ] secciones aprobadas para estaciones y filas/documentos etiquetados (probado con una cuenta Estación de prueba, que se borra después)
    - [ ] `APP_DEBUG=false`, `APP_ENV=production`, `SESSION_SECURE_COOKIE=true`
    - [ ] limitador de login probado (muchos intentos fallidos → `429`)
    - [ ] `fail2ban` activo (sshd + nginx)
