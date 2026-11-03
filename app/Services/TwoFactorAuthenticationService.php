@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Models\User;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use Illuminate\Http\Request;
 use PragmaRX\Google2FAQRCode\Google2FA;
+use PragmaRX\Google2FAQRCode\QRCode\Bacon;
 
 /**
  * Wraps pragmarx/google2fa(-qrcode) to keep enrollment/QR-generation logic
@@ -41,7 +43,12 @@ final class TwoFactorAuthenticationService
      */
     public function qrCodeSvgFor(User $user, string $secret): string
     {
-        return $this->google2fa->getQRCodeInline(
+        // Force the SVG backend: by default the library switches to a PNG
+        // data URI when the imagick extension is loaded (as on the VPS), and
+        // the view would print that string as text instead of an image.
+        $qrCodeGenerator = new Google2FA(new Bacon(new SvgImageBackEnd));
+
+        return $qrCodeGenerator->getQRCodeInline(
             (string) config('app.name'),
             $user->email,
             $secret,

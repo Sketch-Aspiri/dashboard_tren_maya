@@ -54,6 +54,17 @@ class TwoFactorAuthenticationTest extends TestCase
         $response->assertViewHas('qrCodeSvg');
     }
 
+    public function test_qr_code_is_inline_svg_markup_not_a_data_uri(): void
+    {
+        $user = User::factory()->create();
+
+        $qrCode = app(TwoFactorAuthenticationService::class)
+            ->qrCodeSvgFor($user, 'TESTSECRETKEYFORSPECS123456');
+
+        $this->assertStringContainsString('<svg', $qrCode);
+        $this->assertStringNotContainsString('data:image', $qrCode);
+    }
+
     public function test_user_can_complete_enrollment_with_a_valid_code(): void
     {
         $user = User::factory()->create();
