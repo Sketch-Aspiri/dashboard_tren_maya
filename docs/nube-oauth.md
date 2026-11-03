@@ -86,3 +86,45 @@ Las variables `*_REDIRECT_URI` ya no se usan. Después: `php artisan config:cach
 - Si un secret se expuso (chat, correo, log, git): **rotarlo de inmediato**.
 - Revocar acceso de una cuenta: desde el dashboard (*Conexiones de nube → Desconectar*)
   y, en el proveedor, quitar la app de las aplicaciones autorizadas de esa cuenta.
+
+## Vincular desde la nube (uso en las secciones)
+
+Con una cuenta conectada (y activa) en Conexiones de nube, cualquier rol de zona
+puede, desde la pestaña **Documentos** de una sección, pulsar **Vincular desde
+la nube**: elegir la cuenta (o "Enlace público", solo para archivos sueltos),
+pegar el enlace "Compartir", **Inspeccionar** (muestra "Carpeta X: n
+documentos, n Excel, n omitidos (motivos)") y **Confirmar**. Una cuenta
+Estación no ve ni gestiona esto.
+
+- **Carpetas**: se trae cada archivo permitido (extensiones de
+  `secciones.extensiones`, máx. 100 MB, hasta `SECCIONES_NUBE_MAX_ARCHIVOS` y 10
+  niveles). Cada uno queda como documento de la sección con su carpeta; en la
+  pestaña se navega por carpetas con migas de pan. Los documentos sincronizados
+  no tienen estación (solo la zona los ve) y no se borran a mano.
+- **Sincronización**: automática cada `SECCIONES_SYNC_MINUTOS` (15) y con
+  **Sincronizar ahora**. Un archivo nuevo se agrega; uno modificado se reemplaza
+  sin duplicar; uno renombrado o movido solo actualiza su nombre/carpeta (no se
+  descarga); uno que desaparece de la nube se **archiva** (no se borra; vuelve
+  solo si reaparece). Si el listado llega vacío habiendo documentos, no se
+  archiva nada hasta que se confirme ("Confirmar archivado").
+- **Estados del origen**: `activo`, `pausado`, `requiere_reconexion` (la cuenta
+  debe reconectarse en Conexiones de nube; los documentos se conservan y el
+  origen se reactiva solo) y `origen_eliminado` (la carpeta ya no existe o no
+  está compartida con la cuenta).
+- **Desvincular**: conserva los documentos como normales (por defecto) o los
+  archiva.
+- **Disco**: antes de descargar se exige dejar libres al menos
+  `SECCIONES_NUBE_RESERVA_DISCO_GB` (10 GB); si no, la sincronización se
+  detiene con un aviso legible.
+
+### Requisitos en el servidor
+
+La sincronización necesita **las dos piezas**: el cron único
+(`* * * * * php artisan schedule:run`, ver `deploy/vps/cron.txt`) que encola un
+trabajo por origen, **y el worker de cola** (`deploy/vps/supervisor-dashboard.conf`,
+`--queue=nube,default`). Sin el worker, "Sincronizar ahora" y el programador
+solo acumulan trabajos. `config/queue.php` deja `retry_after` (960 s) por
+encima del `--timeout` del worker y del `timeout` del job (900 s). Los fallos
+pasajeros de la nube (429/5xx) se reintentan 3 veces con espera; los demás
+quedan en el origen y en la bitácora (`sincronizacion_fallida`) sin reintentos
+infinitos.

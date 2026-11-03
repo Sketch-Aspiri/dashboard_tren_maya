@@ -67,12 +67,32 @@ class SeccionArchivo extends Model
     {
         return [
             'tamano' => 'integer',
+            'remoto_modificado_en' => 'datetime',
         ];
     }
 
     public function estaVinculadoANube(): bool
     {
         return $this->seccion_origen_id !== null;
+    }
+
+    /**
+     * Copia de un archivo de una carpeta o archivo vinculado a la nube: lo
+     * administra la sincronización, no se borra ni se vuelve a vincular a mano.
+     */
+    public function esEspejo(): bool
+    {
+        return $this->seccion_origen_id !== null && $this->remoto_id !== null;
+    }
+
+    /**
+     * Carpeta (relativa a la raíz del origen) donde vive en la nube; '' = raíz.
+     */
+    public function carpetaRemota(): string
+    {
+        $ruta = (string) $this->remoto_ruta;
+
+        return str_contains($ruta, '/') ? substr($ruta, 0, (int) strrpos($ruta, '/')) : '';
     }
 
     /**

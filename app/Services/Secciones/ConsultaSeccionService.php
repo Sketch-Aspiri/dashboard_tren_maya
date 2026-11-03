@@ -91,7 +91,7 @@ final class ConsultaSeccionService
      *
      * @return Collection<int, SeccionArchivo>
      */
-    public function documentos(Seccion $seccion, ?string $busqueda, string $orden = 'recientes', ?string $tipo = null, ?User $usuario = null): Collection
+    public function documentos(Seccion $seccion, ?string $busqueda, string $orden = 'recientes', ?string $tipo = null, ?User $usuario = null, ?string $carpeta = null): Collection
     {
         $consulta = $seccion->archivos()->with(['autor:id,name', 'estacion:id,nombre', 'origen:id,proveedor,sincronizado_en,sincronizacion_error'])->latest()->latest('id');
 
@@ -105,6 +105,11 @@ final class ConsultaSeccionService
             $consulta->where('extension', $tipo);
         }
 
+        // La búsqueda cubre todas las carpetas; sin ella, solo la carpeta que se está viendo.
+        if ($busqueda === '') {
+            $this->soloCarpeta($consulta, $carpeta ?? '');
+        }
+
         if ($busqueda !== '') {
             $consulta->where(function (Builder $q) use ($busqueda): void {
                 $patron = '%'.$this->escaparLike($busqueda).'%';
@@ -116,6 +121,78 @@ final class ConsultaSeccionService
         }
 
         return $this->ordenarDocumentos($consulta->limit(self::MAX_DOCUMENTOS)->get(), $orden);
+    }
+
+    /**
+     * Subcarpetas inmediatas de la carpeta actual, con cuántos documentos
+     * (de cualquier nivel por debajo) tiene cada una.
+     *
+     * @return list<array{nombre: string, ruta: string, total: int}>
+     */
+    public function subcarpetas(Seccion $seccion, ?string $carpeta, ?User $usuario = null): array
+    {
+        $prefijo = ($carpeta ?? '') === '' ? '' : $carpeta.'/';
+        $consulta = $seccion->archivos()->whereNotNull('remoto_ruta');
+
+        if ($usuario !== null) {
+            $consulta->visiblePara($usuario);
+        }
+
+        if ($prefijo !== '') {
+            $consulta->where('remoto_ruta', 'like', $this->escaparLike($prefijo).'%');
+        }
+
+        $conteo = [];
+
+        foreach ($consulta->pluck('remoto_ruta') as $ruta) {
+            $resto = substr((string) $ruta, strlen($prefijo));
+
+            if (str_contains($resto, '/')) {
+                $nombre = strstr($resto, '/', true);
+                $conteo[$nombre] = ($conteo[$nombre] ?? 0) + 1;
+            }
+        }
+
+        ksort($conteo, SORT_NATURAL | SORT_FLAG_CASE);
+
+        return array_map(
+            fn (string $nombre): array => ['nombre' => $nombre, 'ruta' => $prefijo.$nombre, 'total' => $conteo[$nombre]],
+            array_map('strval', array_keys($conteo)),
+        );
+    }
+
+    /**
+     * Migas de pan de una carpeta: cada nivel con su ruta acumulada.
+     *
+     * @return list<array{nombre: string, ruta: string}>
+     */
+    public function migas(?string $carpeta): array
+    {
+        $migas = [];
+        $acumulada = '';
+
+        foreach (array_filter(explode('/', (string) $carpeta), fn (string $parte): bool => $parte !== '') as $parte) {
+            $acumulada = $acumulada === '' ? $parte : $acumulada.'/'.$parte;
+            $migas[] = ['nombre' => $parte, 'ruta' => $acumulada];
+        }
+
+        return $migas;
+    }
+
+    /**
+     * Deja solo los documentos de la carpeta (sin los de sus subcarpetas).
+     * La raíz incluye también los documentos subidos a mano.
+     */
+    private function soloCarpeta(mixed $consulta, string $carpeta): void
+    {
+        if ($carpeta === '') {
+            $consulta->where(fn (Builder $q) => $q->whereNull('remoto_ruta')->orWhere('remoto_ruta', 'not like', '%/%'));
+
+            return;
+        }
+
+        $patron = $this->escaparLike($carpeta).'/';
+        $consulta->where('remoto_ruta', 'like', $patron.'%')->where('remoto_ruta', 'not like', $patron.'%/%');
     }
 
     /**

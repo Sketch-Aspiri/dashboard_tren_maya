@@ -123,7 +123,7 @@ class SeccionArchivoController extends Controller
 
     public function destroy(Seccion $seccion, SeccionArchivo $archivo): RedirectResponse
     {
-        $this->authorize('gestionarDatos', $seccion);
+        $this->authorize('administrarArchivo', [$seccion, $archivo]);
 
         $this->archivos->eliminar($archivo);
 

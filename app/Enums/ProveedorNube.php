@@ -84,4 +84,19 @@ enum ProveedorNube: string
             self::Dropbox => ['token_access_type' => 'offline'],
         };
     }
+
+    /**
+     * Dominios de los enlaces "Compartir" de este proveedor. Un enlace de
+     * otro sitio (o una IP) nunca se manda a su API (SSRF).
+     *
+     * @return list<string>
+     */
+    public function hostsDeEnlace(): array
+    {
+        return match ($this) {
+            self::Microsoft => ['1drv.ms', '1drv.com', 'onedrive.live.com', 'sharepoint.com'],
+            self::Google => ['drive.google.com', 'docs.google.com'],
+            self::Dropbox => ['dropbox.com'],
+        };
+    }
 }

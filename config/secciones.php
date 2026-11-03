@@ -50,7 +50,10 @@ return [
     // (secciones:sincronizar-nube, cada `minutos`). Solo se descargan
     // dominios de esta lista, también tras una redirección.
     'nube' => [
-        'minutos' => (int) env('SECCIONES_SYNC_MINUTOS', 30),
+        'minutos' => (int) env('SECCIONES_SYNC_MINUTOS', 15),
+        // Espacio libre (GB) que debe quedar en el disco de documentos antes de descargar
+        // cada archivo; si no, la sincronización se detiene con un aviso.
+        'reserva_disco_gb' => (float) env('SECCIONES_NUBE_RESERVA_DISCO_GB', 10),
         'timeout_segundos' => 60,
         'max_redirecciones' => 5,
         'hosts_permitidos' => [

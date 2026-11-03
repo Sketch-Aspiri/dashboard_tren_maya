@@ -1,6 +1,8 @@
 # Cron del USUARIO DEL SITIO (crontab -e como ese usuario, o la UI de cron de CloudPanel).
 # UNA sola entrada: el scheduler de Laravel decide qué corre y cuándo
-# (sincronización de nube, etc.). No agregar entradas por tarea.
+# (sincronización de nube cada SECCIONES_SYNC_MINUTOS, etc.). No agregar entradas por tarea.
+# OJO: el cron solo ENCOLA la sincronización de los orígenes de nube; además debe estar
+# corriendo el worker (supervisor-dashboard.conf, cola `nube,default`) o nada se sincroniza.
 # Reemplazar <RUTA_SITIO> (p. ej. /home/dashboard/htdocs/dashboard.ejemplo.mx).
 * * * * * cd <RUTA_SITIO> && /usr/bin/php8.3 artisan schedule:run >> /dev/null 2>&1
 

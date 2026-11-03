@@ -52,13 +52,13 @@ final class GoogleDrive extends ProveedorConCuenta
             $this->recorrer($cuenta, $id, true, $acumulador);
             $listado = $acumulador->resultado();
 
-            return new OrigenRemoto(OrigenRemoto::CARPETA, null, $id, $nombre, count($listado->archivos), $listado->omitidos);
+            return new OrigenRemoto(OrigenRemoto::CARPETA, null, $id, $nombre, count($listado->archivos), $listado->omitidos, $listado->excel());
         }
 
         $this->procesar($archivo, '', $acumulador);
         $listado = $acumulador->resultado();
 
-        return new OrigenRemoto(OrigenRemoto::ARCHIVO, null, $id, $nombre, count($listado->archivos), $listado->omitidos);
+        return new OrigenRemoto(OrigenRemoto::ARCHIVO, null, $id, $nombre, count($listado->archivos), $listado->omitidos, $listado->excel());
     }
 
     public function listarConResumen(SeccionOrigen $origen): ListadoRemoto

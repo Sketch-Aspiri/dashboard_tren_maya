@@ -37,13 +37,13 @@ final class Dropbox extends ProveedorConCuenta
             $this->recorrer($cuenta, $enlace, true, $acumulador);
             $listado = $acumulador->resultado();
 
-            return new OrigenRemoto(OrigenRemoto::CARPETA, null, $id, $nombre, count($listado->archivos), $listado->omitidos);
+            return new OrigenRemoto(OrigenRemoto::CARPETA, null, $id, $nombre, count($listado->archivos), $listado->omitidos, $listado->excel());
         }
 
         $acumulador->agregar($this->archivoSuelto($meta, $nombre));
         $listado = $acumulador->resultado();
 
-        return new OrigenRemoto(OrigenRemoto::ARCHIVO, null, $id, $nombre, count($listado->archivos), $listado->omitidos);
+        return new OrigenRemoto(OrigenRemoto::ARCHIVO, null, $id, $nombre, count($listado->archivos), $listado->omitidos, $listado->excel());
     }
 
     public function listarConResumen(SeccionOrigen $origen): ListadoRemoto

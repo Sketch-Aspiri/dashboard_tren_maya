@@ -8,9 +8,11 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Documentos vinculados a la nube (Drive, OneDrive, Dropbox): se vuelven a
-// descargar y, si cambiaron, se actualizan archivo y tablas. Requiere el cron
-// único de `schedule:run` en el servidor.
+// Orígenes de nube (carpetas y archivos vinculados desde la nube): cada
+// SECCIONES_SYNC_MINUTOS (15 por defecto) se encola un SincronizarOrigenJob por
+// origen activo. REQUIERE las dos piezas del servidor: el cron único de
+// `schedule:run` (deploy/vps/cron.txt) Y el worker de cola con la cola `nube`
+// (deploy/vps/supervisor-dashboard.conf); sin el worker los jobs se acumulan.
 Schedule::command('secciones:sincronizar-nube')
     ->cron('*/'.max(1, min(59, (int) config('secciones.nube.minutos'))).' * * * *')
     ->withoutOverlapping()

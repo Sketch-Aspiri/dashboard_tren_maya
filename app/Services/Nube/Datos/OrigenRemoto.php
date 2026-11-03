@@ -23,6 +23,7 @@ final readonly class OrigenRemoto
         public string $nombre,
         public int $archivos = 1,
         public array $omitidos = [],
+        public int $excel = 0,
     ) {}
 
     public function esCarpeta(): bool

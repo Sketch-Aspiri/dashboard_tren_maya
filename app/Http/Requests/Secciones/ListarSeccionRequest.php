@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Secciones;
 
+use Closure;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -41,19 +42,29 @@ class ListarSeccionRequest extends FormRequest
             'tab' => ['nullable', Rule::in(['tabla', 'documentos', 'enlaces', 'cargas'])],
             'doc_orden' => ['nullable', Rule::in(self::ORDENES_DOCUMENTO)],
             'doc_tipo' => ['nullable', 'string', 'max:10', 'alpha_num'],
+            // Carpeta del navegador de documentos (ruta relativa a la raíz del origen): sin "..", sin barra inicial.
+            'carpeta' => ['nullable', 'string', 'max:500', function (string $atributo, mixed $valor, Closure $falla): void {
+                $segmentos = explode('/', (string) $valor);
+
+                if (str_contains((string) $valor, '\\') || preg_match('/[\x00-\x1F]/', (string) $valor) === 1
+                    || array_intersect(['', '.', '..'], $segmentos) !== []) {
+                    $falla(__('La carpeta no es válida.'));
+                }
+            }],
             // Id de estación o "sin" (filas sin etiqueta); solo lo respeta la consulta para roles de zona.
             'estacion' => ['nullable', 'regex:/^(\d+|sin)$/'],
         ];
     }
 
     /**
-     * @return array{q: ?string, sort: ?string, direction: string, per_page: int, doc_orden: string, doc_tipo: ?string}
+     * @return array{q: ?string, sort: ?string, direction: string, per_page: int, doc_orden: string, doc_tipo: ?string, carpeta: ?string}
      */
     public function filtros(): array
     {
         return [
             'doc_orden' => $this->validated('doc_orden') ?? self::ORDENES_DOCUMENTO[0],
             'doc_tipo' => $this->validated('doc_tipo'),
+            'carpeta' => $this->validated('carpeta'),
             'q' => $this->validated('q'),
             'estacion' => $this->validated('estacion'),
             'sort' => $this->validated('sort'),

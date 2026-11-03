@@ -211,6 +211,17 @@ class Seccion extends Model
     }
 
     /**
+     * Alias solo para el binding con scope de las rutas ({seccion}/origenes/{origen}):
+     * Laravel pluraliza "origen" en inglés ("origens"). Usar origenes() en el código.
+     *
+     * @return HasMany<SeccionOrigen, $this>
+     */
+    public function origens(): HasMany
+    {
+        return $this->origenes();
+    }
+
+    /**
      * @return HasMany<SeccionEnlace, $this>
      */
     public function enlaces(): HasMany

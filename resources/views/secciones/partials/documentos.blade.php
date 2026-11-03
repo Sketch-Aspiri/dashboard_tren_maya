@@ -22,9 +22,16 @@
     @enderror
 @endforeach
 
+@if ($puedeGestionar)
+    @include('secciones.partials.origenes-nube')
+@endif
+
+@include('secciones.partials.navegador-carpetas')
+
 @if (count($tiposDocumento) > 0)
     <form method="GET" action="{{ route('secciones.show', $seccion) }}" class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end">
         <input type="hidden" name="tab" value="documentos">
+        @if ($carpetaActual !== '') <input type="hidden" name="carpeta" value="{{ $carpetaActual }}"> @endif
         @if ($filtros['q']) <input type="hidden" name="q" value="{{ $filtros['q'] }}"> @endif
         @isset($parametroTabla['tabla']) <input type="hidden" name="tabla" value="{{ $parametroTabla['tabla'] }}"> @endisset
         <div class="sm:w-72">
@@ -48,13 +55,15 @@
         </div>
         <noscript><button type="submit" class="min-h-[44px] rounded-md bg-brand-green px-4 text-sm font-semibold text-white">{{ __('Aplicar') }}</button></noscript>
         @if ($filtros['doc_orden'] !== 'recientes' || $filtros['doc_tipo'])
-            <a href="{{ route('secciones.show', array_filter(['seccion' => $seccion, 'tab' => 'documentos', 'q' => $filtros['q'], 'tabla' => $parametroTabla['tabla'] ?? null])) }}"
+            <a href="{{ route('secciones.show', array_filter(['seccion' => $seccion, 'tab' => 'documentos', 'q' => $filtros['q'], 'carpeta' => $carpetaActual ?: null, 'tabla' => $parametroTabla['tabla'] ?? null])) }}"
                class="inline-flex min-h-[44px] items-center rounded-md px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Quitar orden y filtro') }}</a>
         @endif
     </form>
 @endif
 
-@if ($documentos->isEmpty())
+@if ($documentos->isEmpty() && $subcarpetas !== [])
+    {{-- Solo hay subcarpetas en este nivel. --}}
+@elseif ($documentos->isEmpty())
     <div class="rounded-xl border border-dashed border-brand-green/25 bg-white p-8 text-center text-sm text-gray-600 shadow-sm shadow-brand-green/5">
         {{ $hayFiltroDocumentos ? __('Ningún documento coincide con la búsqueda o el filtro.') : __('Aún no hay documentos. Arrástralos a la zona de arriba.') }}
     </div>
@@ -87,6 +96,12 @@
                                 </select>
                             </form>
                         @endif
+                        @if ($documento->esEspejo())
+                            <p class="mt-0.5 text-xs text-brand-teal">
+                                {{ __('Sincronizado de la nube') }}
+                                @if ($documento->remoto_ruta) · <span class="break-all">{{ $documento->remoto_ruta }}</span> @endif
+                            </p>
+                        @endif
                         @if ($documento->origen)
                             <p class="mt-0.5 text-xs text-brand-teal">
                                 {{ __('Nube') }} ({{ $documento->origen->proveedor }}) ·
@@ -110,7 +125,7 @@
                                               :etiqueta="__('Extraer con IA')" :confirmar="__('Sí, enviar')"
                                               :pregunta="__('El documento completo se enviará a Claude (Anthropic) para leer sus tablas. Revisarás el resultado antes de guardarlo. ¿Continuar?')" />
                     @endif
-                    @if ($puedeGestionar && ! $documento->seccion_fila_id)
+                    @if ($puedeGestionar && ! $documento->seccion_fila_id && ! $documento->esEspejo())
                         @if ($documento->estaVinculadoANube())
                             <form method="POST" action="{{ route('secciones.archivos.nube.sincronizar', [$seccion, $documento]) }}">
                                 @csrf
@@ -155,7 +170,7 @@
                             </div>
                         @endif
                     @endif
-                    @if ($puedeGestionar)
+                    @if ($puedeGestionar && ! $documento->esEspejo())
                         <x-confirmar-eliminar :action="route('secciones.archivos.destroy', [$seccion, $documento])" />
                     @endif
                 </div>

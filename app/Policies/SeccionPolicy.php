@@ -69,6 +69,21 @@ class SeccionPolicy
     }
 
     /**
+     * Borrar o (re)vincular a mano un documento. Un documento espejo de la
+     * nube lo administra su origen: solo se puede desvincular el origen.
+     */
+    public function administrarArchivo(User $user, Seccion $seccion, SeccionArchivo $archivo): Response
+    {
+        if (! $this->esZona($user)) {
+            return Response::deny();
+        }
+
+        return $archivo->esEspejo()
+            ? Response::deny(__('Este documento viene de una carpeta de la nube: desvincula el origen para quitarlo.'))
+            : Response::allow();
+    }
+
+    /**
      * Asignar la estación de filas y documentos (individual o en bloque por
      * columna). Solo roles de zona.
      */

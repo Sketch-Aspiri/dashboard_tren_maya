@@ -42,7 +42,15 @@ final class AplicadorContenidoNube
      */
     public function validar(SeccionArchivo $archivo, string $temporal): void
     {
-        $candidato = new UploadedFile($temporal, $archivo->nombre_original, null, null, true);
+        $this->validarContenido($archivo->nombre_original, $temporal);
+    }
+
+    /**
+     * @throws NubeSyncException
+     */
+    public function validarContenido(string $nombre, string $temporal): void
+    {
+        $candidato = new UploadedFile($temporal, $nombre, null, null, true);
 
         $falla = Validator::make(['archivo' => $candidato], ['archivo' => ['required', ...StoreSeccionArchivoRequest::reglasDeContenido()]])->fails();
 

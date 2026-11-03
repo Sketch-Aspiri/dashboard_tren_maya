@@ -26,6 +26,7 @@ use App\Http\Controllers\Secciones\SeccionExportacionController;
 use App\Http\Controllers\Secciones\SeccionFilaController;
 use App\Http\Controllers\Secciones\SeccionFotoController;
 use App\Http\Controllers\Secciones\SeccionImportacionController;
+use App\Http\Controllers\Secciones\SeccionOrigenController;
 use App\Http\Controllers\Secciones\SeccionTablaController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Auth;
@@ -183,6 +184,17 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
                     ->middleware('throttle:secciones-archivos')
                     ->name('archivos.nube.sincronizar');
                 Route::delete('/{seccion}/archivos/{archivo}/nube', [SeccionArchivoNubeController::class, 'desvincular'])->name('archivos.nube.desvincular');
+
+                // Orígenes de nube (carpetas/archivos vinculados): solo roles de zona (gestionarDatos).
+                Route::post('/{seccion}/origenes/inspeccionar', [SeccionOrigenController::class, 'inspeccionar'])
+                    ->middleware('throttle:secciones-archivos')
+                    ->name('origenes.inspeccionar');
+                Route::post('/{seccion}/origenes', [SeccionOrigenController::class, 'store'])->name('origenes.store');
+                Route::post('/{seccion}/origenes/{origen}/sincronizar', [SeccionOrigenController::class, 'sincronizar'])
+                    ->middleware('throttle:secciones-archivos')
+                    ->name('origenes.sincronizar');
+                Route::put('/{seccion}/origenes/{origen}', [SeccionOrigenController::class, 'update'])->name('origenes.update');
+                Route::delete('/{seccion}/origenes/{origen}', [SeccionOrigenController::class, 'destroy'])->name('origenes.destroy');
 
                 Route::post('/{seccion}/importaciones/{importacion}/calcular', [SeccionImportacionController::class, 'calcular'])->name('importaciones.calcular');
                 Route::post('/{seccion}/importaciones/{importacion}/aplicar', [SeccionImportacionController::class, 'aplicar'])->name('importaciones.aplicar');

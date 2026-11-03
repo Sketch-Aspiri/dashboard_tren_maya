@@ -3,6 +3,7 @@
 namespace App\Services\Nube;
 
 use App\Enums\ProveedorNube;
+use App\Models\NubeCuenta;
 use App\Models\SeccionOrigen;
 use App\Services\Nube\Contracts\ProveedorNube as ContratoProveedorNube;
 use App\Services\Nube\Proveedores\Dropbox;
@@ -16,6 +17,15 @@ use App\Services\Nube\Proveedores\MicrosoftGraph;
  */
 final class ProveedorNubeFactory
 {
+    /**
+     * Proveedor para inspeccionar un enlace antes de vincularlo: el de la
+     * cuenta elegida, o el enlace público si no hay cuenta.
+     */
+    public function paraCuenta(?NubeCuenta $cuenta): ContratoProveedorNube
+    {
+        return $cuenta === null ? app(EnlacePublico::class) : $this->para($cuenta->proveedor);
+    }
+
     public function para(SeccionOrigen|ProveedorNube $destino): ContratoProveedorNube
     {
         if ($destino instanceof SeccionOrigen) {

@@ -20,7 +20,7 @@ class SeccionArchivoNubeController extends Controller
 
     public function vincular(VincularNubeRequest $request, Seccion $seccion, SeccionArchivo $archivo): RedirectResponse
     {
-        $this->authorize('gestionarDatos', $seccion);
+        $this->authorize('administrarArchivo', [$seccion, $archivo]);
 
         $this->nube->vincular($archivo, $request->validated('enlace'), $request->user());
 
@@ -29,7 +29,7 @@ class SeccionArchivoNubeController extends Controller
 
     public function sincronizar(Request $request, Seccion $seccion, SeccionArchivo $archivo): RedirectResponse
     {
-        $this->authorize('gestionarDatos', $seccion);
+        $this->authorize('administrarArchivo', [$seccion, $archivo]);
 
         abort_unless($archivo->estaVinculadoANube(), 404);
 
@@ -46,7 +46,7 @@ class SeccionArchivoNubeController extends Controller
 
     public function desvincular(Request $request, Seccion $seccion, SeccionArchivo $archivo): RedirectResponse
     {
-        $this->authorize('gestionarDatos', $seccion);
+        $this->authorize('administrarArchivo', [$seccion, $archivo]);
 
         $this->nube->desvincular($archivo, $request->user());
 

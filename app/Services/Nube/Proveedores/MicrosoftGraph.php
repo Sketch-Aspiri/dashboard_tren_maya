@@ -40,13 +40,13 @@ final class MicrosoftGraph extends ProveedorConCuenta
             $this->recorrer($cuenta, $driveId, $itemId, true, $acumulador);
             $listado = $acumulador->resultado();
 
-            return new OrigenRemoto(OrigenRemoto::CARPETA, $driveId, $itemId, $nombre, count($listado->archivos), $listado->omitidos);
+            return new OrigenRemoto(OrigenRemoto::CARPETA, $driveId, $itemId, $nombre, count($listado->archivos), $listado->omitidos, $listado->excel());
         }
 
         $acumulador->agregar($this->archivoDe($item, $nombre, $driveId));
         $listado = $acumulador->resultado();
 
-        return new OrigenRemoto(OrigenRemoto::ARCHIVO, $driveId, $itemId, $nombre, count($listado->archivos), $listado->omitidos);
+        return new OrigenRemoto(OrigenRemoto::ARCHIVO, $driveId, $itemId, $nombre, count($listado->archivos), $listado->omitidos, $listado->excel());
     }
 
     public function listarConResumen(SeccionOrigen $origen): ListadoRemoto

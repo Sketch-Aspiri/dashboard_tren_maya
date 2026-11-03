@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Secciones;
 
+use App\Enums\EstadoCuentaNube;
 use App\Enums\TipoColumna;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Secciones\ListarSeccionRequest;
@@ -9,6 +10,8 @@ use App\Http\Requests\Secciones\MoverElementoRequest;
 use App\Http\Requests\Secciones\StoreSeccionRequest;
 use App\Http\Requests\Secciones\UpdateSeccionRequest;
 use App\Models\Estacion;
+use App\Models\NubeCredencial;
+use App\Models\NubeCuenta;
 use App\Models\Seccion;
 use App\Models\SeccionImportacion;
 use App\Services\Asistente\ModeloLenguaje;
@@ -79,7 +82,15 @@ class SeccionController extends Controller
             // Sin parte de tabla solo existe la pestaña de documentos.
             'tab' => $seccion->solo_documentos ? 'documentos' : (in_array($tabPedida, $tabsPermitidas, true) ? $tabPedida : 'tabla'),
             'filas' => $this->consulta->filas($tabla, $filtros, $request->user()),
-            'documentos' => $this->consulta->documentos($seccion, $filtros['q'], $filtros['doc_orden'], $filtros['doc_tipo'], $request->user()),
+            'documentos' => $this->consulta->documentos($seccion, $filtros['q'], $filtros['doc_orden'], $filtros['doc_tipo'], $request->user(), $filtros['carpeta']),
+            // Navegador de carpetas de los documentos sincronizados; con búsqueda se ven todas las carpetas.
+            'carpetaActual' => $filtros['carpeta'] ?? '',
+            'migas' => $this->consulta->migas($filtros['carpeta']),
+            'subcarpetas' => ($filtros['q'] ?? '') === '' ? $this->consulta->subcarpetas($seccion, $filtros['carpeta'], $request->user()) : [],
+            'origenes' => $puedeGestionar ? $seccion->origenes()->with('cuenta:id,proveedor,cuenta_email,estado')->orderBy('id')->get() : collect(),
+            'cuentasNube' => $puedeGestionar ? NubeCuenta::query()->activas()->orderBy('cuenta_email')->get(['id', 'proveedor', 'cuenta_email']) : collect(),
+            'cuentasPorReconectar' => $puedeGestionar ? NubeCuenta::query()->where('estado', EstadoCuentaNube::RequiereReconexion->value)->orderBy('cuenta_email')->get(['id', 'proveedor', 'cuenta_email']) : collect(),
+            'hayConexionesNube' => $puedeGestionar && NubeCredencial::query()->exists(),
             'tiposDocumento' => $this->consulta->tiposDeDocumento($seccion, $request->user()),
             'enlaces' => $usuario->can('verEnlaces', $seccion) ? $seccion->enlaces()->orderBy('titulo')->get() : collect(),
             'cargas' => $cargas,

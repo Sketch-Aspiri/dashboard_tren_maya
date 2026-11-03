@@ -14,6 +14,8 @@ enum MotivoOmision: string
     case Zip = 'zip';
     case Profundidad = 'profundidad_maxima';
     case TopeArchivos = 'tope_de_archivos';
+    case ContenidoInvalido = 'contenido_no_valido';
+    case ErrorDescarga = 'error_de_descarga';
 
     public function label(): string
     {
@@ -24,6 +26,8 @@ enum MotivoOmision: string
             self::Zip => 'Archivo comprimido (zip)',
             self::Profundidad => 'Subcarpeta demasiado profunda',
             self::TopeArchivos => 'Se alcanzó el máximo de archivos',
+            self::ContenidoInvalido => 'El contenido no es un documento válido',
+            self::ErrorDescarga => 'No se pudo descargar',
         };
     }
 }
