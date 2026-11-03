@@ -9,6 +9,7 @@ use App\Models\NubeCuenta;
 use App\Models\Seccion;
 use App\Models\SeccionArchivo;
 use App\Models\SeccionOrigen;
+use App\Models\SeccionTabla;
 use App\Models\User;
 use App\Services\Nube\Datos\OrigenRemoto;
 use App\Services\Nube\ProveedorNubeFactory;
@@ -153,6 +154,7 @@ final class OrigenService
             $total = $origen->archivos()->count();
 
             $conservar ? $this->liberarDocumentos($origen) : $this->archivarDocumentos($origen, $usuario);
+            $this->liberarTablas($origen);
 
             // El enlace compartido no debe quedar guardado en la fila borrada.
             $origen->forceFill(['enlace_original' => ''])->save();
@@ -182,6 +184,16 @@ final class OrigenService
             ->where('estado', EstadoOrigen::RequiereReconexion->value)
             ->whereHas('cuenta', fn ($q) => $q->where('estado', EstadoCuentaNube::Activa->value))
             ->update(['estado' => EstadoOrigen::Activo->value, 'sincronizacion_error' => null]);
+    }
+
+    /**
+     * Las tablas espejo se conservan como tablas normales (editables); el mapeo
+     * ya no tiene origen al que obedecer.
+     */
+    private function liberarTablas(SeccionOrigen $origen): void
+    {
+        SeccionTabla::withTrashed()->where('seccion_origen_id', $origen->id)->toBase()->update(['seccion_origen_id' => null]);
+        $origen->mapeos()->delete();
     }
 
     private function liberarDocumentos(SeccionOrigen $origen): void

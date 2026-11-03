@@ -13,6 +13,7 @@ use App\Models\SeccionImportacion;
 use App\Services\Secciones\ExtractorIa;
 use App\Services\Secciones\ImportacionService;
 use App\Services\Secciones\LibroImportacionService;
+use App\Services\Secciones\MapeoEspejoService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -28,6 +29,7 @@ class SeccionImportacionController extends Controller
     public function __construct(
         private readonly ImportacionService $importaciones,
         private readonly LibroImportacionService $libros,
+        private readonly MapeoEspejoService $mapeos,
     ) {}
 
     public function show(Request $request, Seccion $seccion, SeccionImportacion $importacion): View|RedirectResponse
@@ -38,15 +40,19 @@ class SeccionImportacionController extends Controller
             return redirect()->route('secciones.show', [$seccion, 'tab' => 'cargas']);
         }
 
+        // El primer mapeo de un Excel de la nube siempre se revisa como libro (aunque tenga una sola hoja).
+        $espejo = $this->mapeos->esVistaPrevia($importacion);
+
         // Un Excel con varias hojas se revisa completo, salvo que se pida una sola.
         // Word/IA mantienen el flujo de una tabla (con el enlace "cargar todas" = ?libro=1).
-        if ($this->libros->esLibro($importacion) && ! $request->has('tabla') && ($request->boolean('libro') || $this->libros->esExcel($importacion))) {
+        if ($espejo || ($this->libros->esLibro($importacion) && ! $request->has('tabla') && ($request->boolean('libro') || $this->libros->esExcel($importacion)))) {
             return view('secciones.importacion-libro', [
                 'seccion' => $seccion->load('grupo'),
                 'importacion' => $importacion->load('archivo'),
                 'hojas' => $this->libros->propuestas($importacion),
+                'espejo' => $espejo,
                 'tiposColumna' => TipoColumna::cases(),
-                'modos' => ModoImportacion::cases(),
+                'modos' => $espejo ? [ModoImportacion::Agregar, ModoImportacion::Actualizar] : ModoImportacion::manuales(),
                 'maxHojas' => (int) config('secciones.max_hojas_importacion'),
             ]);
         }
@@ -60,13 +66,14 @@ class SeccionImportacionController extends Controller
             'importacion' => $importacion->load('archivo'),
             'propuesta' => $this->importaciones->propuesta($importacion, $tabla, $filaEncabezado),
             'tiposColumna' => TipoColumna::cases(),
-            'modos' => ModoImportacion::cases(),
+            'modos' => ModoImportacion::manuales(),
         ]);
     }
 
     public function calcular(OpcionesImportacionRequest $request, Seccion $seccion, SeccionImportacion $importacion): JsonResponse
     {
         $this->authorize('gestionarDatos', $seccion);
+        abort_if($this->mapeos->esVistaPrevia($importacion), 404);
 
         return response()->json([
             'success' => true,
@@ -79,6 +86,7 @@ class SeccionImportacionController extends Controller
     public function aplicar(OpcionesImportacionRequest $request, Seccion $seccion, SeccionImportacion $importacion): RedirectResponse
     {
         $this->authorize('gestionarDatos', $seccion);
+        abort_if($this->mapeos->esVistaPrevia($importacion), 404);
 
         $importacion = $this->importaciones->aplicar($importacion, $request->opciones(), $request->user());
         $resumen = $importacion->resumen;
@@ -108,6 +116,15 @@ class SeccionImportacionController extends Controller
     {
         $this->authorize('gestionarDatos', $seccion);
 
+        if ($this->mapeos->esVistaPrevia($importacion)) {
+            $resumen = $this->mapeos->confirmar($importacion, $request->opciones(), $request->user())->resumen;
+
+            return redirect()->route('secciones.show', $seccion)->with('status', __(
+                'Mapeo confirmado: :hojas tabla(s) con :nuevas filas. Desde ahora se mantienen iguales al Excel de la nube.',
+                ['hojas' => count($resumen['hojas']), 'nuevas' => $resumen['nuevas']],
+            ));
+        }
+
         $resumen = $this->libros->aplicar($importacion, $request->opciones(), $request->user())->resumen;
 
         return redirect()->route('secciones.show', $seccion)->with('status', __(
@@ -129,7 +146,7 @@ class SeccionImportacionController extends Controller
     {
         $this->authorize('gestionarDatos', $seccion);
 
-        $this->importaciones->descartar($importacion);
+        $this->mapeos->esVistaPrevia($importacion) ? $this->mapeos->descartar($importacion) : $this->importaciones->descartar($importacion);
 
         return redirect()->route('secciones.show', $seccion)->with('status', __('Carga descartada. El documento sigue guardado en "Documentos".'));
     }

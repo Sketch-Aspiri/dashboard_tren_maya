@@ -25,6 +25,8 @@
                             {{ $carga->archivo?->nombre_original ?? '—' }}
                             @if ($carga->origen === \App\Models\SeccionImportacion::ORIGEN_IA)
                                 <span class="ms-1 rounded-full bg-brand-mist px-2 py-0.5 text-xs text-brand-green">IA</span>
+                            @elseif ($carga->origen === \App\Models\SeccionImportacion::ORIGEN_NUBE)
+                                <span class="ms-1 rounded-full bg-brand-mist px-2 py-0.5 text-xs text-brand-green">{{ __('Nube') }}</span>
                             @endif
                         </td>
                         <td class="whitespace-nowrap px-4 py-3">

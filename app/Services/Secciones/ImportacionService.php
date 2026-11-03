@@ -10,11 +10,14 @@ use App\Models\SeccionArchivo;
 use App\Models\SeccionColumna;
 use App\Models\SeccionFila;
 use App\Models\SeccionImportacion;
+use App\Models\SeccionMapeo;
 use App\Models\SeccionTabla;
 use App\Models\User;
 use App\Support\ResolutorEstacion;
 use App\Support\Texto;
 use Carbon\CarbonInterface;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -83,13 +86,14 @@ final class ImportacionService
      *
      * @return array<string, mixed>
      */
-    public function propuesta(SeccionImportacion $importacion, int $tabla, ?int $filaEncabezado = null, ?SeccionTabla $destino = null): array
+    public function propuesta(SeccionImportacion $importacion, int $tabla, ?int $filaEncabezado = null, ?SeccionTabla $destino = null, ?SeccionMapeo $mapeoGuardado = null): array
     {
         $destino ??= $this->tablaDestino($importacion);
         $filas = $importacion->tablas[$tabla]['filas'] ?? $importacion->tablas[0]['filas'] ?? [];
         $tabla = isset($importacion->tablas[$tabla]) ? $tabla : 0;
 
-        $filaEncabezado ??= $this->preparador->filaEncabezadoSugerida($filas);
+        // Con un mapeo confirmado nada se adivina: la fila de encabezados, las columnas y la llave vienen de él.
+        $filaEncabezado = $mapeoGuardado?->fila_encabezado ?? $filaEncabezado ?? $this->preparador->filaEncabezadoSugerida($filas);
         $filaEncabezado = max(0, min($filaEncabezado, count($filas) - 1));
 
         $encabezados = $this->preparador->encabezados($filas, $filaEncabezado);
@@ -104,7 +108,11 @@ final class ImportacionService
             $existente = $columnas->first(fn (SeccionColumna $columna) => Texto::normalizar($columna->nombre) === Texto::normalizar($nombre) || $columna->clave === Texto::normalizar($nombre));
             $sinDatos = array_filter($valores, fn ($valor) => $valor !== null && $valor !== '') === [];
 
+            $guardada = $mapeoGuardado === null ? null : $this->claveGuardada($mapeoGuardado, $nombre, $columnas);
+
             $mapeo[$indice] = match (true) {
+                $guardada !== null => $guardada,
+                $mapeoGuardado !== null => $sinDatos ? OpcionesImportacion::DESTINO_IGNORAR : OpcionesImportacion::DESTINO_NUEVA,
                 $existente !== null => $existente->clave,
                 $sinDatos => OpcionesImportacion::DESTINO_IGNORAR,
                 default => OpcionesImportacion::DESTINO_NUEVA,
@@ -112,7 +120,9 @@ final class ImportacionService
             $tipos[$indice] = $this->normalizador->inferirTipo($valores, (string) $nombre)->value;
         }
 
-        $llave = $this->llaveSugerida($encabezados, $datos);
+        $llave = $mapeoGuardado === null
+            ? $this->llaveSugerida($encabezados, $datos)
+            : $this->llaveGuardada($mapeoGuardado, $mapeo);
         $tieneFilas = $destino->filas()->exists();
 
         return [
@@ -126,11 +136,51 @@ final class ImportacionService
             'tipos' => $tipos,
             'llave' => $llave,
             'modo' => match (true) {
+                $mapeoGuardado !== null => ModoImportacion::Espejo->value,
                 ! $tieneFilas => ModoImportacion::Agregar->value,
                 $llave !== null => ModoImportacion::Actualizar->value,
                 default => ModoImportacion::Agregar->value,
             },
         ];
+    }
+
+    /**
+     * Índice de la columna del documento que hoy alimenta la llave del mapeo
+     * (null: el mapeo no tiene llave, o su columna ya no viene en el Excel).
+     *
+     * @param  array<int, string>  $mapeo
+     */
+    private function llaveGuardada(SeccionMapeo $mapeoGuardado, array $mapeo): ?int
+    {
+        if ($mapeoGuardado->llave_clave === null) {
+            return null;
+        }
+
+        $indice = array_search($mapeoGuardado->llave_clave, $mapeo, true);
+
+        return $indice === false ? null : (int) $indice;
+    }
+
+    /**
+     * Destino guardado en el mapeo para un encabezado: la clave de la columna
+     * (que debe seguir existiendo), 'ignorar' si se descartó a propósito, o
+     * null si el mapeo no lo conoce (columna nueva en el Excel).
+     *
+     * @param  Collection<int, SeccionColumna>  $columnas
+     */
+    private function claveGuardada(SeccionMapeo $mapeo, string $encabezado, Collection $columnas): ?string
+    {
+        $normalizado = Texto::normalizar($encabezado);
+
+        foreach ($mapeo->columnas ?? [] as $entrada) {
+            if ($entrada['encabezado_normalizado'] !== $normalizado) {
+                continue;
+            }
+
+            return $entrada['clave'] === SeccionMapeo::IGNORAR || $columnas->contains('clave', $entrada['clave']) ? $entrada['clave'] : null;
+        }
+
+        return null;
     }
 
     /**
@@ -141,6 +191,7 @@ final class ImportacionService
     public function calcular(SeccionImportacion $importacion, OpcionesImportacion $opciones): array
     {
         $this->exigirVistaPrevia($importacion);
+        $this->exigirEscribible($importacion, $this->tablaDestino($importacion));
         $plan = $this->planificador->planear($this->tablaDestino($importacion), $importacion->tablas, $opciones);
 
         return [
@@ -169,6 +220,7 @@ final class ImportacionService
             $this->exigirVistaPrevia($importacion);
             $ahora = now();
             $destino = $this->tablaDestino($importacion);
+            $this->exigirEscribible($importacion, $destino);
 
             $plan = $this->planificador->planear($destino, $importacion->tablas, $opciones);
 
@@ -202,12 +254,14 @@ final class ImportacionService
                 'aplicada_at' => $ahora,
             ]);
 
+            $espejo = $importacion->origen === SeccionImportacion::ORIGEN_NUBE;
+
             activity('seccion')
                 ->causedBy($usuario)
                 ->performedOn($seccion)
-                ->event('importacion_aplicada')
+                ->event($espejo ? 'tabla_espejo_actualizada' : 'importacion_aplicada')
                 ->withProperties(['importacion_id' => $importacion->id, 'modo' => $opciones->modo->value, 'resumen' => $resumen])
-                ->log('Importación de documento aplicada a la sección.');
+                ->log($espejo ? 'Tabla espejo actualizada desde la nube.' : 'Importación de documento aplicada a la sección.');
 
             return $importacion;
         });
@@ -283,6 +337,8 @@ final class ImportacionService
         // (tablas, cambios) agota la memoria de ordenamiento de MySQL (1038).
         $id = $seccion->importaciones()
             ->where('estado', EstadoImportacion::Aplicada->value)
+            // Las cargas de la nube se reaplican solas en cada sincronización: no se deshacen ni estorban a las manuales.
+            ->where('origen', '!=', SeccionImportacion::ORIGEN_NUBE)
             ->orderByDesc('aplicada_at')
             ->orderByDesc('id')
             ->value('id');
@@ -309,6 +365,10 @@ final class ImportacionService
     {
         if ($importacion->estado !== EstadoImportacion::Aplicada) {
             return __('Esta carga no está aplicada.');
+        }
+
+        if ($importacion->origen === SeccionImportacion::ORIGEN_NUBE) {
+            return __('Las cargas de la nube no se deshacen: la siguiente sincronización las volvería a aplicar.');
         }
 
         if (! $this->ultimaAplicada($importacion->seccion)?->is($importacion)) {
@@ -585,6 +645,18 @@ final class ImportacionService
         }
 
         return $cambios;
+    }
+
+    /**
+     * Una tabla espejo es de solo lectura: ninguna carga manual puede escribir en ella.
+     *
+     * @throws AuthorizationException
+     */
+    public function exigirEscribible(SeccionImportacion $importacion, SeccionTabla $destino): void
+    {
+        if ($destino->esEspejo() && $importacion->origen !== SeccionImportacion::ORIGEN_NUBE) {
+            throw new AuthorizationException(__('Esta tabla se sincroniza con la nube y es de solo lectura.'));
+        }
     }
 
     public function exigirVistaPrevia(SeccionImportacion $importacion): void

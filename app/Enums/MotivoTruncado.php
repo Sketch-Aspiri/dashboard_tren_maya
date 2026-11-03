@@ -11,6 +11,7 @@ enum MotivoTruncado: string
     case Peticiones = 'tope_de_peticiones';
     case Entradas = 'tope_de_entradas';
     case Tiempo = 'tope_de_tiempo';
+    case Archivos = 'tope_de_archivos';
 
     public function mensaje(): string
     {
@@ -18,6 +19,7 @@ enum MotivoTruncado: string
             self::Peticiones => 'El listado se cortó por exceder el máximo de peticiones a la nube.',
             self::Entradas => 'El listado se cortó por exceder el máximo de elementos revisados.',
             self::Tiempo => 'El listado se cortó por exceder el tiempo máximo.',
+            self::Archivos => 'La carpeta tiene más archivos que el máximo por origen; algunos no se sincronizaron.',
         };
     }
 }

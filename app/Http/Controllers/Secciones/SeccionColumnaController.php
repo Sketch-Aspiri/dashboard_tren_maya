@@ -24,6 +24,7 @@ class SeccionColumnaController extends Controller
         $this->authorize('update', $seccion);
 
         $tabla = $request->tabla();
+        $this->authorize('modificarTabla', [$seccion, $tabla]);
 
         return view('secciones.columnas', [
             'seccion' => $seccion->load('grupo'),
@@ -38,6 +39,7 @@ class SeccionColumnaController extends Controller
         $this->authorize('update', $seccion);
 
         $tabla = $request->tabla();
+        $this->authorize('modificarTabla', [$seccion, $tabla]);
         $columna = $this->columnas->crear($tabla, $request->validated('nombre'), $request->tipo(), $request->opciones());
 
         return $this->volver($tabla, __('Columna ":nombre" agregada.', ['nombre' => $columna->nombre]));
@@ -46,6 +48,7 @@ class SeccionColumnaController extends Controller
     public function update(GuardarColumnaRequest $request, Seccion $seccion, SeccionColumna $columna): RedirectResponse
     {
         $this->authorize('update', $seccion);
+        $this->authorize('modificarTabla', [$seccion, $columna->tabla]);
 
         $this->columnas->actualizar($columna, $request->validated('nombre'), $request->tipo(), $request->opciones());
 
@@ -55,6 +58,7 @@ class SeccionColumnaController extends Controller
     public function mover(MoverElementoRequest $request, Seccion $seccion, SeccionColumna $columna): RedirectResponse
     {
         $this->authorize('update', $seccion);
+        $this->authorize('modificarTabla', [$seccion, $columna->tabla]);
 
         $this->columnas->mover($columna, $request->validated('direccion'));
 
@@ -66,6 +70,7 @@ class SeccionColumnaController extends Controller
         $this->authorize('update', $seccion);
 
         $tabla = $columna->tabla;
+        $this->authorize('modificarTabla', [$seccion, $tabla]);
         $nombre = $columna->nombre;
         $this->columnas->eliminar($columna);
 

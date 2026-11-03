@@ -8,6 +8,7 @@ use App\Enums\TipoColumna;
 use App\Models\Seccion;
 use App\Models\SeccionArchivo;
 use App\Models\SeccionImportacion;
+use App\Models\SeccionMapeo;
 use App\Models\SeccionTabla;
 use App\Models\User;
 use App\Support\Texto;
@@ -53,23 +54,26 @@ final class LibroImportacionService
      */
     public function esExcel(SeccionImportacion $importacion): bool
     {
-        return $importacion->origen === SeccionImportacion::ORIGEN_ARCHIVO
+        return in_array($importacion->origen, [SeccionImportacion::ORIGEN_ARCHIVO, SeccionImportacion::ORIGEN_NUBE], true)
             && in_array($importacion->archivo?->extension, ['xlsx', 'xls'], true);
     }
 
     /**
      * Una propuesta (encabezados, mapeo, tipos, llave) por hoja, calculada
-     * contra la tabla destino que tendría cada una.
+     * contra la tabla destino que tendría cada una. Con $mapeo (tabla espejo
+     * ya confirmada) su hoja usa lo guardado.
      *
      * @return list<array<string, mixed>>
      */
-    public function propuestas(SeccionImportacion $importacion): array
+    public function propuestas(SeccionImportacion $importacion, ?SeccionMapeo $mapeo = null): array
     {
         $propuestas = [];
 
         foreach ($importacion->tablas as $indice => $tabla) {
             $destino = $this->destinoExistente($importacion->seccion, $tabla['nombre']);
-            $propuesta = $this->importaciones->propuesta($importacion, $indice, null, $destino ?? new SeccionTabla);
+            // Un mapeo guardado solo aplica a su hoja: fija encabezados, columnas y llave en lugar de adivinarlos.
+            $delaHoja = $mapeo !== null && $mapeo->hoja === ($tabla['hoja'] ?? $tabla['nombre']) ? $mapeo : null;
+            $propuesta = $this->importaciones->propuesta($importacion, $indice, null, $destino ?? new SeccionTabla, $delaHoja);
 
             $propuestas[] = $propuesta + [
                 'nombre' => $tabla['nombre'],
@@ -248,12 +252,14 @@ final class LibroImportacionService
                 'aplicada_at' => $ahora,
             ]);
 
+            $espejo = $importacion->origen === SeccionImportacion::ORIGEN_NUBE;
+
             activity('seccion')
                 ->causedBy($usuario)
                 ->performedOn($importacion->seccion)
-                ->event('importacion_aplicada')
+                ->event($espejo ? 'tabla_espejo_actualizada' : 'importacion_aplicada')
                 ->withProperties(['importacion_id' => $importacion->id, 'modo' => $opciones->modo->value, 'libro' => true, 'resumen' => $resumen])
-                ->log('Importación de libro con varias hojas aplicada.');
+                ->log($espejo ? 'Tablas espejo creadas desde la nube.' : 'Importación de libro con varias hojas aplicada.');
 
             return $importacion;
         });
@@ -319,6 +325,11 @@ final class LibroImportacionService
             }
 
             $destino = $this->destinoExistente($importacion->seccion, $tabla['nombre']);
+
+            if ($destino !== null) {
+                $this->importaciones->exigirEscribible($importacion, $destino);
+            }
+
             // Misma regla de coincidencia que la base (mayúsculas/acentos) y el truncado del nombre.
             $llave = $destino !== null ? 'id:'.$destino->id : 'nombre:'.Texto::normalizar(Str::limit($tabla['nombre'], self::MAX_NOMBRE, ''));
 
@@ -347,7 +358,7 @@ final class LibroImportacionService
      * defecto vacía (la que se crea sola al abrir una sección sin datos),
      * se reutiliza con el nombre de la hoja en lugar de dejarla sobrando.
      */
-    private function crearTabla(Seccion $seccion, string $nombre): SeccionTabla
+    public function crearTabla(Seccion $seccion, string $nombre): SeccionTabla
     {
         $vacia = $seccion->tablas()->where('nombre', SeccionTabla::NOMBRE_POR_DEFECTO)->get()
             // Filas dadas de baja cuentan: una carga previa podría restaurarlas en la tabla renombrada.

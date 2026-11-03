@@ -34,6 +34,7 @@ final class AplicadorDiferencias
         private readonly ArchivoService $archivos,
         private readonly AplicadorContenidoNube $contenido,
         private readonly ClasificadorErrorNube $clasificador,
+        private readonly TablasEspejoService $tablas,
     ) {}
 
     /**
@@ -106,6 +107,11 @@ final class AplicadorDiferencias
             $archivo = $this->archivos->guardarDesdeRuta($origen->seccion, $temporal, $nombre, $usuario, $origen, $remoto);
             $this->registrar('documento_agregado_nube', $archivo, $origen, $usuario, 'Documento agregado desde la nube.');
             $resultado->altas++;
+
+            // Un Excel/CSV de un origen que alimenta tablas crea (o propone) su tabla espejo.
+            if ($this->tablas->atiende($origen, $archivo)) {
+                $resultado->aviso ??= $this->tablas->sincronizar($origen, $archivo, $usuario);
+            }
         } finally {
             @unlink($temporal);
         }

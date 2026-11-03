@@ -10,6 +10,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\Nube\NubeCredencialController;
 use App\Http\Controllers\Nube\NubeCuentaController;
+use App\Http\Controllers\Nube\NubeEstadoController;
 use App\Http\Controllers\Nube\NubeOAuthController;
 use App\Http\Controllers\PersonalImportacionController;
 use App\Http\Controllers\ProfileController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\Secciones\SeccionExportacionController;
 use App\Http\Controllers\Secciones\SeccionFilaController;
 use App\Http\Controllers\Secciones\SeccionFotoController;
 use App\Http\Controllers\Secciones\SeccionImportacionController;
+use App\Http\Controllers\Secciones\SeccionMapeoController;
 use App\Http\Controllers\Secciones\SeccionOrigenController;
 use App\Http\Controllers\Secciones\SeccionTablaController;
 use App\Http\Controllers\UserManagementController;
@@ -150,6 +152,7 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
                 ->middleware('throttle:secciones-vista-previa')
                 ->name('archivos.vista-previa');
             Route::get('/{seccion}/importaciones/{importacion}', [SeccionImportacionController::class, 'show'])->name('importaciones.show');
+            Route::get('/{seccion}/origenes/{origen}/mapeo', [SeccionMapeoController::class, 'edit'])->name('origenes.mapeo.edit');
 
             Route::middleware('throttle:secciones-write')->group(function () {
                 Route::put('/{seccion}', [SeccionController::class, 'update'])->name('update');
@@ -196,6 +199,11 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
                 Route::put('/{seccion}/origenes/{origen}', [SeccionOrigenController::class, 'update'])->name('origenes.update');
                 Route::delete('/{seccion}/origenes/{origen}', [SeccionOrigenController::class, 'destroy'])->name('origenes.destroy');
 
+                // Mapeo de las tablas espejo: editarlo y resolver un cambio masivo retenido.
+                Route::post('/{seccion}/origenes/{origen}/mapeo', [SeccionMapeoController::class, 'update'])->name('origenes.mapeo.update');
+                Route::post('/{seccion}/origenes/{origen}/mapeo/aplicar-retenido', [SeccionMapeoController::class, 'aplicarRetenido'])->name('origenes.mapeo.aplicar-retenido');
+                Route::post('/{seccion}/origenes/{origen}/mapeo/ignorar-retenido', [SeccionMapeoController::class, 'ignorarRetenido'])->name('origenes.mapeo.ignorar-retenido');
+
                 Route::post('/{seccion}/importaciones/{importacion}/calcular', [SeccionImportacionController::class, 'calcular'])->name('importaciones.calcular');
                 Route::post('/{seccion}/importaciones/{importacion}/aplicar', [SeccionImportacionController::class, 'aplicar'])->name('importaciones.aplicar');
                 Route::post('/{seccion}/importaciones/{importacion}/libro/calcular', [SeccionImportacionController::class, 'calcularLibro'])->name('importaciones.libro.calcular');
@@ -233,6 +241,7 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
     // Administrador (NubeCuentaPolicy). Las credenciales OAuth se cargan aquí,
     // no en el .env. Los tokens nunca salen del servidor.
     Route::prefix('nube')->name('nube.')->middleware('throttle:nube-oauth')->group(function () {
+        Route::get('/estado', [NubeEstadoController::class, 'index'])->name('estado');
         Route::get('/cuentas', [NubeCuentaController::class, 'index'])->name('cuentas.index');
         Route::delete('/cuentas/{cuenta}', [NubeCuentaController::class, 'destroy'])->name('cuentas.destroy');
         Route::put('/credenciales/{proveedor}', [NubeCredencialController::class, 'update'])->name('credenciales.update');

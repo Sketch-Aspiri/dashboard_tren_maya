@@ -19,7 +19,7 @@ class SeccionFilaController extends Controller
 
     public function store(GuardarFilaRequest $request, Seccion $seccion): RedirectResponse
     {
-        $this->authorize('crearFila', $seccion);
+        $this->authorize('crearFila', [$seccion, $request->tabla()]);
 
         $this->filas->crear($request->tabla(), $request->valores(), $request->user(), $request->fotos(), $request->estacionElegida());
 

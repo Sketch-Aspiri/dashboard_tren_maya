@@ -14,6 +14,7 @@ use App\Models\NubeCredencial;
 use App\Models\NubeCuenta;
 use App\Models\Seccion;
 use App\Models\SeccionImportacion;
+use App\Models\SeccionMapeo;
 use App\Services\Asistente\ModeloLenguaje;
 use App\Services\Secciones\ConsultaSeccionService;
 use App\Services\Secciones\ImportacionService;
@@ -87,7 +88,9 @@ class SeccionController extends Controller
             'carpetaActual' => $filtros['carpeta'] ?? '',
             'migas' => $this->consulta->migas($filtros['carpeta']),
             'subcarpetas' => ($filtros['q'] ?? '') === '' ? $this->consulta->subcarpetas($seccion, $filtros['carpeta'], $request->user()) : [],
-            'origenes' => $puedeGestionar ? $seccion->origenes()->with('cuenta:id,proveedor,cuenta_email,estado')->orderBy('id')->get() : collect(),
+            'origenes' => $puedeGestionar ? $seccion->origenes()->with('cuenta:id,proveedor,cuenta_email,estado', 'mapeos.tabla')->orderBy('id')->get() : collect(),
+            // Mapeo de la tabla espejo en pantalla (para el aviso de "revisar mapeo").
+            'mapeoTabla' => $puedeGestionar && $tabla->esEspejo() ? SeccionMapeo::query()->where('seccion_tabla_id', $tabla->id)->first() : null,
             // Solo las cuentas que el usuario puede usar (NubeCuentaPolicy::usar); Edificio solo vincula enlaces públicos.
             'cuentasNube' => $puedeGestionar ? NubeCuenta::query()->activas()->orderBy('cuenta_email')->get(['id', 'proveedor', 'cuenta_email'])->filter(fn (NubeCuenta $cuenta): bool => $usuario->can('usar', $cuenta))->values() : collect(),
             'cuentasPorReconectar' => $puedeGestionar ? NubeCuenta::query()->where('estado', EstadoCuentaNube::RequiereReconexion->value)->orderBy('cuenta_email')->get(['id', 'proveedor', 'cuenta_email'])->filter(fn (NubeCuenta $cuenta): bool => $usuario->can('usar', $cuenta))->values() : collect(),

@@ -28,6 +28,9 @@ class SeccionImportacion extends Model
 
     public const ORIGEN_IA = 'ia';
 
+    /** Aplicada por la sincronización con la nube (tablas espejo) o su vista previa del primer mapeo. */
+    public const ORIGEN_NUBE = 'nube';
+
     /**
      * @var list<string>
      */

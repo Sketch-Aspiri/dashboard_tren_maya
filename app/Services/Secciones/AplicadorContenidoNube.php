@@ -34,6 +34,7 @@ final class AplicadorContenidoNube
         private readonly ExtractorDocumentos $extractor,
         private readonly ImportacionService $importaciones,
         private readonly LibroImportacionService $libros,
+        private readonly TablasEspejoService $espejo,
     ) {}
 
     /**
@@ -87,7 +88,7 @@ final class AplicadorContenidoNube
                 ])->save();
                 $archivo->enableLogging();
 
-                $aviso = $this->recargarTablas($archivo, $origen);
+                $aviso = $this->recargarTablas($archivo, $origen, $usuario);
 
                 activity('seccion')
                     ->causedBy($usuario)
@@ -114,8 +115,12 @@ final class AplicadorContenidoNube
      * un aviso (no un error) si alguna hoja no pudo coincidirse por falta de
      * columna llave: el documento sí se reemplazó.
      */
-    private function recargarTablas(SeccionArchivo $archivo, SeccionOrigen $origen): ?string
+    private function recargarTablas(SeccionArchivo $archivo, SeccionOrigen $origen, ?User $usuario): ?string
     {
+        if ($this->espejo->atiende($origen, $archivo)) {
+            return $this->espejo->sincronizar($origen, $archivo, $usuario);
+        }
+
         $seccion = $archivo->seccion;
         $previa = SeccionImportacion::query()
             ->where('seccion_archivo_id', $archivo->id)

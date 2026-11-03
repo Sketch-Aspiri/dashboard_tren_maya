@@ -45,7 +45,7 @@ class GuardarFilaRequest extends FormRequest
 
         return $fila instanceof SeccionFila
             ? $gate->inspect('actualizarFila', [$this->seccion(), $fila])
-            : $gate->inspect('crearFila', $this->seccion());
+            : $gate->inspect('crearFila', [$this->seccion(), $this->tablaElegidaEnFormulario()]);
     }
 
     /**

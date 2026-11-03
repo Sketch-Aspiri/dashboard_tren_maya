@@ -50,6 +50,7 @@ final class SincronizadorOrigen
         private readonly CalculadorDiferencias $calculador,
         private readonly AplicadorDiferencias $aplicador,
         private readonly ClasificadorErrorNube $clasificador,
+        private readonly TablasEspejoService $tablas,
     ) {}
 
     /**
@@ -105,6 +106,7 @@ final class SincronizadorOrigen
             return self::ERROR;
         }
 
+        $this->tablas->refrescarEstado($origen->refresh());
         $this->guardarResumen($origen, $listado, $diferencias, $resultado);
 
         return $diferencias->cambioMasivoRetenido ? self::RETENIDO : self::OK;

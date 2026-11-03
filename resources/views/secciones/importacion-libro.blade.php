@@ -8,6 +8,13 @@
         <div class="mx-auto max-w-7xl space-y-5 px-4 sm:px-6 lg:px-8">
             @include('secciones.partials.mensajes')
 
+            @if ($espejo ?? false)
+                <div class="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900" role="status">
+                    <p class="font-semibold">{{ __('Este mapeo se usará para todas las sincronizaciones.') }}</p>
+                    <p class="mt-1">{{ __('Confírmalo una sola vez: las tablas quedarán de solo lectura y siempre iguales al Excel de la nube. Si cambia el Excel, la tabla se actualiza sola; las filas que ya no vienen se archivan.') }}</p>
+                </div>
+            @endif
+
             <div class="rounded-xl border border-brand-green/10 bg-white p-5 shadow-sm shadow-brand-green/5">
                 <p class="text-sm text-gray-700">
                     {{ __('Documento:') }} <span class="font-semibold">{{ $importacion->archivo?->nombre_original ?? __('(sin archivo)') }}</span>
@@ -17,14 +24,16 @@
                     {{ __('Cada hoja marcada se carga como una tabla propia dentro de esta sección, con el nombre de la hoja y las columnas de su renglón de títulos. Nada se guarda hasta que presiones "Aplicar".') }}
                     {{ __('Si ya existe una sección con el nombre de la hoja en este grupo, los datos se cargan en ella; si no, se crea.') }}
                 </p>
-                <p class="mt-2 text-xs text-gray-600">
-                    {{ __('¿Los títulos no están en el renglón detectado?') }}
-                    <a href="{{ route('secciones.importaciones.show', [$seccion, $importacion, 'tabla' => 0]) }}" class="font-semibold text-brand-teal underline">{{ __('Cargar una sola hoja y elegir el renglón') }}</a>
-                </p>
+                @unless ($espejo ?? false)
+                    <p class="mt-2 text-xs text-gray-600">
+                        {{ __('¿Los títulos no están en el renglón detectado?') }}
+                        <a href="{{ route('secciones.importaciones.show', [$seccion, $importacion, 'tabla' => 0]) }}" class="font-semibold text-brand-teal underline">{{ __('Cargar una sola hoja y elegir el renglón') }}</a>
+                    </p>
+                @endunless
             </div>
 
             <form method="POST" action="{{ route('secciones.importaciones.libro.aplicar', [$seccion, $importacion]) }}" x-ref="formulario"
-                  x-data="vistaPreviaLibro({ urlCalcular: @js(route('secciones.importaciones.libro.calcular', [$seccion, $importacion])), modo: @js($hojas[0]['modo'] ?? 'agregar') })"
+                  x-data="vistaPreviaLibro({ urlCalcular: @js(route('secciones.importaciones.libro.calcular', [$seccion, $importacion])), modo: @js(($espejo ?? false) && collect($hojas)->contains(fn ($h) => $h['llave'] !== null) ? 'actualizar' : ($hojas[0]['modo'] ?? 'agregar')) })"
                   x-init="calcular()"
                   @submit="if (! puedeAplicar()) { $event.preventDefault() } else { aplicando = true }"
                   @change="calcular()"
@@ -121,8 +130,8 @@
                                     <span class="block text-sm font-semibold text-gray-900">{{ $modo->label() }}</span>
                                     <span class="block text-xs text-gray-600">
                                         @switch($modo)
-                                            @case(\App\Enums\ModoImportacion::Agregar) {{ __('Las filas de cada hoja se suman a las de su tabla.') }} @break
-                                            @case(\App\Enums\ModoImportacion::Actualizar) {{ __('Se actualizan las filas que coinciden por la columna llave de cada hoja; las demás se agregan.') }} @break
+                                            @case(\App\Enums\ModoImportacion::Agregar) {{ ($espejo ?? false) ? __('Sin columna llave: cuando el Excel cambie, la tabla se reemplaza completa.') : __('Las filas de cada hoja se suman a las de su tabla.') }} @break
+                                            @case(\App\Enums\ModoImportacion::Actualizar) {{ ($espejo ?? false) ? __('Con columna llave (folio, clave…): se actualizan las filas que coinciden, se agregan las nuevas y se archivan las que ya no vienen.') : __('Se actualizan las filas que coinciden por la columna llave de cada hoja; las demás se agregan.') }} @break
                                             @case(\App\Enums\ModoImportacion::Reemplazar) <span class="font-medium text-red-800">{{ __('Borra los registros actuales de cada tabla destino. Se puede deshacer desde la pestaña Cargas.') }}</span> @break
                                         @endswitch
                                     </span>
@@ -173,7 +182,7 @@
                     <button type="submit" :disabled="! puedeAplicar()"
                             :class="modo === 'reemplazar' ? 'bg-red-700 hover:bg-red-800 focus:ring-red-500' : 'bg-brand-green hover:bg-brand-green-dark focus:ring-brand-teal'"
                             class="inline-flex min-h-[44px] items-center justify-center rounded-md px-5 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
-                        <span x-text="aplicando ? @js(__('Aplicando…')) : @js(__('Aplicar a todas las hojas marcadas'))">{{ __('Aplicar a todas las hojas marcadas') }}</span>
+                        <span x-text="aplicando ? @js(__('Aplicando…')) : @js(($espejo ?? false) ? __('Confirmar mapeo y crear las tablas') : __('Aplicar a todas las hojas marcadas'))">{{ ($espejo ?? false) ? __('Confirmar mapeo y crear las tablas') : __('Aplicar a todas las hojas marcadas') }}</span>
                     </button>
                 </div>
             </form>

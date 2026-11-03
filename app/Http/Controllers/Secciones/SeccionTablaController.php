@@ -18,6 +18,7 @@ class SeccionTablaController extends Controller
     public function destroy(Seccion $seccion, SeccionTabla $tabla): RedirectResponse
     {
         $this->authorize('update', $seccion);
+        $this->authorize('modificarTabla', [$seccion, $tabla]);
 
         $nombre = $tabla->nombre;
         $this->tablas->eliminar($tabla);

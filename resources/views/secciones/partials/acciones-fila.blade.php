@@ -5,8 +5,9 @@
 @endif
 @php
     // Una estación solo edita sus filas y nunca borra; la zona hace ambas cosas.
-    $puedeEditarFila = auth()->user()->can('actualizarFila', [$seccion, $fila]);
-    $puedeBorrarFila = auth()->user()->can('eliminarFila', [$seccion, $fila]);
+    // Las filas de una tabla espejo son de solo lectura (no se consulta la política fila por fila).
+    $puedeEditarFila = ! ($esEspejo ?? false) && auth()->user()->can('actualizarFila', [$seccion, $fila]);
+    $puedeBorrarFila = ! ($esEspejo ?? false) && auth()->user()->can('eliminarFila', [$seccion, $fila]);
 @endphp
 @if ($puedeEditarFila)
     @php

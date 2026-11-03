@@ -42,6 +42,23 @@ class SeccionTabla extends Model
     }
 
     /**
+     * Tabla espejo de un origen de nube: de solo lectura en el dashboard,
+     * la sincronización la mantiene igual al Excel de la nube.
+     */
+    public function esEspejo(): bool
+    {
+        return $this->seccion_origen_id !== null;
+    }
+
+    /**
+     * @return BelongsTo<SeccionOrigen, $this>
+     */
+    public function origen(): BelongsTo
+    {
+        return $this->belongsTo(SeccionOrigen::class, 'seccion_origen_id')->withTrashed();
+    }
+
+    /**
      * Completa seccion_id y seccion_tabla_id de una columna/fila que se
      * crea con Eloquent trayendo solo uno de los dos: con la tabla toma la
      * sección; con solo la sección usa su tabla activa. Las inserciones en

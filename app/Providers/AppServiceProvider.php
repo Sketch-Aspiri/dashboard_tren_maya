@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Console\Commands\NubeDiagnosticoCommand;
 use App\Models\User;
 use App\Services\Asistente\ClienteClaude;
 use App\Services\Asistente\ModeloLenguaje;
@@ -14,6 +15,9 @@ use App\Services\Secciones\VisibilidadSecciones;
 use App\Support\Roles;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Queue\Events\JobProcessed;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -63,6 +67,16 @@ class AppServiceProvider extends ServiceProvider
         $this->configurePasswordDefaults();
         $this->configureRateLimiting();
         $this->configureGates();
+        $this->registrarLatidoDelWorker();
+    }
+
+    /**
+     * Cada trabajo que un worker termina deja su hora en caché: `php artisan
+     * nube:diagnostico` la usa para decir si el worker de cola está vivo.
+     */
+    private function registrarLatidoDelWorker(): void
+    {
+        Event::listen(JobProcessed::class, fn () => Cache::put(NubeDiagnosticoCommand::CLAVE_WORKER, now()->timestamp, now()->addDays(7)));
     }
 
     /**

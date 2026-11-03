@@ -70,7 +70,12 @@ final class PlanificadorImportacion
 
         $entrantes = array_values(array_filter($entrantes, fn (array $registro) => array_filter($registro, fn ($valor) => $valor !== null) !== []));
 
-        $llave = $opciones->modo === ModoImportacion::Actualizar ? $destinos[$opciones->llave] : null;
+        $llave = match (true) {
+            $opciones->modo === ModoImportacion::Actualizar => $destinos[$opciones->llave],
+            // Espejo: la llave es opcional (sin ella se reemplaza todo); si se indicó, debe importarse.
+            $opciones->modo === ModoImportacion::Espejo && $opciones->llave !== null => $destinos[$opciones->llave] ?? null,
+            default => null,
+        };
 
         return ['columnas_nuevas' => $columnasNuevas] + $this->comparar($tabla, $entrantes, $opciones->modo, $llave);
     }
@@ -117,7 +122,9 @@ final class PlanificadorImportacion
             throw ValidationException::withMessages(['mapeo' => __('La tabla quedaría con más de :max columnas.', ['max' => config('secciones.max_columnas')])]);
         }
 
-        if ($opciones->modo === ModoImportacion::Actualizar && ($opciones->llave === null || ! isset($destinos[$opciones->llave]))) {
+        $exigeLlave = $opciones->modo === ModoImportacion::Actualizar || ($opciones->modo === ModoImportacion::Espejo && $opciones->llave !== null);
+
+        if ($exigeLlave && ($opciones->llave === null || ! isset($destinos[$opciones->llave]))) {
             throw ValidationException::withMessages(['llave' => __('Para actualizar elige una columna llave que sí se importe.')]);
         }
 
@@ -136,7 +143,7 @@ final class PlanificadorImportacion
             return ['nuevas' => $entrantes] + $resultado;
         }
 
-        if ($modo === ModoImportacion::Reemplazar) {
+        if ($modo === ModoImportacion::Reemplazar || ($modo === ModoImportacion::Espejo && $llave === null)) {
             return ['nuevas' => $entrantes, 'eliminadas' => SeccionFila::query()->where('seccion_tabla_id', $tabla->id)->pluck('id')->all()] + $resultado;
         }
 
@@ -167,8 +174,8 @@ final class PlanificadorImportacion
             }
 
             $coincidentes[$id] = true;
-            // Una celda vacía en el documento no borra el valor guardado.
-            $propuestas[$id] = array_merge($propuestas[$id] ?? $actuales[$id], array_filter($registro, fn ($valor) => $valor !== null));
+            // Una celda vacía en el documento no borra el valor guardado... salvo en un espejo, que debe ser idéntico a la nube.
+            $propuestas[$id] = array_merge($propuestas[$id] ?? $actuales[$id], $modo === ModoImportacion::Espejo ? $registro : array_filter($registro, fn ($valor) => $valor !== null));
         }
 
         foreach ($propuestas as $id => $despues) {
@@ -180,6 +187,10 @@ final class PlanificadorImportacion
         }
 
         $resultado['no_vienen'] = count($actuales) - count($coincidentes);
+
+        if ($modo === ModoImportacion::Espejo) {
+            $resultado['eliminadas'] = array_values(array_diff(array_keys($actuales), array_keys($coincidentes)));
+        }
 
         return $resultado;
     }

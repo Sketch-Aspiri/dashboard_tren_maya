@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\Seccion;
 use App\Models\SeccionArchivo;
 use App\Models\SeccionFila;
+use App\Models\SeccionTabla;
 use App\Models\User;
 use App\Services\Secciones\VisibilidadSecciones;
 use App\Support\Roles;
@@ -105,14 +106,34 @@ class SeccionPolicy
         return $user->hasAnyRole(Roles::JEFATURA);
     }
 
-    public function crearFila(User $user, Seccion $seccion): Response
+    /**
+     * Estructura de una tabla (columnas, baja de la hoja, cargas manuales):
+     * una tabla espejo de la nube es de solo lectura para todos.
+     */
+    public function modificarTabla(User $user, Seccion $seccion, SeccionTabla $tabla): Response
+    {
+        if (! $this->esZona($user)) {
+            return Response::deny();
+        }
+
+        return $this->soloSiEscribible($tabla);
+    }
+
+    /**
+     * $tabla = la tabla donde se agregaría la fila (null: se desconoce, sin restricción de espejo).
+     */
+    public function crearFila(User $user, Seccion $seccion, ?SeccionTabla $tabla = null): Response
     {
         if ($this->esZona($user)) {
-            return Response::allow();
+            return $this->soloSiEscribible($tabla);
         }
 
         if (! $this->visibleParaEstacion($user, $seccion)) {
             return Response::denyAsNotFound();
+        }
+
+        if ($tabla?->esEspejo()) {
+            return $this->soloSiEscribible($tabla);
         }
 
         // Una sección "solo documentos" no tiene tabla; y sin estación no hay a quién etiquetar.
@@ -122,18 +143,20 @@ class SeccionPolicy
     public function actualizarFila(User $user, Seccion $seccion, SeccionFila $fila): Response
     {
         if ($this->esZona($user)) {
-            return Response::allow();
+            return $this->soloSiEscribible($fila->tabla);
         }
 
-        return $this->visibleParaEstacion($user, $seccion) && $this->esPropia($user, $fila->estacion_id)
-            ? Response::allow()
-            : Response::denyAsNotFound();
+        if (! $this->visibleParaEstacion($user, $seccion) || ! $this->esPropia($user, $fila->estacion_id)) {
+            return Response::denyAsNotFound();
+        }
+
+        return $this->soloSiEscribible($fila->tabla);
     }
 
     public function eliminarFila(User $user, Seccion $seccion, SeccionFila $fila): Response
     {
         if ($this->esZona($user)) {
-            return Response::allow();
+            return $this->soloSiEscribible($fila->tabla);
         }
 
         // Una fila propia existe para la estación: 403. Cualquier otra: 404.
@@ -162,6 +185,13 @@ class SeccionPolicy
         return $this->visibleParaEstacion($user, $seccion) && $user->estacion_id !== null
             ? Response::allow()
             : Response::denyAsNotFound();
+    }
+
+    private function soloSiEscribible(?SeccionTabla $tabla): Response
+    {
+        return $tabla?->esEspejo()
+            ? Response::deny(__('Esta tabla se sincroniza con la nube y es de solo lectura. Cambia el Excel en la nube o desvincula el origen.'))
+            : Response::allow();
     }
 
     private function esZona(User $user): bool

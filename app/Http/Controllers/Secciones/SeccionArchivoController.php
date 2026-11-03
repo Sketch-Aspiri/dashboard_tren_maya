@@ -36,6 +36,12 @@ class SeccionArchivoController extends Controller
         $fila = $request->validated('seccion_fila_id') ? SeccionFila::query()->find($request->validated('seccion_fila_id')) : null;
         // Tabla en pantalla al soltar el archivo: recibirá la carga de una sola tabla.
         $destino = $request->filled('tabla') ? $request->tabla() : null;
+
+        // Una tabla espejo de la nube es de solo lectura: tampoco se le sueltan documentos.
+        if ($destino?->esEspejo()) {
+            $this->authorize('modificarTabla', [$seccion, $destino]);
+        }
+
         $resultados = [];
 
         foreach ($request->file('archivos') as $subido) {

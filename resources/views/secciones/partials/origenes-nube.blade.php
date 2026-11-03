@@ -38,6 +38,7 @@
                     $resumen = $origen->resumen ?? [];
                     $omitidosOrigen = $resumen['omitidos'] ?? [];
                     $pausado = $origen->estado === \App\Enums\EstadoOrigen::Pausado;
+                    $corriendo = in_array($origen->estado, [\App\Enums\EstadoOrigen::Activo, \App\Enums\EstadoOrigen::PendienteMapeo], true);
                 @endphp
                 <li class="py-3">
                     <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
@@ -60,6 +61,17 @@
                             @if ($origen->sincronizacion_error)
                                 <p class="mt-0.5 text-xs text-amber-700" role="status">{{ $origen->sincronizacion_error }}</p>
                             @endif
+                            @if ($origen->estado === \App\Enums\EstadoOrigen::PendienteMapeo)
+                                <p class="mt-1 rounded-md bg-amber-50 p-2 text-xs text-amber-900" role="status">
+                                    {{ __('Falta confirmar el mapeo de columnas de un Excel. Los documentos se sincronizan; las tablas esperan.') }}
+                                    @if ($cargaPendiente)
+                                        <a href="{{ route('secciones.importaciones.show', [$seccion, $cargaPendiente]) }}" class="font-semibold underline">{{ __('Confirmar mapeo') }}</a>
+                                    @endif
+                                </p>
+                            @endif
+                            @foreach ($origen->mapeos->filter(fn ($mapeo) => $mapeo->estaRetenido()) as $retenido)
+                                <x-retenido-mapeo :mapeo="$retenido" :origen="$origen" class="mt-1" />
+                            @endforeach
                         </div>
                         <div class="flex flex-wrap items-center gap-1 lg:justify-end">
                             <form method="POST" action="{{ route('secciones.origenes.sincronizar', [$seccion, $origen]) }}">
@@ -69,9 +81,9 @@
                             <form method="POST" action="{{ route('secciones.origenes.update', [$seccion, $origen]) }}">
                                 @csrf
                                 @method('PUT')
-                                <input type="hidden" name="estado" value="{{ $origen->estado === \App\Enums\EstadoOrigen::Activo ? 'pausado' : 'activo' }}">
+                                <input type="hidden" name="estado" value="{{ $corriendo ? 'pausado' : 'activo' }}">
                                 <button type="submit" class="min-h-[44px] rounded-md px-3 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-teal">
-                                    {{ $origen->estado === \App\Enums\EstadoOrigen::Activo ? __('Pausar') : __('Reanudar') }}
+                                    {{ $corriendo ? __('Pausar') : __('Reanudar') }}
                                 </button>
                             </form>
                             @if ($resumen['cambio_masivo_retenido'] ?? false)
@@ -81,9 +93,12 @@
                                     <input type="hidden" name="confirmar_baja_masiva" value="1">
                                 </x-confirmar-eliminar>
                             @endif
+                            @if ($origen->mapeos->isNotEmpty())
+                                <a href="{{ route('secciones.origenes.mapeo.edit', [$seccion, $origen]) }}" class="inline-flex min-h-[44px] items-center rounded-md px-3 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-teal">{{ __('Editar mapeo') }}</a>
+                            @endif
                             <x-confirmar-eliminar :action="route('secciones.origenes.destroy', [$seccion, $origen])" tono="neutro"
                                                   :etiqueta="__('Desvincular')" :confirmar="__('Sí, desvincular')"
-                                                  :pregunta="__('Los documentos se conservan como normales y dejan de actualizarse. ¿Continuar?')">
+                                                  :pregunta="__('Los documentos y las tablas se conservan como normales (las tablas dejan de ser de solo lectura) y dejan de actualizarse. ¿Continuar?')">
                                 <input type="hidden" name="conservar" value="1">
                             </x-confirmar-eliminar>
                             <x-confirmar-eliminar :action="route('secciones.origenes.destroy', [$seccion, $origen])"

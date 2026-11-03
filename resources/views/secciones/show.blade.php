@@ -1,9 +1,11 @@
 @php
     $puedeGestionar = auth()->user()->can('gestionarDatos', $seccion);
     // Una estación no gestiona datos, pero sí captura filas propias y sube documentos.
-    $puedeCrearFila = auth()->user()->can('crearFila', $seccion);
-    $puedeSubir = auth()->user()->can('subirDocumentos', $seccion);
-    $puedeEditarSeccion = auth()->user()->can('update', $seccion);
+    // Una tabla espejo de la nube es de solo lectura: sin agregar, columnas, borrar hoja ni zona de arrastre.
+    $esEspejo = $tablaActiva->esEspejo();
+    $puedeCrearFila = ! $esEspejo && auth()->user()->can('crearFila', $seccion);
+    $puedeSubir = ! $esEspejo && auth()->user()->can('subirDocumentos', $seccion);
+    $puedeEditarSeccion = ! $esEspejo && auth()->user()->can('update', $seccion);
     $puedeEtiquetar = auth()->user()->can('etiquetarEstacion', $seccion);
     // "Solo documentos": sin tabla, columnas, exportación ni cargas.
     $soloDocumentos = $seccion->solo_documentos;
@@ -35,7 +37,13 @@
 
             @if ($cargaPendiente && $puedeGestionar && ! $soloDocumentos)
                 <div class="flex flex-col gap-2 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between" role="status">
-                    <span>{{ __('Tienes una carga sin aplicar: :doc.', ['doc' => $cargaPendiente->archivo?->nombre_original ?? __('documento')]) }}</span>
+                    <span>
+                        @if ($cargaPendiente->origen === \App\Models\SeccionImportacion::ORIGEN_NUBE)
+                            {{ __('Falta confirmar el mapeo de tablas del Excel «:doc». Mientras tanto los documentos sí se sincronizan.', ['doc' => $cargaPendiente->archivo?->nombre_original ?? __('documento')]) }}
+                        @else
+                            {{ __('Tienes una carga sin aplicar: :doc.', ['doc' => $cargaPendiente->archivo?->nombre_original ?? __('documento')]) }}
+                        @endif
+                    </span>
                     <a href="{{ route('secciones.importaciones.show', [$seccion, $cargaPendiente]) }}"
                        class="inline-flex min-h-[44px] items-center font-semibold underline">{{ __('Revisarla') }}</a>
                 </div>
@@ -175,6 +183,17 @@
                             />
                         </div>
                     @endif
+                @endif
+
+                @if ($esEspejo)
+                    <p class="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md bg-brand-mist px-3 py-2 text-sm text-brand-green" role="status">
+                        <span class="font-semibold">{{ __('Sincronizada con :nube', ['nube' => $tablaActiva->origen->nombreProveedor()]) }}</span>
+                        <span>· {{ $tablaActiva->origen->sincronizado_en ? $tablaActiva->origen->sincronizado_en->diffForHumans() : __('aún sin revisar') }}</span>
+                        <span class="text-xs text-gray-600">{{ __('Solo lectura: se actualiza sola desde el Excel de la nube.') }}</span>
+                        @if ($mapeoTabla && $puedeGestionar)
+                            <a href="{{ route('secciones.origenes.mapeo.edit', [$seccion, $tablaActiva->origen]) }}" class="text-xs font-semibold text-brand-teal underline">{{ $mapeoTabla->confirmado_en ? __('Editar mapeo') : __('Tabla nueva creada automáticamente: revisar mapeo') }}</a>
+                        @endif
+                    </p>
                 @endif
 
                 @include('secciones.partials.tabla')

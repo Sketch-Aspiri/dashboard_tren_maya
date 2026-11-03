@@ -31,7 +31,7 @@ class OpcionesLibroRequest extends FormRequest
         $reemplaza = $this->input('modo') === ModoImportacion::Reemplazar->value;
 
         return [
-            'modo' => ['required', Rule::enum(ModoImportacion::class)],
+            'modo' => ['required', Rule::in(array_map(fn (ModoImportacion $modo): string => $modo->value, ModoImportacion::manuales()))],
             'hojas' => ['required', 'array', 'min:1', 'max:'.(int) config('secciones.max_hojas_importacion')],
             'hojas.*.incluir' => ['nullable', 'boolean'],
             'hojas.*.fila_encabezado' => ['required', 'integer', 'min:0'],

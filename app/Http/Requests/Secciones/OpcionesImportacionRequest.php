@@ -35,7 +35,7 @@ class OpcionesImportacionRequest extends FormRequest
             'mapeo.*' => ['required', 'string', 'max:64'],
             'tipos' => ['nullable', 'array', 'max:'.$maxColumnas],
             'tipos.*' => [Rule::enum(TipoColumna::class)],
-            'modo' => ['required', Rule::enum(ModoImportacion::class)],
+            'modo' => ['required', Rule::in(array_map(fn (ModoImportacion $modo): string => $modo->value, ModoImportacion::manuales()))],
             'llave' => ['nullable', 'integer', 'min:0'],
             // Reemplazar borra toda la tabla: al aplicar, exige la casilla
             // de confirmación (también se exige en pantalla).

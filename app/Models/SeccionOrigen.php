@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\EstadoOrigen;
+use App\Enums\ProveedorNube;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -47,12 +48,21 @@ class SeccionOrigen extends Model
     }
 
     /**
+     * Nombre corto de la nube del origen ("OneDrive", "Google Drive", "Dropbox").
+     */
+    public function nombreProveedor(): string
+    {
+        return ProveedorNube::tryFrom((string) $this->proveedor)?->etiquetaCorta() ?? __('la nube');
+    }
+
+    /**
      * @param  Builder<SeccionOrigen>  $consulta
      * @return Builder<SeccionOrigen>
      */
     public function scopeActivos(Builder $consulta): Builder
     {
-        return $consulta->where('estado', EstadoOrigen::Activo->value);
+        // Con el mapeo pendiente los documentos igual se sincronizan; solo las tablas esperan.
+        return $consulta->whereIn('estado', [EstadoOrigen::Activo->value, EstadoOrigen::PendienteMapeo->value]);
     }
 
     /**
@@ -79,6 +89,24 @@ class SeccionOrigen extends Model
     public function archivos(): HasMany
     {
         return $this->hasMany(SeccionArchivo::class, 'seccion_origen_id');
+    }
+
+    /**
+     * @return HasMany<SeccionMapeo, $this>
+     */
+    public function mapeos(): HasMany
+    {
+        return $this->hasMany(SeccionMapeo::class, 'seccion_origen_id');
+    }
+
+    /**
+     * Tablas espejo que mantiene este origen.
+     *
+     * @return HasMany<SeccionTabla, $this>
+     */
+    public function tablas(): HasMany
+    {
+        return $this->hasMany(SeccionTabla::class, 'seccion_origen_id');
     }
 
     /**

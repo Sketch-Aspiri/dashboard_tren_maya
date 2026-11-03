@@ -79,6 +79,9 @@ return [
         // Tope de lo que se lista de un origen (carpeta). Lo que sobra se
         // cuenta como omitido en el resumen.
         'max_archivos_por_origen' => (int) env('SECCIONES_NUBE_MAX_ARCHIVOS', 2000),
+        // Tablas espejo: si una sincronización archivaría más de este % de las
+        // filas de una tabla (o la hoja llega vacía), NO se aplica y espera Aplicar/Ignorar.
+        'espejo_max_archivado_pct' => (int) env('SECCIONES_NUBE_ESPEJO_MAX_ARCHIVADO_PCT', 50),
         // Topes globales por listado (contra carpetas enormes, ciclos y paginación sin fin).
         // Entradas revisadas (incluye omitidas y carpetas) = 10 x max_archivos_por_origen.
         'max_peticiones_listado' => 200,
