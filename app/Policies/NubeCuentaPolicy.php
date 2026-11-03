@@ -18,6 +18,15 @@ class NubeCuentaPolicy
         return $this->esAdministrador($actor);
     }
 
+    /**
+     * Página "Estado de sincronización" y su aviso global: Jefe de Zona y
+     * Administrador (solo lectura; no expone tokens ni credenciales).
+     */
+    public function verEstado(User $actor): bool
+    {
+        return $actor->hasAnyRole(Roles::JEFATURA);
+    }
+
     /** Conectar una cuenta nueva (inicia el OAuth). */
     public function create(User $actor): bool
     {

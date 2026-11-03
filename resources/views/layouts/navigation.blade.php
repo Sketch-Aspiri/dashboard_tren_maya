@@ -49,6 +49,11 @@
                                 {{ __('Conexiones de nube') }}
                             </x-dropdown-link>
                         @endhasrole
+                        @hasanyrole('Administrador|Jefe de Zona')
+                            <x-dropdown-link :href="route('nube.estado')">
+                                {{ __('Estado de sincronización') }}
+                            </x-dropdown-link>
+                        @endhasanyrole
                         <x-dropdown-link :href="route('profile.edit')">
                             {{ __('Mi perfil') }}
                         </x-dropdown-link>
@@ -184,6 +189,11 @@
                         {{ __('Conexiones de nube') }}
                     </x-responsive-nav-link>
                 @endhasrole
+                @hasanyrole('Administrador|Jefe de Zona')
+                    <x-responsive-nav-link :href="route('nube.estado')" :active="request()->routeIs('nube.estado')">
+                        {{ __('Estado de sincronización') }}
+                    </x-responsive-nav-link>
+                @endhasanyrole
                 <x-responsive-nav-link :href="route('profile.edit')">
                     {{ __('Mi perfil') }}
                 </x-responsive-nav-link>

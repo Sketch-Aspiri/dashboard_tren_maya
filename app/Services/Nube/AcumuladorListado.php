@@ -146,6 +146,11 @@ final class AcumuladorListado
 
     public function omitir(MotivoOmision $motivo): void
     {
+        // Lo que quedó fuera del tope no se vio: el listado está incompleto y no debe archivar nada.
+        if ($motivo === MotivoOmision::TopeArchivos) {
+            $this->truncado ??= MotivoTruncado::Archivos;
+        }
+
         $this->omitidos[$motivo->value] = ($this->omitidos[$motivo->value] ?? 0) + 1;
     }
 

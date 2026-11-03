@@ -118,6 +118,20 @@ class EndurecimientoNubeTest extends TestCase
         $this->assertSame(20, $listado->omitidos['extension_no_permitida']);
     }
 
+    public function test_exceeding_the_file_cap_marks_the_listing_truncated_and_nothing_is_archived(): void
+    {
+        config(['secciones.nube.max_archivos_por_origen' => 2]);
+        $cuenta = $this->cuentaDeNube(ProveedorNube::Microsoft);
+        $origen = $this->origenDeNube($cuenta, 'carpeta', ['remoto_drive_id' => 'DRV1', 'remoto_item_id' => 'ROOT']);
+        $pdfs = array_map(fn (int $i): array => ['id' => 'P'.$i, 'name' => "p{$i}.pdf", 'size' => 1, 'cTag' => 'c'.$i, 'file' => ['mimeType' => 'application/pdf']], range(1, 3));
+        Http::fake(['graph.microsoft.com/*' => Http::response(['value' => $pdfs])]);
+
+        $listado = app(MicrosoftGraph::class)->listarConResumen($origen);
+
+        $this->assertCount(2, $listado->archivos);
+        $this->assertSame(MotivoTruncado::Archivos, $listado->truncado);
+    }
+
     public function test_graph_stops_when_the_time_limit_is_reached(): void
     {
         config(['secciones.nube.max_segundos_listado' => 0]);

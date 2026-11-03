@@ -24,6 +24,18 @@ enum ProveedorNube: string
         };
     }
 
+    /**
+     * Nombre corto para insignias ("Sincronizada con OneDrive").
+     */
+    public function etiquetaCorta(): string
+    {
+        return match ($this) {
+            self::Microsoft => 'OneDrive',
+            self::Google => 'Google Drive',
+            self::Dropbox => 'Dropbox',
+        };
+    }
+
     public function usaTenant(): bool
     {
         return $this === self::Microsoft;

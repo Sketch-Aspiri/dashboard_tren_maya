@@ -58,6 +58,8 @@
              @resize.window="if (window.innerWidth >= 1280) open = false">
             @include('layouts.navigation')
 
+            <x-aviso-nube />
+
             <!-- Page Heading -->
             @isset($header)
                 <header x-show="! open" class="border-b border-brand-green/10 bg-white">

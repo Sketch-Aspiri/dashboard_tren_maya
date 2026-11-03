@@ -153,7 +153,7 @@ final class CuentaNubeService
     public function desconectar(NubeCuenta $cuenta, User $actor): void
     {
         DB::transaction(function () use ($cuenta): void {
-            $cuenta->origenes()->where('estado', EstadoOrigen::Activo->value)->update([
+            $cuenta->origenes()->whereIn('estado', [EstadoOrigen::Activo->value, EstadoOrigen::PendienteMapeo->value])->update([
                 'estado' => EstadoOrigen::Pausado->value,
                 'sincronizacion_error' => __('La cuenta de nube se desconectó.'),
             ]);
