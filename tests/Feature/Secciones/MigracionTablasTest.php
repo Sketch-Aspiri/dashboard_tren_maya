@@ -30,14 +30,10 @@ class MigracionTablasTest extends TestCase
 
     protected function tearDown(): void
     {
-        if (! Schema::hasTable('seccion_tablas')) {
-            $this->migracion->up();
-        }
-
-        // Orden por claves foráneas; nada de lo insertado sobrevive a la prueba.
-        foreach (['seccion_columnas', 'seccion_filas', 'seccion_importaciones', 'seccion_tablas', 'secciones', 'menu_grupos'] as $tabla) {
-            DB::table($tabla)->delete();
-        }
+        // Re-aplicar solo `up()` recrea seccion_tablas con la forma original, sin las
+        // columnas que añadieron migraciones posteriores, y eso rompe a las clases que
+        // corren después. Se reconstruye el esquema completo (y nada insertado sobrevive).
+        $this->artisan('migrate:fresh', ['--force' => true]);
 
         parent::tearDown();
     }
