@@ -38,9 +38,11 @@
                             ])>{{ $carga->estado->label() }}</span>
                         </td>
                         <td class="px-4 py-3 text-xs text-gray-600">
-                            @if ($carga->resumen)
+                            @if ($carga->resumen && isset($carga->resumen['nuevas']))
                                 {{ $carga->modo?->label() }}:
-                                {{ __(':n nuevas, :a actualizadas, :e eliminadas', ['n' => $carga->resumen['nuevas'], 'a' => $carga->resumen['actualizadas'], 'e' => $carga->resumen['eliminadas']]) }}
+                                {{ __(':n nuevas, :a actualizadas, :e eliminadas', ['n' => $carga->resumen['nuevas'], 'a' => $carga->resumen['actualizadas'] ?? 0, 'e' => $carga->resumen['eliminadas'] ?? 0]) }}
+                            @elseif ($carga->resumen)
+                                {{ __('Tabla espejo de la nube') }}
                             @else
                                 —
                             @endif
