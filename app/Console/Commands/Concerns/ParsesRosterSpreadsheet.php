@@ -3,6 +3,7 @@
 namespace App\Console\Commands\Concerns;
 
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
@@ -33,6 +34,124 @@ trait ParsesRosterSpreadsheet
 
     /** Non-empty date cells that could not be parsed into a real date, this run. */
     private int $unparsedDateCount = 0;
+
+    /**
+     * Patrones (sobre el encabezado normalizado: minúsculas, sin acentos ni
+     * signos) que identifican cada campo en la fila 1 del Excel. Permiten
+     * importar archivos a los que se les agregó o quitó una columna sin
+     * depender de posiciones fijas.
+     *
+     * @var array<string, string>
+     */
+    private const HEADER_PATTERNS = [
+        'no_empleado' => '/\bempleado\b/',
+        'estacion_codigo' => '/estacion/',
+        'plaza_actual' => '/^plaza actual/',
+        'nombre_completo' => '/^nombre completo/',
+        'puesto' => '/^(puesto|cargo)\b/',
+        'nivel_plaza' => '/^nivel de plaza/',
+        'ultimo_grado_estudios' => '/ultimo grado/',
+        'titulo' => '/^titulo/',
+        'cedula' => '/^cedula/',
+        'fecha_ingreso' => '/^fecha de ingreso/',
+        'telefono' => '/telefon/',
+        'correo' => '/^correo/',
+        'tipo_sangre' => '/tipo de sangre/',
+        'alergias' => '/^alergias/',
+        'fecha_nacimiento' => '/^fecha de nacimiento/',
+        'lugar_nacimiento' => '/^lugar (de )?nacimiento/',
+        'estado_civil' => '/^estado civil/',
+        'curp' => '/^curp/',
+        'rfc' => '/^rfc/',
+        'nss' => '/^nss/',
+        'domicilio' => '/^domicilio/',
+        'contacto_emergencia_nombre' => '/^contacto de emergencia/',
+        'desempeno' => '/^desempeno/',
+    ];
+
+    /**
+     * Devuelve campo => columna (0-based). Usa los encabezados de la fila 1
+     * cuando el archivo los trae completos; si no, el mapa por índice
+     * heredado ($legacy).
+     *
+     * @param  array<string, int>  $legacy
+     * @return array<string, int>
+     */
+    private function resolveColumns(Worksheet $sheet, array $legacy): array
+    {
+        $found = [];
+        $highest = Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
+
+        for ($col = 1; $col <= $highest; $col++) {
+            $text = $this->normalizeHeader($sheet->getCell(Coordinate::stringFromColumnIndex($col).'1')->getCalculatedValue());
+
+            if ($text === '') {
+                continue;
+            }
+
+            foreach (self::HEADER_PATTERNS as $field => $pattern) {
+                if (! isset($found[$field]) && preg_match($pattern, $text) === 1) {
+                    $found[$field] = $col - 1;
+                    break;
+                }
+            }
+        }
+
+        foreach (['no_empleado', 'nombre_completo', 'curp', 'rfc', 'nss', 'domicilio'] as $required) {
+            if (! isset($found[$required])) {
+                return $legacy;
+            }
+        }
+
+        // "Contacto de emergencia" es un encabezado combinado: nombre y
+        // teléfono ocupan esa columna y la siguiente.
+        if (isset($found['contacto_emergencia_nombre'])) {
+            $found['contacto_emergencia_telefono'] = $found['contacto_emergencia_nombre'] + 1;
+        }
+
+        return $found;
+    }
+
+    /**
+     * CURP/RFC/NSS: sin espacios internos y en mayúsculas. Si aun así excede
+     * el largo de la columna es un error de captura en el Excel: se guarda
+     * vacío (y se registra el campo, sin el dato) en vez de tumbar toda la
+     * importación.
+     */
+    private function normalizeIdentifier(?string $value, string $field = '', int $maxLength = 0): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $clean = preg_replace('/\s+/u', '', $value) ?? $value;
+
+        if ($clean === '') {
+            return null;
+        }
+
+        $clean = mb_strtoupper($clean);
+
+        if ($maxLength > 0 && mb_strlen($clean) > $maxLength) {
+            Log::warning('Importación de personal: identificador descartado por exceder el largo permitido.', [
+                'campo' => $field,
+                'largo' => mb_strlen($clean),
+                'maximo' => $maxLength,
+            ]);
+
+            return null;
+        }
+
+        return $clean;
+    }
+
+    private function normalizeHeader(mixed $value): string
+    {
+        $text = $this->stripAccents(mb_strtolower(trim((string) $value)));
+        $text = preg_replace('/[^a-z0-9]+/', ' ', $text) ?? $text;
+
+        return trim($text);
+    }
 
     private function readCell(Worksheet $sheet, int $rowNumber, int $col0): mixed
     {
@@ -171,7 +290,11 @@ trait ParsesRosterSpreadsheet
             return null;
         }
 
-        $string = trim((string) $value);
+        // Espacios Unicode que trim()/\s no cubren (NBSP, U+202F, de ancho cero,
+        // BOM): vienen al copiar y pegar en Excel y rompen columnas de largo fijo.
+        $string = preg_replace('/[\x{00A0}\x{1680}\x{2000}-\x{200A}\x{202F}\x{205F}\x{3000}]/u', ' ', (string) $value) ?? (string) $value;
+        $string = preg_replace('/[\x{200B}-\x{200D}\x{2060}\x{FEFF}]/u', '', $string) ?? $string;
+        $string = trim($string);
         $string = preg_replace('/\s+/u', ' ', $string) ?? $string;
 
         if ($string === '' || preg_match('/^#[A-Z0-9\/]+[!?]$/', $string) === 1) {

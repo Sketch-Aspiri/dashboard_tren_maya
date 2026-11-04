@@ -38,6 +38,9 @@ class ImportAgendaZonaOrienteCommand extends Command
 
     private const FECHA_NACIMIENTO_COLUMN = 19;
 
+    /** @var array<string, int> campo => columna (0-based), resuelto por hoja */
+    private array $columns = [];
+
     /**
      * 0-based spreadsheet column => `empleados` column mapping. Columns
      * not listed (e.g. the computed "Meses en activo", "Edad en numero",
@@ -131,6 +134,11 @@ class ImportAgendaZonaOrienteCommand extends Command
     private function importSheet(Worksheet $sheet): array
     {
         $this->unparsedDateCount = 0;
+        $this->columns = $this->resolveColumns($sheet, array_flip(self::COLUMN_MAP) + [
+            'no_empleado' => self::EMPLOYEE_ID_COLUMN,
+            'fecha_ingreso' => self::FECHA_INGRESO_COLUMN,
+            'fecha_nacimiento' => self::FECHA_NACIMIENTO_COLUMN,
+        ]);
         $summary = ['creadas' => 0, 'actualizadas' => 0, 'omitidas' => 0, 'ocultas' => 0, 'total' => 0];
 
         DB::transaction(function () use ($sheet, &$summary) {
@@ -195,10 +203,10 @@ class ImportAgendaZonaOrienteCommand extends Command
         // the Jefe de Zona expects, instead of an arbitrary default.
         $attributes['orden_origen'] = $rowNumber;
 
-        $attributes['fecha_ingreso'] = $this->readDateCell($sheet, $rowNumber, self::FECHA_INGRESO_COLUMN);
-        $attributes['fecha_nacimiento'] = $this->readDateCell($sheet, $rowNumber, self::FECHA_NACIMIENTO_COLUMN);
+        $attributes['fecha_ingreso'] = $this->readOptionalDate($sheet, $rowNumber, 'fecha_ingreso');
+        $attributes['fecha_nacimiento'] = $this->readOptionalDate($sheet, $rowNumber, 'fecha_nacimiento');
 
-        $rawEmployeeId = $this->normalizeString($this->readCell($sheet, $rowNumber, self::EMPLOYEE_ID_COLUMN));
+        $rawEmployeeId = $this->normalizeString($this->readCell($sheet, $rowNumber, $this->columns['no_empleado']));
 
         if ($rawEmployeeId !== null && strtoupper($rawEmployeeId) === 'VACANTE') {
             return $this->upsertVacante($attributes);
@@ -214,11 +222,25 @@ class ImportAgendaZonaOrienteCommand extends Command
     {
         $attributes = [];
 
-        foreach (self::COLUMN_MAP as $col0 => $field) {
-            $attributes[$field] = $this->normalizeString($this->readCell($sheet, $rowNumber, $col0));
+        foreach (self::COLUMN_MAP as $field) {
+            $col0 = $this->columns[$field] ?? null;
+            $attributes[$field] = $col0 === null
+                ? null
+                : $this->normalizeString($this->readCell($sheet, $rowNumber, $col0));
+        }
+
+        foreach (['curp' => 18, 'rfc' => 13, 'nss' => 11] as $field => $max) {
+            $attributes[$field] = $this->normalizeIdentifier($attributes[$field] ?? null, $field, $max);
         }
 
         return $attributes;
+    }
+
+    private function readOptionalDate(Worksheet $sheet, int $rowNumber, string $field): ?string
+    {
+        $col0 = $this->columns[$field] ?? null;
+
+        return $col0 === null ? null : $this->readDateCell($sheet, $rowNumber, $col0);
     }
 
     /**
