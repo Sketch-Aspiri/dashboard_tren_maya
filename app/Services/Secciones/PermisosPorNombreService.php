@@ -16,6 +16,20 @@ use Illuminate\Support\Facades\DB;
  */
 final class PermisosPorNombreService
 {
+    /** @var array<string, string> sigla normalizada => nombre de la estación */
+    private const SIGLAS = [
+        'pmo' => 'Puerto Morelos',
+        'pca' => 'Playa del Carmen',
+        'tul' => 'Tulum',
+        'tae' => 'Tulum Aeropuerto',
+        'fcp' => 'Felipe Carrillo Puerto',
+        'lim' => 'Limones',
+        'lic' => 'Limones',
+        'bac' => 'Bacalar',
+        'che' => 'Chetumal',
+        'nik' => 'Kohunlich',
+    ];
+
     public function __construct(private readonly VisibilidadSecciones $visibilidad) {}
 
     /**
@@ -30,12 +44,21 @@ final class PermisosPorNombreService
             ->sortByDesc(fn (array $par) => strlen($par[0]))
             ->values();
 
-        $encontrar = function (string $nombre) use ($alias): ?Estacion {
+        $encontrar = function (string $nombre) use ($alias, $estaciones): ?Estacion {
             $nombre = $this->normalizar($nombre);
 
             foreach ($alias as [$clave, $estacion]) {
                 if ($clave !== '' && str_contains($nombre, $clave)) {
                     return $estacion;
+                }
+            }
+
+            // Siglas de tres letras como palabra completa ("23.PMO", "Control Ingresos CHE").
+            $palabras = explode(' ', $nombre);
+
+            foreach (self::SIGLAS as $sigla => $nombreEstacion) {
+                if (in_array($sigla, $palabras, true)) {
+                    return $estaciones->firstWhere('nombre', $nombreEstacion);
                 }
             }
 
