@@ -122,6 +122,7 @@
                                              style="padding-inline-start: {{ 1 + $item['nivel'] * 1.25 }}rem"
                                              class="{{ $item['activo'] ? 'border-s-4 border-brand-teal bg-brand-mist font-semibold !text-brand-green' : 'border-s-4 border-transparent font-medium' }}">
                                 @if ($item['nivel'] > 0)<span class="me-1 text-gray-400" aria-hidden="true">↳</span>@endif{{ $item['label'] }}
+                                @if (! empty($item['contexto']))<span class="block text-xs font-normal text-gray-500">{{ __('en') }}: {{ $item['contexto'] }}</span>@endif
                             </x-dropdown-link>
                         @endforeach
                     </x-slot>
@@ -161,6 +162,7 @@
                             <x-responsive-nav-link :href="$item['href']" :active="$item['activo']" class="text-sm"
                                                    style="margin-inline-start: {{ $item['nivel'] * 1 }}rem">
                                 @if ($item['nivel'] > 0)<span class="me-1 text-gray-400" aria-hidden="true">↳</span>@endif{{ $item['label'] }}
+                                @if (! empty($item['contexto']))<span class="block text-xs font-normal text-gray-500">{{ __('en') }}: {{ $item['contexto'] }}</span>@endif
                             </x-responsive-nav-link>
                         @endforeach
                     </div>

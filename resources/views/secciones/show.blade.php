@@ -28,7 +28,11 @@
             <span>{{ $seccion->grupo->nombre }}</span>
             @foreach ($ancestros as $ancestro)
                 <span aria-hidden="true">›</span>
-                <a href="{{ route('secciones.show', $ancestro) }}" class="hover:text-brand-teal hover:underline">{{ $ancestro->nombre }}</a>
+                @if (in_array($ancestro->id, $ancestrosAbribles, true))
+                    <a href="{{ route('secciones.show', $ancestro) }}" class="hover:text-brand-teal hover:underline">{{ $ancestro->nombre }}</a>
+                @else
+                    <span>{{ $ancestro->nombre }}</span>
+                @endif
             @endforeach
         </nav>
         <h2 class="font-heading text-xl font-semibold leading-tight text-brand-green">{{ $seccion->nombre }}</h2>

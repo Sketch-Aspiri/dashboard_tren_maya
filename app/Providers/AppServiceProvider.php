@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Console\Commands\NubeDiagnosticoCommand;
+use App\Models\Seccion;
+use App\Models\SeccionTabla;
 use App\Models\User;
 use App\Services\Asistente\ClienteClaude;
 use App\Services\Asistente\ModeloLenguaje;
@@ -11,6 +13,7 @@ use App\Services\Documentos\ConvertidorPdfLibreOffice;
 use App\Services\Nube\Contracts\ProveedorNube;
 use App\Services\Nube\Proveedores\EnlacePublico;
 use App\Services\Secciones\ExtractorDocumentos;
+use App\Services\Secciones\PermisosPorNombreService;
 use App\Services\Secciones\VisibilidadSecciones;
 use App\Support\Roles;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -64,6 +67,24 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Subsecciones y hojas que nombran a una estación le dan Editar solas (una sola pasada por petición/proceso).
+        $pendiente = false;
+        $programar = function () use (&$pendiente): void {
+            if ($pendiente) {
+                return;
+            }
+
+            $pendiente = true;
+            $this->app->terminating(function () use (&$pendiente): void {
+                $pendiente = false;
+                $this->app->make(PermisosPorNombreService::class)->aplicar();
+            });
+        };
+        Seccion::created($programar);
+        Seccion::updated(fn (Seccion $s) => $s->wasChanged(['nombre', 'parent_id']) ? $programar() : null);
+        SeccionTabla::created($programar);
+        SeccionTabla::updated(fn (SeccionTabla $t) => $t->wasChanged(['nombre', 'seccion_id']) ? $programar() : null);
+
         $this->configurePasswordDefaults();
         $this->configureRateLimiting();
         $this->configureGates();

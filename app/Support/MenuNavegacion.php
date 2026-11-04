@@ -20,6 +20,9 @@ class MenuNavegacion
     /** Subsecciones que se listan por nivel en la rama abierta antes de resumir el resto. */
     private const SUBSECCIONES_VISIBLES = 5;
 
+    /** @var Collection<int, Seccion>|null */
+    private ?Collection $nombresPorId = null;
+
     public function __construct(private readonly VisibilidadSecciones $visibilidad) {}
 
     /**
@@ -138,7 +141,16 @@ class MenuNavegacion
             array_unshift($ruta, $actual->nombre);
         }
 
+        // Subsección cuyo padre no está en el menú (p. ej. una estación con permiso solo sobre ella):
+        // se indica de qué sección principal viene, con la ruta completa.
+        $contexto = $padre !== null && ! $porId->has($padre) ? $this->rutaDeAncestros($seccion) : null;
+
+        if ($contexto !== null) {
+            array_unshift($ruta, $contexto);
+        }
+
         return [
+            'contexto' => $contexto,
             'label' => $seccion->nombre,
             'href' => route('secciones.show', $seccion),
             'activo' => $seccionActual instanceof Seccion && $seccionActual->is($seccion),
@@ -147,5 +159,20 @@ class MenuNavegacion
             'busqueda' => implode(' › ', $ruta),
             'esMas' => false,
         ];
+    }
+
+    /**
+     * Nombres de los ancestros de la raíz a la más cercana, "A › B"; null si no hay.
+     */
+    private function rutaDeAncestros(Seccion $seccion): ?string
+    {
+        $nombres = $this->nombresPorId ??= Seccion::query()->get(['id', 'parent_id', 'nombre'])->keyBy('id');
+        $ruta = [];
+
+        for ($actual = $nombres->get($seccion->parent_id); $actual !== null && count($ruta) < Seccion::PROFUNDIDAD_MAXIMA; $actual = $nombres->get($actual->parent_id)) {
+            array_unshift($ruta, $actual->nombre);
+        }
+
+        return $ruta === [] ? null : implode(' › ', $ruta);
     }
 }

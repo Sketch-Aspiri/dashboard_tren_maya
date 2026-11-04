@@ -67,7 +67,9 @@ class SeccionController extends Controller
 
         return view('secciones.show', [
             'seccion' => $seccion,
-            'ancestros' => array_values(array_filter($seccion->ancestros(), $esVisible)),
+            // Todos los ancestros: los que la estación no puede abrir se muestran como texto (sin enlace), para saber de qué sección viene.
+            'ancestros' => $seccion->ancestros(),
+            'ancestrosAbribles' => array_values(array_map(fn (Seccion $a) => $a->id, array_filter($seccion->ancestros(), $esVisible))),
             'subsecciones' => $seccion->hijas()
                 ->when($visibles !== null, fn ($q) => $q->whereIn('id', array_keys($visibles)))
                 ->withCount([
