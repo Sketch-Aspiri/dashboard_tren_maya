@@ -206,7 +206,7 @@ class ImportCuadrillasMantenimientoCommand extends Command
     }
 
     /**
-     * @return string "creadas"|"actualizadas"
+     * @return string "creadas"|"actualizadas"|"omitidas"
      */
     private function importRow(Worksheet $sheet, int $rowNumber): string
     {
@@ -220,6 +220,12 @@ class ImportCuadrillasMantenimientoCommand extends Command
         $attributes['fecha_nacimiento'] = $this->readOptionalDate($sheet, $rowNumber, 'fecha_nacimiento');
 
         $rawEmployeeId = $this->normalizeString($this->readCell($sheet, $rowNumber, $this->columns['no_empleado']));
+
+        // Filas de totales/notas al pie del Excel: sin número de empleado ni
+        // nombre no son una persona ni una vacante; no se importan.
+        if ($rawEmployeeId === null && ($attributes['nombre_completo'] ?? null) === null) {
+            return 'omitidas';
+        }
 
         if ($rawEmployeeId !== null && strtoupper($rawEmployeeId) === 'VACANTE') {
             return $this->upsertVacante($attributes);

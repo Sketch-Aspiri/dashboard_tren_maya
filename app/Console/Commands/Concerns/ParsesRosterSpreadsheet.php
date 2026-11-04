@@ -4,6 +4,7 @@ namespace App\Console\Commands\Concerns;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
@@ -83,7 +84,7 @@ trait ParsesRosterSpreadsheet
         $highest = Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
 
         for ($col = 1; $col <= $highest; $col++) {
-            $text = $this->normalizeHeader($sheet->getCell(Coordinate::stringFromColumnIndex($col).'1')->getCalculatedValue());
+            $text = $this->normalizeHeader($this->safeCellValue($sheet->getCell(Coordinate::stringFromColumnIndex($col).'1')));
 
             if ($text === '') {
                 continue;
@@ -153,18 +154,36 @@ trait ParsesRosterSpreadsheet
         return trim($text);
     }
 
+    /**
+     * Valor de la celda; si es una fórmula que PhpSpreadsheet no puede
+     * calcular (p. ej. conteos de la fila de totales) usa el último valor
+     * guardado por Excel, o null, en vez de abortar toda la importación.
+     */
+    private function safeCellValue(Cell $cell): mixed
+    {
+        try {
+            return $cell->getCalculatedValue();
+        } catch (Throwable) {
+            try {
+                return $cell->getOldCalculatedValue();
+            } catch (Throwable) {
+                return null;
+            }
+        }
+    }
+
     private function readCell(Worksheet $sheet, int $rowNumber, int $col0): mixed
     {
         $address = Coordinate::stringFromColumnIndex($col0 + 1).$rowNumber;
 
-        return $sheet->getCell($address)->getCalculatedValue();
+        return $this->safeCellValue($sheet->getCell($address));
     }
 
     private function readDateCell(Worksheet $sheet, int $rowNumber, int $col0): ?string
     {
         $address = Coordinate::stringFromColumnIndex($col0 + 1).$rowNumber;
         $cell = $sheet->getCell($address);
-        $rawValue = $cell->getCalculatedValue();
+        $rawValue = $this->safeCellValue($cell);
 
         if ($rawValue === null || $rawValue === '') {
             return null;
@@ -310,7 +329,7 @@ trait ParsesRosterSpreadsheet
 
         for ($col = 1; $col <= $highestColumnIndex; $col++) {
             $address = Coordinate::stringFromColumnIndex($col).$rowNumber;
-            $value = $sheet->getCell($address)->getCalculatedValue();
+            $value = $this->safeCellValue($sheet->getCell($address));
 
             if ($this->normalizeString($value) !== null) {
                 return false;
