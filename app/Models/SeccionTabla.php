@@ -68,6 +68,19 @@ class SeccionTabla extends Model
     }
 
     /**
+     * ¿Varios documentos de la nube alimentan esta misma tabla? (p. ej. el
+     * Excel de cada estación con la misma hoja "Gral"). En ese caso el espejo
+     * de un documento no debe tocar las filas que aportó otro.
+     */
+    public function compartidaEntreArchivos(): bool
+    {
+        return SeccionMapeo::query()
+            ->where('seccion_tabla_id', $this->id)
+            ->distinct()
+            ->count('seccion_archivo_id') > 1;
+    }
+
+    /**
      * @return BelongsTo<SeccionOrigen, $this>
      */
     public function origen(): BelongsTo

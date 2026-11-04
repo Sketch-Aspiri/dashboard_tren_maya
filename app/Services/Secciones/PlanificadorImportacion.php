@@ -6,8 +6,10 @@ use App\Enums\ModoImportacion;
 use App\Enums\TipoColumna;
 use App\Models\SeccionColumna;
 use App\Models\SeccionFila;
+use App\Models\SeccionImportacion;
 use App\Models\SeccionTabla;
 use App\Support\Texto;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
@@ -35,8 +37,10 @@ final class PlanificadorImportacion
      *     eliminadas: list<int>,
      *     no_vienen: int,
      * }
+     *
+     * @param  int|null  $archivoId  documento de la nube que se espeja: si la tabla la alimentan varios, solo se comparan sus filas
      */
-    public function planear(SeccionTabla $tabla, array $tablas, OpcionesImportacion $opciones): array
+    public function planear(SeccionTabla $tabla, array $tablas, OpcionesImportacion $opciones, ?int $archivoId = null): array
     {
         $filasCrudas = $tablas[$opciones->tabla]['filas'] ?? throw ValidationException::withMessages(['tabla' => __('La tabla elegida no existe en el documento.')]);
 
@@ -77,7 +81,7 @@ final class PlanificadorImportacion
             default => null,
         };
 
-        return ['columnas_nuevas' => $columnasNuevas] + $this->comparar($tabla, $entrantes, $opciones->modo, $llave);
+        return ['columnas_nuevas' => $columnasNuevas] + $this->comparar($tabla, $entrantes, $opciones->modo, $llave, $opciones->modo === ModoImportacion::Espejo ? $archivoId : null);
     }
 
     /**
@@ -132,10 +136,29 @@ final class PlanificadorImportacion
     }
 
     /**
+     * Filas de la tabla que un espejo puede comparar y eliminar. Normalmente
+     * todas; si varios documentos de la nube alimentan la misma tabla, solo
+     * las que aportó el documento que se está espejando (las de los demás
+     * no "desaparecen" porque este documento no las traiga).
+     *
+     * @return Builder<SeccionFila>
+     */
+    public function filasDeLaTabla(SeccionTabla $tabla, ?int $archivoId = null): Builder
+    {
+        $filas = SeccionFila::query()->where('seccion_tabla_id', $tabla->id);
+
+        if ($archivoId === null || ! $tabla->compartidaEntreArchivos()) {
+            return $filas;
+        }
+
+        return $filas->whereIn('seccion_importacion_id', SeccionImportacion::query()->where('seccion_archivo_id', $archivoId)->select('id'));
+    }
+
+    /**
      * @param  list<array<string, mixed>>  $entrantes
      * @return array{nuevas: list<array<string, mixed>>, actualizadas: array<int, array{antes: array<string, mixed>, despues: array<string, mixed>}>, sin_cambios: int, eliminadas: list<int>, no_vienen: int}
      */
-    private function comparar(SeccionTabla $tabla, array $entrantes, ModoImportacion $modo, ?string $llave): array
+    private function comparar(SeccionTabla $tabla, array $entrantes, ModoImportacion $modo, ?string $llave, ?int $archivoId = null): array
     {
         $resultado = ['nuevas' => [], 'actualizadas' => [], 'sin_cambios' => 0, 'eliminadas' => [], 'no_vienen' => 0];
 
@@ -144,13 +167,13 @@ final class PlanificadorImportacion
         }
 
         if ($modo === ModoImportacion::Reemplazar || ($modo === ModoImportacion::Espejo && $llave === null)) {
-            return ['nuevas' => $entrantes, 'eliminadas' => SeccionFila::query()->where('seccion_tabla_id', $tabla->id)->pluck('id')->all()] + $resultado;
+            return ['nuevas' => $entrantes, 'eliminadas' => $this->filasDeLaTabla($tabla, $archivoId)->pluck('id')->all()] + $resultado;
         }
 
         $actuales = [];
         $porLlave = [];
 
-        SeccionFila::query()->where('seccion_tabla_id', $tabla->id)->select(['id', 'datos'])->orderBy('id')
+        $this->filasDeLaTabla($tabla, $archivoId)->select(['id', 'datos'])->orderBy('id')
             ->each(function (SeccionFila $fila) use (&$actuales, &$porLlave, $llave): void {
                 $actuales[$fila->id] = $fila->datos ?? [];
                 $valorLlave = Texto::normalizar($fila->datos[$llave] ?? null);

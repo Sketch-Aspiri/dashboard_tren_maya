@@ -342,9 +342,9 @@ final class TablasEspejoService
             llave: $propuesta['llave'],
         );
 
-        $plan = $this->planificador->planear($tabla, [$hoja], $opciones);
+        $plan = $this->planificador->planear($tabla, [$hoja], $opciones, $archivo->id);
 
-        if (! $forzar && ($masivo = $this->cambioMasivo($tabla, $plan, $propuesta['llave'] !== null)) !== null) {
+        if (! $forzar && ($masivo = $this->cambioMasivo($tabla, $plan, $propuesta['llave'] !== null, $archivo->id)) !== null) {
             $this->retener($mapeo, self::RETENIDO_MASIVO, $tabla, $hash, $masivo);
 
             return __('Cambio masivo retenido en «:hoja»: se archivarían :n filas. Confirma o ignora en Estado de sincronización.', ['hoja' => $mapeo->hoja, 'n' => $masivo]);
@@ -375,9 +375,9 @@ final class TablasEspejoService
      *
      * @param  array<string, mixed>  $plan
      */
-    private function cambioMasivo(SeccionTabla $tabla, array $plan, bool $conLlave): ?int
+    private function cambioMasivo(SeccionTabla $tabla, array $plan, bool $conLlave, int $archivoId): ?int
     {
-        $actuales = SeccionFila::query()->where('seccion_tabla_id', $tabla->id)->count();
+        $actuales = $this->planificador->filasDeLaTabla($tabla, $archivoId)->count();
 
         if ($actuales === 0) {
             return null;

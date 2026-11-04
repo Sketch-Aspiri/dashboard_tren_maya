@@ -192,7 +192,7 @@ final class ImportacionService
     {
         $this->exigirVistaPrevia($importacion);
         $this->exigirEscribible($importacion, $this->tablaDestino($importacion));
-        $plan = $this->planificador->planear($this->tablaDestino($importacion), $importacion->tablas, $opciones);
+        $plan = $this->planificador->planear($this->tablaDestino($importacion), $importacion->tablas, $opciones, $importacion->seccion_archivo_id);
 
         return [
             'nuevas' => count($plan['nuevas']),
@@ -222,7 +222,7 @@ final class ImportacionService
             $destino = $this->tablaDestino($importacion);
             $this->exigirEscribible($importacion, $destino);
 
-            $plan = $this->planificador->planear($destino, $importacion->tablas, $opciones);
+            $plan = $this->planificador->planear($destino, $importacion->tablas, $opciones, $importacion->seccion_archivo_id);
 
             $columnasCreadas = $this->crearColumnas($destino, $plan['columnas_nuevas']);
             $this->insertarFilas($destino, $importacion, $plan['nuevas'], $usuario, $ahora);
