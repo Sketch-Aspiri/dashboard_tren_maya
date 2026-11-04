@@ -12,6 +12,9 @@
     $columnas = $tablaActiva->columnas;
     // Solo con varias tablas se arrastra ?tabla= (URLs limpias en secciones de una tabla).
     $parametroTabla = $tablas->count() > 1 ? ['tabla' => $tablaActiva->id] : [];
+    // En escritorio la tabla se ve como hoja de cálculo; con búsqueda, orden o filtro de estación, como lista de resultados.
+    $hayFiltros = ($filtros['q'] ?? null) !== null || ($filtros['sort'] ?? null) !== null || ($filtros['estacion'] ?? null) !== null;
+    $modoHoja = ! $soloDocumentos && $columnas->isNotEmpty() && ! $hayFiltros;
     $enlaceOrden = function (string $clave) use ($filtros): string {
         $direccion = ($filtros['sort'] === $clave && $filtros['direction'] === 'asc') ? 'desc' : 'asc';
 
@@ -162,7 +165,7 @@
             <div x-show="tab === 'tabla'" role="tabpanel">
                 {{-- Una sub-pestaña por tabla de la sección (p. ej. las hojas de un libro de Excel). --}}
                 @if ($tablas->count() > 1)
-                    <nav class="mb-3 flex flex-wrap gap-2 pb-1" aria-label="{{ __('Tablas de la sección') }}">
+                    <nav @class(['mb-3 flex flex-wrap gap-2 pb-1', 'sm:hidden' => $modoHoja]) aria-label="{{ __('Tablas de la sección') }}">
                         @foreach ($tablas as $tablaItem)
                             @php $esActiva = $tablaItem->id === $tablaActiva->id; @endphp
                             <a href="{{ route('secciones.show', [$seccion, 'tabla' => $tablaItem->id, 'tab' => 'tabla', 'q' => $filtros['q']]) }}"
@@ -177,7 +180,7 @@
                     </nav>
 
                     @if ($puedeEditarSeccion)
-                        <div class="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-gray-700">
+                        <div @class(['mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-gray-700', 'sm:hidden' => $modoHoja])>
                             <span class="min-w-0 break-words">{{ __('Hoja actual: :nombre', ['nombre' => $tablaActiva->nombre]) }}</span>
                             <x-confirmar-eliminar
                                 :action="route('secciones.tablas.destroy', [$seccion, $tablaActiva])"

@@ -15,7 +15,9 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
  * Fila de una tabla de una sección. Los valores viven en "datos" indexados
- * por SeccionColumna::clave.
+ * por SeccionColumna::clave; el estilo de cada celda, en "formato" (mismas
+ * claves, ver App\Support\EstiloCelda). "orden" es la posición en la hoja
+ * (NULL = la del id, ver scopeEnOrdenDeHoja).
  */
 class SeccionFila extends Model
 {
@@ -44,6 +46,8 @@ class SeccionFila extends Model
     {
         return [
             'datos' => 'array',
+            'formato' => 'array',
+            'orden' => 'float',
         ];
     }
 
@@ -104,6 +108,26 @@ class SeccionFila extends Model
     }
 
     /**
+     * Orden de la hoja de cálculo: por "orden" y, si no lo tiene (inserción
+     * masiva de una importación), por su id; así lo importado queda al final.
+     *
+     * @param  Builder<SeccionFila>  $consulta
+     */
+    public function scopeEnOrdenDeHoja(Builder $consulta): void
+    {
+        $consulta->orderByRaw('COALESCE('.$this->qualifyColumn('orden').', '.$this->qualifyColumn('id').')')
+            ->orderBy($this->qualifyColumn('id'));
+    }
+
+    /**
+     * Posición efectiva en la hoja (la misma que usa scopeEnOrdenDeHoja).
+     */
+    public function posicion(): float
+    {
+        return (float) ($this->orden ?? $this->id);
+    }
+
+    /**
      * Solo las filas que el usuario puede ver: la zona ve todas; una cuenta
      * Estación, todas las filas de las secciones u hojas que tiene
      * permitidas (la estación etiquetada en la fila no cuenta para permisos).
@@ -126,7 +150,7 @@ class SeccionFila extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['seccion_id', 'seccion_tabla_id', 'estacion_id', 'datos'])
+            ->logOnly(['seccion_id', 'seccion_tabla_id', 'estacion_id', 'datos', 'formato'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->useLogName('seccion');

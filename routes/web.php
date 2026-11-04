@@ -26,6 +26,7 @@ use App\Http\Controllers\Secciones\SeccionEtiquetadoController;
 use App\Http\Controllers\Secciones\SeccionExportacionController;
 use App\Http\Controllers\Secciones\SeccionFilaController;
 use App\Http\Controllers\Secciones\SeccionFotoController;
+use App\Http\Controllers\Secciones\SeccionHojaController;
 use App\Http\Controllers\Secciones\SeccionImportacionController;
 use App\Http\Controllers\Secciones\SeccionMapeoController;
 use App\Http\Controllers\Secciones\SeccionOrigenController;
@@ -154,6 +155,19 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
             Route::get('/{seccion}/importaciones/{importacion}', [SeccionImportacionController::class, 'show'])->name('importaciones.show');
             Route::get('/{seccion}/origenes/{origen}/mapeo', [SeccionMapeoController::class, 'edit'])->name('origenes.mapeo.edit');
 
+            // Hoja de cálculo (cuadrícula tipo Excel): JSON para Alpine; la hoja va en "tabla".
+            Route::get('/{seccion}/hoja', [SeccionHojaController::class, 'show'])->name('hoja.show');
+            Route::middleware('throttle:secciones-hoja')->prefix('/{seccion}/hoja')->name('hoja.')->group(function () {
+                Route::post('/celdas', [SeccionHojaController::class, 'celdas'])->name('celdas');
+                Route::post('/filas', [SeccionHojaController::class, 'insertarFilas'])->name('filas.insertar');
+                Route::post('/filas/eliminar', [SeccionHojaController::class, 'eliminarFilas'])->name('filas.eliminar');
+                Route::post('/columnas', [SeccionHojaController::class, 'insertarColumna'])->name('columnas.insertar');
+                Route::put('/columnas/{columna}', [SeccionHojaController::class, 'actualizarColumna'])->name('columnas.actualizar');
+                Route::delete('/columnas/{columna}', [SeccionHojaController::class, 'eliminarColumna'])->name('columnas.eliminar');
+                Route::put('/diseno', [SeccionHojaController::class, 'diseno'])->name('diseno');
+                Route::post('/ordenar', [SeccionHojaController::class, 'ordenar'])->name('ordenar');
+            });
+
             Route::middleware('throttle:secciones-write')->group(function () {
                 Route::put('/{seccion}', [SeccionController::class, 'update'])->name('update');
                 Route::put('/{seccion}/estaciones', [SeccionEstacionController::class, 'update'])->name('estaciones.update');
@@ -165,6 +179,10 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
                 Route::post('/{seccion}/columnas/{columna}/mover', [SeccionColumnaController::class, 'mover'])->name('columnas.mover');
                 Route::delete('/{seccion}/columnas/{columna}', [SeccionColumnaController::class, 'destroy'])->name('columnas.destroy');
 
+                Route::post('/{seccion}/tablas', [SeccionTablaController::class, 'store'])->name('tablas.store');
+                Route::put('/{seccion}/tablas/{tabla}', [SeccionTablaController::class, 'update'])->name('tablas.update');
+                Route::post('/{seccion}/tablas/{tabla}/mover', [SeccionTablaController::class, 'mover'])->name('tablas.mover');
+                Route::post('/{seccion}/tablas/{tabla}/duplicar', [SeccionTablaController::class, 'duplicar'])->name('tablas.duplicar');
                 Route::delete('/{seccion}/tablas/{tabla}', [SeccionTablaController::class, 'destroy'])->name('tablas.destroy');
                 // Permisos de las estaciones sobre una hoja (Jefe de Zona / Administrador).
                 Route::put('/{seccion}/tablas/{tabla}/acceso-estaciones', [SeccionEstacionController::class, 'updateTabla'])->name('tablas.acceso.update');

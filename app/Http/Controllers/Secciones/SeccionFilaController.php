@@ -7,6 +7,7 @@ use App\Http\Requests\Secciones\GuardarFilaRequest;
 use App\Models\Seccion;
 use App\Models\SeccionFila;
 use App\Services\Secciones\FilaService;
+use App\Services\Secciones\Hoja\EstructuraHojaService;
 use Illuminate\Http\RedirectResponse;
 
 /**
@@ -15,7 +16,10 @@ use Illuminate\Http\RedirectResponse;
  */
 class SeccionFilaController extends Controller
 {
-    public function __construct(private readonly FilaService $filas) {}
+    public function __construct(
+        private readonly FilaService $filas,
+        private readonly EstructuraHojaService $estructura,
+    ) {}
 
     public function store(GuardarFilaRequest $request, Seccion $seccion): RedirectResponse
     {
@@ -46,7 +50,8 @@ class SeccionFilaController extends Controller
     {
         $this->authorize('eliminarFila', [$seccion, $fila]);
 
-        $this->filas->eliminar($fila);
+        // Por la hoja de cálculo: así las fórmulas y celdas combinadas de abajo se recorren.
+        $this->estructura->eliminarFilas($fila->tabla, [$fila->id]);
 
         return back()->with('status', __('Registro eliminado.'));
     }

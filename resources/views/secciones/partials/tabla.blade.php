@@ -12,8 +12,20 @@
         @endif
     </div>
 @else
-    <div class="overflow-hidden rounded-xl border border-brand-green/10 bg-white shadow-sm shadow-brand-green/5">
-        {{-- Escritorio / tableta --}}
+    @if ($modoHoja)
+        {{-- Escritorio / tableta: hoja de cálculo. Fuera del contenedor con overflow-hidden (menús y paletas no se recortan). --}}
+        <div class="hidden sm:block">
+            @include('secciones.partials.hoja-calculo')
+        </div>
+    @elseif ($hayFiltros)
+        <p class="mb-3 hidden flex-wrap items-center gap-x-2 rounded-md bg-brand-mist px-3 py-2 text-sm text-brand-green sm:flex" role="status">
+            <span>{{ __('Mostrando la tabla como lista de resultados (búsqueda, orden o filtro aplicado).') }}</span>
+            <a href="{{ route('secciones.show', array_merge([$seccion, 'tab' => 'tabla'], $parametroTabla)) }}" class="font-semibold underline">{{ __('Volver a la hoja de cálculo') }}</a>
+        </p>
+    @endif
+    <div @class(['overflow-hidden rounded-xl border border-brand-green/10 bg-white shadow-sm shadow-brand-green/5', 'sm:hidden' => $modoHoja])>
+        @unless ($modoHoja)
+        {{-- Escritorio / tableta: lista de resultados --}}
         <div class="hidden overflow-x-auto sm:block">
             <table class="min-w-full divide-y divide-gray-200 text-sm">
                 <thead class="bg-brand-mist">
@@ -81,6 +93,7 @@
                 </tbody>
             </table>
         </div>
+        @endunless
 
         {{-- Celular: borrar columnas (el thead de escritorio no se ve aquí) --}}
         @if ($puedeEditarSeccion)

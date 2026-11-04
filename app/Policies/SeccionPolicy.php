@@ -164,6 +164,17 @@ class SeccionPolicy
         return $seccion->solo_documentos ? Response::deny() : $this->soloSiEscribible($tabla);
     }
 
+    /**
+     * Editar la hoja de cálculo: celdas, formato, insertar/borrar filas,
+     * combinar y ordenar. Mismo permiso que agregar filas a esa hoja (zona,
+     * o estación con Editar sobre la hoja o la sección; nunca una espejo).
+     * Las columnas y las hojas son estructura: modificarTabla / update.
+     */
+    public function editarHoja(User $user, Seccion $seccion, SeccionTabla $tabla): Response
+    {
+        return $this->crearFila($user, $seccion, $tabla);
+    }
+
     public function actualizarFila(User $user, Seccion $seccion, SeccionFila $fila): Response
     {
         return $this->editarFila($user, $seccion, $fila);

@@ -43,6 +43,14 @@ return [
 
     'filas_por_pagina' => [25, 50, 100],
 
+    // Hoja de cálculo (cuadrícula tipo Excel): filas que se cargan de una vez
+    // (con más, la hoja se abre en solo lectura), hojas por sección y
+    // celdas por lote al guardar (el navegador parte los pegados grandes).
+    'hoja_max_filas' => (int) env('SECCIONES_HOJA_MAX_FILAS', 20000),
+    'max_hojas' => 50,
+    'hoja_max_celdas_lote' => 2000,
+    'hoja_max_filas_lote' => 500,
+
     // Disco privado donde viven los archivos (nunca el disco "public").
     'disco' => 'local',
 

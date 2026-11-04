@@ -155,7 +155,8 @@ class TablasSoloLecturaTest extends TestCase
             ->assertOk()
             ->assertSee('Agregar registro')
             ->assertSee('Arrastra aquí')
-            ->assertDontSee('Sincronizada con');
+            // El aviso de solo lectura; la pestaña de la hoja espejo sí lleva el tooltip «Sincronizada con la nube».
+            ->assertDontSee('Sincronizada con OneDrive');
     }
 
     public function test_unlinking_the_origin_keeps_the_tables_as_normal_editable_tables(): void

@@ -5,3 +5,33 @@
 [x-cloak] {
     display: none !important;
 }
+
+/* Hoja de cálculo (resources/js/hoja). Medidas fijas: ALTO_FILA = 26px en rejilla.js. */
+@layer components {
+    .hoja-rejilla { @apply relative overflow-hidden border border-gray-300 bg-white outline-none; height: 68vh; min-height: 320px; }
+    .hoja-pantalla-completa .hoja-rejilla { height: calc(100dvh - 190px); }
+    .hoja-esquina { @apply absolute left-0 top-0 z-30 cursor-pointer border-b border-r border-gray-300 bg-gray-100; width: 48px; height: 40px; }
+    .hoja-panel-encabezados { @apply absolute right-0 top-0 z-20 overflow-hidden border-b border-gray-300 bg-gray-100; left: 48px; height: 40px; }
+    .hoja-panel-numeros { @apply absolute bottom-0 left-0 z-20 overflow-hidden border-r border-gray-300 bg-gray-100; top: 40px; width: 48px; }
+    .hoja-cuerpo { @apply absolute bottom-0 right-0 overflow-auto; left: 48px; top: 40px; }
+    .hoja-encabezado { @apply absolute top-0 flex h-10 select-none flex-col items-center justify-center border-r border-gray-300 px-1 text-xs text-gray-600; }
+    .hoja-encabezado-marcado { @apply bg-brand-mist text-brand-green; }
+    .hoja-encabezado-letra { @apply text-[10px] leading-none text-gray-400; }
+    .hoja-encabezado-nombre { @apply mt-0.5 w-full truncate text-center font-semibold leading-tight text-gray-700; }
+    .hoja-asa { @apply absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-brand-teal/50; }
+    .hoja-numero { @apply absolute left-0 flex w-12 select-none items-center justify-center border-b border-gray-200 text-xs text-gray-500; height: 26px; }
+    .hoja-numero-marcado { @apply bg-brand-mist font-semibold text-brand-green; }
+    .hoja-numero-vacia { @apply text-gray-300; }
+    .hoja-celda { @apply absolute flex items-center overflow-hidden whitespace-pre border-b border-r border-gray-200 px-1.5 text-[13px] leading-tight text-gray-900; }
+    .hoja-celda-combinada { @apply z-[1] bg-white; }
+    .hoja-celda-ajustada { @apply whitespace-pre-wrap break-words; }
+    .hoja-celda-error { @apply justify-center font-semibold text-red-700; }
+    .hoja-foto { @apply text-xs text-brand-teal underline; }
+    .hoja-seleccion { @apply pointer-events-none absolute z-[2] border border-brand-teal bg-brand-teal/10; }
+    .hoja-activa { @apply pointer-events-none absolute z-[3] border-2 border-brand-teal; }
+    .hoja-editor { @apply absolute z-[4] resize-none overflow-hidden border-2 border-brand-teal bg-white px-1.5 py-1 text-[13px] leading-tight shadow-lg outline-none focus:ring-0; }
+    .hoja-boton { @apply inline-flex h-8 min-w-[2rem] items-center justify-center rounded px-1.5 text-sm text-gray-700 hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal disabled:cursor-not-allowed disabled:opacity-40; }
+    .hoja-boton-activo { @apply bg-brand-mist text-brand-green ring-1 ring-brand-teal/40; }
+    .hoja-separador { @apply mx-1 h-6 w-px bg-gray-300; }
+    .hoja-menu-item { @apply block w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-brand-mist disabled:cursor-not-allowed disabled:opacity-40; }
+}

@@ -29,6 +29,7 @@ class SeccionColumna extends Model
         'tipo',
         'opciones',
         'orden',
+        'ancho',
     ];
 
     /**
@@ -40,6 +41,7 @@ class SeccionColumna extends Model
             'tipo' => TipoColumna::class,
             'opciones' => 'array',
             'orden' => 'integer',
+            'ancho' => 'integer',
         ];
     }
 
@@ -78,7 +80,7 @@ class SeccionColumna extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['seccion_id', 'seccion_tabla_id', 'nombre', 'clave', 'tipo', 'opciones', 'orden'])
+            ->logOnly(['seccion_id', 'seccion_tabla_id', 'nombre', 'clave', 'tipo', 'opciones', 'orden', 'ancho'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->useLogName('seccion');

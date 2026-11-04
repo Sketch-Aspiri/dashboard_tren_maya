@@ -79,10 +79,12 @@ final class ConsultaSeccionService
 
         if ($columna instanceof SeccionColumna) {
             $this->ordenarPorColumna($consulta, $columna, $direccion);
+
+            return $consulta->orderBy('id', $direccion);
         }
 
-        // Sin orden elegido: el del documento/captura (como en el Excel original).
-        return $consulta->orderBy('id', $columna ? $direccion : 'asc');
+        // Sin orden elegido: el de la hoja de cálculo (el del documento/captura, más las filas insertadas en medio).
+        return $consulta->enOrdenDeHoja();
     }
 
     /**

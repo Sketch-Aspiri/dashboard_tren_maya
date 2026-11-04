@@ -134,6 +134,13 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 
+        // Hoja de cálculo: la cuadrícula guarda por lotes mientras se edita
+        // (el navegador agrupa los cambios), así que el tope es más holgado
+        // que el de secciones-write.
+        RateLimiter::for('secciones-hoja', function (Request $request) {
+            return Limit::perMinute(240)->by($request->user()?->id ?: $request->ip());
+        });
+
         // Subida de documentos (hasta 100 MB c/u; leer tablas/texto cuesta CPU).
         RateLimiter::for('secciones-archivos', function (Request $request) {
             return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());

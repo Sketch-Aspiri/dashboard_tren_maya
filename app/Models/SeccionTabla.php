@@ -31,6 +31,7 @@ class SeccionTabla extends Model
         'seccion_id',
         'nombre',
         'orden',
+        'diseno',
     ];
 
     /**
@@ -40,6 +41,7 @@ class SeccionTabla extends Model
     {
         return [
             'orden' => 'integer',
+            'diseno' => 'array',
         ];
     }
 
@@ -94,6 +96,22 @@ class SeccionTabla extends Model
     }
 
     /**
+     * Celdas combinadas y rangos con formato de tabla de la hoja, por
+     * posición base 0 (f1, c1, f2, c2; ver DisenoHojaService).
+     *
+     * @return array{combinaciones: list<array<string, mixed>>, tablas: list<array<string, mixed>>}
+     */
+    public function disenoHoja(): array
+    {
+        $diseno = $this->diseno ?? [];
+
+        return [
+            'combinaciones' => array_values($diseno['combinaciones'] ?? []),
+            'tablas' => array_values($diseno['tablas'] ?? []),
+        ];
+    }
+
+    /**
      * @return BelongsTo<Seccion, $this>
      */
     public function seccion(): BelongsTo
@@ -132,7 +150,7 @@ class SeccionTabla extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['seccion_id', 'nombre', 'orden'])
+            ->logOnly(['seccion_id', 'nombre', 'orden', 'diseno'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->useLogName('seccion');
