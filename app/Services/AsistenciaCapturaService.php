@@ -64,6 +64,11 @@ final class AsistenciaCapturaService
         return Empleado::query()
             ->where('estacion_id', $estacion->id)
             ->where('estatus', EmpleadoEstatus::Activo->value)
+            // Same order as the printed oficio: orden_oficio (NULLs last), the manager
+            // first when there is no explicit position, then by name.
+            ->orderByRaw('orden_oficio is null')
+            ->orderBy('orden_oficio')
+            ->orderByRaw("(puesto like 'Gerencia de Estaci%' or puesto like 'Direcci%') desc")
             ->orderBy('nombre_completo')
             ->with(['registrosDiarios' => fn ($query) => $query->whereDate('fecha', $fecha)])
             ->get();
