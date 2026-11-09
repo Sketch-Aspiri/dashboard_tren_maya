@@ -55,6 +55,9 @@
                     @can('manage', \App\Models\CatalogoInsumo::class)
                         <a href="{{ route('insumos.catalogo.index') }}" class="inline-flex min-h-[44px] items-center text-sm text-brand-teal hover:underline">{{ __('Catálogo de insumos') }}</a>
                     @endcan
+                    @can('manage', \App\Models\Cotizacion::class)
+                        <a href="{{ route('insumos.cotizaciones.index', ['anio' => $anio, 'mes' => $mes]) }}" class="inline-flex min-h-[44px] items-center rounded-md border border-brand-teal px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Cotizaciones') }}</a>
+                    @endcan
                     @can('consolidate', \App\Models\SolicitudInsumo::class)
                         <a href="{{ route('insumos.coordinacion.index', ['anio' => $anio, 'mes' => $mes]) }}" class="inline-flex min-h-[44px] items-center rounded-md border border-brand-teal px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Coordinación') }}</a>
                     @endcan

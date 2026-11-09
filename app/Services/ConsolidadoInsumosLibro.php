@@ -24,14 +24,22 @@ final class ConsolidadoInsumosLibro
 
     private const GRIS = 'D0D0D0';
 
+    /** @var array<int, array<string, mixed>> Notas de cotización por id de partida (PRECIOS_REALES). */
+    private array $anotaciones = [];
+
+    private bool $conCotizacion = false;
+
     /**
      * @param  array<string, mixed>  $datos  Salida de ConsolidadoInsumosService::datos().
+     * @param  array<int, array<string, mixed>>|null  $anotaciones  Distinto de null agrega las columnas M a P de cotización (precio estimado, cotización, estatus y observación).
      */
-    public function anexo(array $datos): Spreadsheet
+    public function anexo(array $datos, ?array $anotaciones = null): Spreadsheet
     {
+        $this->conCotizacion = $anotaciones !== null;
+        $this->anotaciones = $anotaciones ?? [];
         $libro = new Spreadsheet;
         $hoja = $libro->getActiveSheet()->setTitle('ZO_Cotización');
-        $this->anchos($hoja, ['A' => 3.7, 'B' => 5.5, 'C' => 7, 'D' => 10, 'E' => 42, 'F' => 13, 'G' => 14, 'H' => 11, 'I' => 12, 'J' => 40, 'K' => 20]);
+        $this->anchos($hoja, ['A' => 3.7, 'B' => 5.5, 'C' => 7, 'D' => 10, 'E' => 42, 'F' => 13, 'G' => 14, 'H' => 11, 'I' => 12, 'J' => 40, 'K' => 20, 'L' => 3, 'M' => 14, 'N' => 28, 'O' => 16, 'P' => 46]);
         $this->encabezado($hoja, 'E', 'I', 'J', 'K', $datos);
 
         $fila = 7;
@@ -195,6 +203,10 @@ final class ConsolidadoInsumosLibro
         $cabecera = $fila + 2;
         $this->cabecera($hoja, $cabecera, ['N°', 'Cant', 'Unidad', 'Descripción', 'P.U.', 'Precio total', 'P.Ptal', 'P.Ptal/Fin', 'Observaciones/Justificación de insumos', 'Proveedor'], 'B');
 
+        if ($this->conCotizacion) {
+            $this->cabecera($hoja, $cabecera, ['P.U. estimado', 'Cotización', 'Estatus fase A', 'Observación'], 'M');
+        }
+
         $primera = $cabecera + 1;
         $fila = $primera;
         $filasPorGrupo = [];
@@ -218,6 +230,7 @@ final class ConsolidadoInsumosLibro
             $this->texto($hoja, 'J'.$fila, $partida->justificacion);
             $this->texto($hoja, 'K'.$fila, $partida->proveedor);
             $filasPorGrupo[ProveedorService::clave($partida->proveedor)][] = $fila;
+            $this->notaDeCotizacion($hoja, $fila, $partida->id);
             $fila++;
         }
 
@@ -249,6 +262,27 @@ final class ConsolidadoInsumosLibro
         $filasTotal[] = $filaTotal;
 
         return $filaTotal + 2;
+    }
+
+    /**
+     * Columnas M a P del PRECIOS_REALES: precio estimado, cotización que lo
+     * resolvió, estatus de la fase A y observación.
+     */
+    private function notaDeCotizacion(Worksheet $hoja, int $fila, int $partidaId): void
+    {
+        $nota = $this->anotaciones[$partidaId] ?? null;
+
+        if ($nota === null) {
+            return;
+        }
+
+        $hoja->setCellValue('M'.$fila, $nota['estimado']);
+        $hoja->getStyle('M'.$fila)->getNumberFormat()->setFormatCode(self::DINERO);
+        $this->texto($hoja, 'N'.$fila, $nota['cotizacion']);
+        $this->texto($hoja, 'O'.$fila, $nota['estatus']);
+        $this->texto($hoja, 'P'.$fila, $nota['observacion']);
+        $hoja->getStyle('O'.$fila)->getFont()->getColor()->setRGB($nota['estatus'] === 'ACTUALIZADO' ? '1B7F3B' : 'C0392B');
+        $hoja->getStyle('N'.$fila.':P'.$fila)->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
     }
 
     private function motivoSinPartidas(?SolicitudInsumo $solicitud): string

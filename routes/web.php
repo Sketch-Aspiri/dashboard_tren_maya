@@ -9,6 +9,9 @@ use App\Http\Controllers\ComisionadoFueraController;
 use App\Http\Controllers\ComisionadoVisitanteController;
 use App\Http\Controllers\ConsolidadoInsumosController;
 use App\Http\Controllers\CoordinacionInsumosController;
+use App\Http\Controllers\CotizacionController;
+use App\Http\Controllers\CotizacionIaController;
+use App\Http\Controllers\CotizacionReporteController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\FormatoSolicitudInsumoController;
@@ -258,6 +261,15 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
         Route::get('/catalogo', [CatalogoInsumoController::class, 'index'])->name('catalogo.index');
         Route::get('/proveedores', [ProveedorController::class, 'index'])->name('proveedores.index');
         Route::get('/coordinacion', [CoordinacionInsumosController::class, 'index'])->name('coordinacion.index');
+        Route::get('/cotizaciones', [CotizacionController::class, 'index'])->name('cotizaciones.index');
+        Route::get('/cotizaciones/nueva', [CotizacionController::class, 'create'])->name('cotizaciones.create');
+        Route::get('/cotizaciones/descargar', CotizacionReporteController::class)
+            ->middleware('throttle:insumos-export')->name('cotizaciones.descargar');
+        Route::post('/cotizaciones/leer-ia', CotizacionIaController::class)
+            ->middleware('throttle:ia')->name('cotizaciones.leer-ia');
+        Route::get('/cotizaciones/{cotizacion}', [CotizacionController::class, 'show'])->whereNumber('cotizacion')->name('cotizaciones.show');
+        Route::get('/cotizaciones/{cotizacion}/editar', [CotizacionController::class, 'edit'])->whereNumber('cotizacion')->name('cotizaciones.edit');
+        Route::get('/cotizaciones/{cotizacion}/archivo', [CotizacionController::class, 'archivo'])->whereNumber('cotizacion')->name('cotizaciones.archivo');
         Route::get('/consolidado', [ConsolidadoInsumosController::class, 'descargar'])
             ->middleware('throttle:insumos-export')->name('consolidado');
         Route::get('/estaciones/{estacion}', [SolicitudInsumoController::class, 'estacion'])->name('estacion');
@@ -268,6 +280,11 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
         Route::middleware('throttle:insumos-write')->group(function () {
             Route::post('/coordinacion/envio', [CoordinacionInsumosController::class, 'enviar'])->name('coordinacion.enviar');
             Route::post('/coordinacion/respuesta', [CoordinacionInsumosController::class, 'respuesta'])->name('coordinacion.respuesta');
+            Route::post('/cotizaciones', [CotizacionController::class, 'store'])->name('cotizaciones.store');
+            Route::put('/cotizaciones/{cotizacion}', [CotizacionController::class, 'update'])->whereNumber('cotizacion')->name('cotizaciones.update');
+            Route::delete('/cotizaciones/{cotizacion}', [CotizacionController::class, 'destroy'])->whereNumber('cotizacion')->name('cotizaciones.destroy');
+            Route::post('/cotizaciones/renglones/{renglon}/aceptar', [CotizacionController::class, 'aceptar'])->whereNumber('renglon')->name('cotizaciones.aceptar');
+            Route::post('/cotizaciones/renglones/{renglon}/rechazar', [CotizacionController::class, 'rechazar'])->whereNumber('renglon')->name('cotizaciones.rechazar');
             Route::post('/proveedores', [ProveedorController::class, 'store'])->name('proveedores.store');
             Route::put('/proveedores/{proveedor}', [ProveedorController::class, 'update'])->whereNumber('proveedor')->name('proveedores.update');
             Route::delete('/proveedores/{proveedor}', [ProveedorController::class, 'destroy'])->whereNumber('proveedor')->name('proveedores.destroy');

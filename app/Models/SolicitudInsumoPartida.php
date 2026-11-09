@@ -31,6 +31,7 @@ class SolicitudInsumoPartida extends Model
         'catalogo_insumo_id',
         'codigo',
         'precio_unitario',
+        'precio_estimado',
         'partida_presupuestal',
         'partida_final',
         'eliminada_por_coordinacion',
@@ -47,6 +48,7 @@ class SolicitudInsumoPartida extends Model
             'numero' => 'integer',
             'cantidad' => 'decimal:2',
             'precio_unitario' => 'decimal:2',
+            'precio_estimado' => 'decimal:2',
             'eliminada_por_coordinacion' => 'boolean',
             'agregada_por_coordinacion' => 'boolean',
         ];
