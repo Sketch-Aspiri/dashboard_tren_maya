@@ -31,6 +31,7 @@ use App\Http\Controllers\Secciones\SeccionImportacionController;
 use App\Http\Controllers\Secciones\SeccionMapeoController;
 use App\Http\Controllers\Secciones\SeccionOrigenController;
 use App\Http\Controllers\Secciones\SeccionTablaController;
+use App\Http\Controllers\SolicitudInsumoController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -239,6 +240,23 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
             Route::post('/{seccion}/archivos/{archivo}/ia', [SeccionImportacionController::class, 'extraerConIa'])
                 ->middleware('throttle:ia')
                 ->name('archivos.ia');
+        });
+    });
+
+    // Módulo "Solicitud de insumos" (fondo rotatorio): la estación captura y
+    // envía, la Zona revisa y aprueba (ver app/Policies/SolicitudInsumoPolicy.php).
+    // Sustituye al Flujo 1 de n8n.
+    Route::prefix('insumos')->name('insumos.')->group(function () {
+        Route::get('/', [SolicitudInsumoController::class, 'index'])->name('index');
+        Route::get('/catalogo', [SolicitudInsumoController::class, 'catalogo'])
+            ->middleware('throttle:60,1')->name('catalogo');
+        Route::get('/estaciones/{estacion}', [SolicitudInsumoController::class, 'estacion'])->name('estacion');
+        Route::get('/{solicitud}', [SolicitudInsumoController::class, 'show'])->whereNumber('solicitud')->name('show');
+
+        Route::middleware('throttle:insumos-write')->group(function () {
+            Route::put('/{solicitud}', [SolicitudInsumoController::class, 'update'])->whereNumber('solicitud')->name('update');
+            Route::post('/{solicitud}/enviar', [SolicitudInsumoController::class, 'enviar'])->whereNumber('solicitud')->name('enviar');
+            Route::post('/{solicitud}/revisar', [SolicitudInsumoController::class, 'revisar'])->whereNumber('solicitud')->name('revisar');
         });
     });
 

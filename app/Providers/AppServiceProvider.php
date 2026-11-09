@@ -188,6 +188,11 @@ class AppServiceProvider extends ServiceProvider
                 Limit::perDay((int) config('services.anthropic.asistente_por_dia'))->by('dia:'.$clave),
             ];
         });
+
+        // Módulo "Solicitud de insumos" — captura, envío y revisión.
+        RateLimiter::for('insumos-write', function (Request $request) {
+            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+        });
     }
 
     /**

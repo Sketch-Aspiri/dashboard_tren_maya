@@ -28,6 +28,7 @@ class Estacion extends Model
      */
     protected $fillable = [
         'nombre',
+        'codigo',
         'is_operativa',
         'orden',
     ];
