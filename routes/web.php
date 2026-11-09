@@ -10,6 +10,7 @@ use App\Http\Controllers\ComisionadoVisitanteController;
 use App\Http\Controllers\ConsolidadoInsumosController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmpleadoController;
+use App\Http\Controllers\FormatoSolicitudInsumoController;
 use App\Http\Controllers\Nube\NubeCredencialController;
 use App\Http\Controllers\Nube\NubeCuentaController;
 use App\Http\Controllers\Nube\NubeEstadoController;
@@ -257,6 +258,8 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
             ->middleware('throttle:insumos-export')->name('consolidado');
         Route::get('/estaciones/{estacion}', [SolicitudInsumoController::class, 'estacion'])->name('estacion');
         Route::get('/{solicitud}', [SolicitudInsumoController::class, 'show'])->whereNumber('solicitud')->name('show');
+        Route::get('/{solicitud}/formato', FormatoSolicitudInsumoController::class)
+            ->middleware('throttle:insumos-export')->whereNumber('solicitud')->name('formato');
 
         Route::middleware('throttle:insumos-write')->group(function () {
             Route::post('/catalogo', [CatalogoInsumoController::class, 'store'])->name('catalogo.store');

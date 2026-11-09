@@ -64,6 +64,9 @@
                 @if ($solicitud->revisor)
                     <span>{{ __('Revisó') }}: {{ $solicitud->revisor->name }}</span>
                 @endif
+                @if ($solicitud->partidas->isNotEmpty())
+                    <a href="{{ route('insumos.formato', $solicitud) }}" class="inline-flex min-h-[44px] items-center text-brand-teal hover:underline">{{ __('Descargar formato (Excel)') }}</a>
+                @endif
             </div>
 
             @if ($puedeEditar)
