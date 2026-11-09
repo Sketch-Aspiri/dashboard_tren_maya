@@ -14,6 +14,8 @@ use App\Http\Controllers\CotizacionIaController;
 use App\Http\Controllers\CotizacionReporteController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmpleadoController;
+use App\Http\Controllers\FacturaController;
+use App\Http\Controllers\FacturaReporteController;
 use App\Http\Controllers\FormatoSolicitudInsumoController;
 use App\Http\Controllers\Nube\NubeCredencialController;
 use App\Http\Controllers\Nube\NubeCuentaController;
@@ -261,6 +263,11 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
         Route::get('/catalogo', [CatalogoInsumoController::class, 'index'])->name('catalogo.index');
         Route::get('/proveedores', [ProveedorController::class, 'index'])->name('proveedores.index');
         Route::get('/coordinacion', [CoordinacionInsumosController::class, 'index'])->name('coordinacion.index');
+        Route::get('/facturas', [FacturaController::class, 'index'])->name('facturas.index');
+        Route::get('/facturas/descargar', FacturaReporteController::class)
+            ->middleware('throttle:insumos-export')->name('facturas.descargar');
+        Route::get('/facturas/{factura}', [FacturaController::class, 'show'])->whereNumber('factura')->name('facturas.show');
+        Route::get('/facturas/{factura}/archivo/{tipo}', [FacturaController::class, 'archivo'])->whereNumber('factura')->whereIn('tipo', ['xml', 'pdf'])->name('facturas.archivo');
         Route::get('/cotizaciones', [CotizacionController::class, 'index'])->name('cotizaciones.index');
         Route::get('/cotizaciones/nueva', [CotizacionController::class, 'create'])->name('cotizaciones.create');
         Route::get('/cotizaciones/descargar', CotizacionReporteController::class)
@@ -280,6 +287,11 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
         Route::middleware('throttle:insumos-write')->group(function () {
             Route::post('/coordinacion/envio', [CoordinacionInsumosController::class, 'enviar'])->name('coordinacion.enviar');
             Route::post('/coordinacion/respuesta', [CoordinacionInsumosController::class, 'respuesta'])->name('coordinacion.respuesta');
+            Route::post('/facturas', [FacturaController::class, 'store'])->name('facturas.store');
+            Route::put('/facturas/{factura}', [FacturaController::class, 'update'])->whereNumber('factura')->name('facturas.update');
+            Route::delete('/facturas/{factura}', [FacturaController::class, 'destroy'])->whereNumber('factura')->name('facturas.destroy');
+            Route::post('/facturas/{factura}/pdf', [FacturaController::class, 'pdf'])->whereNumber('factura')->name('facturas.pdf');
+            Route::put('/facturas/conceptos/{concepto}', [FacturaController::class, 'vincularConcepto'])->whereNumber('concepto')->name('facturas.concepto');
             Route::post('/cotizaciones', [CotizacionController::class, 'store'])->name('cotizaciones.store');
             Route::put('/cotizaciones/{cotizacion}', [CotizacionController::class, 'update'])->whereNumber('cotizacion')->name('cotizaciones.update');
             Route::delete('/cotizaciones/{cotizacion}', [CotizacionController::class, 'destroy'])->whereNumber('cotizacion')->name('cotizaciones.destroy');

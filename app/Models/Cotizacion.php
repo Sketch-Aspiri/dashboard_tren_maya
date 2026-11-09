@@ -78,6 +78,14 @@ class Cotizacion extends Model
     }
 
     /**
+     * @return HasMany<Factura, $this>
+     */
+    public function facturas(): HasMany
+    {
+        return $this->hasMany(Factura::class);
+    }
+
+    /**
      * @return BelongsTo<User, $this>
      */
     public function creador(): BelongsTo

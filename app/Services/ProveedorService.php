@@ -86,6 +86,36 @@ final class ProveedorService
     }
 
     /**
+     * Proveedor al que corresponde un emisor de factura: primero por RFC y,
+     * si no, por nombre exacto o porque uno contiene al otro ("Continental"
+     * dentro de "GRUPO FERRETERO CONTINENTAL").
+     */
+    public function buscar(?string $rfc, ?string $nombre): ?Proveedor
+    {
+        $rfc = strtoupper(trim((string) $rfc));
+
+        if ($rfc !== '' && ($porRfc = Proveedor::query()->where('rfc', $rfc)->first()) !== null) {
+            return $porRfc;
+        }
+
+        $buscado = self::clave($nombre);
+
+        if ($buscado === '') {
+            return null;
+        }
+
+        foreach (Proveedor::query()->get() as $proveedor) {
+            $clave = self::clave($proveedor->nombre);
+
+            if ($clave === $buscado || (mb_strlen($clave) >= 4 && (str_contains($buscado, $clave) || str_contains($clave, $buscado)))) {
+                return $proveedor;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Da de alta un proveedor visto en una partida o en el catálogo, sin
      * IVA definido, para que la administración lo configure.
      */
