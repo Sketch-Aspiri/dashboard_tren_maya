@@ -228,7 +228,7 @@ class OficioEndurecimientoTest extends TestCase
         $this->assertStringContainsString('storage/app/private', str_replace(DIRECTORY_SEPARATOR, '/', $ruta));
     }
 
-    public function test_desactualizado_solo_mira_registros_diarios_en_el_oficio_de_estacion(): void
+    public function test_el_oficio_de_estacion_se_desactualiza_si_cambian_sus_comisionados(): void
     {
         $estacion = $this->estacionCapturada();
         $this->actingAsTwoFactorVerified($this->usuario('Estación', $estacion));
@@ -239,6 +239,6 @@ class OficioEndurecimientoTest extends TestCase
 
         $this->get(route('asistencia.captura.index'))
             ->assertOk()
-            ->assertDontSee('La asistencia cambió después de generar este oficio');
+            ->assertSee('La asistencia cambió después de generar este oficio');
     }
 }

@@ -137,8 +137,8 @@ final class AsistenciaDocumentoDataBuilder
             direccion: $origen,
             noEmpleado: (string) $visitante->no_trabajador,
             nombre: mb_strtoupper($visitante->nombre),
-            estatus: trim("PRESENTE
-COMISIÓN ".$origen),
+            estatus: trim('PRESENTE
+COMISIÓN '.$origen),
             ubicacion: mb_strtoupper($visitante->estacion->nombre),
         );
     }
@@ -156,10 +156,10 @@ COMISIÓN ".$origen),
         $destino = trim(mb_strtoupper((string) $comision->coordinacion_destino).' '.FormatoFechaOficio::rangoCorto($comision->fecha_inicio, $comision->fecha_fin));
 
         $estatus = $this->tieneEstatusPropio($registro)
-            ? FilaPersonal::desde($empleado, $registro, '')->estatusTexto()."
-COMISIÓN ".$destino
-            : "COMISIÓN
-".$destino;
+            ? FilaPersonal::desde($empleado, $registro, '')->estatusTexto().'
+COMISIÓN '.$destino
+            : 'COMISIÓN
+'.$destino;
 
         return new FilaComisionado(
             direccion: mb_strtoupper((string) config('asistencia_documentos.zona.direccion')),
@@ -207,7 +207,7 @@ COMISIÓN ".$destino
 
     private function esDirectivo(Empleado $empleado): bool
     {
-        return preg_match('/^(Gerencia de Estaci|Direcci)/iu', (string) $empleado->puesto) === 1;
+        return FilaPersonal::esDirectivo($empleado->puesto);
     }
 
     /**

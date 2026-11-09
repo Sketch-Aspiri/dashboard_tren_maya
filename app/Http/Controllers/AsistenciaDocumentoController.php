@@ -50,7 +50,8 @@ class AsistenciaDocumentoController extends Controller
             ->route('asistencia.captura.index', $request->user()->can('captureAnyEstacion', RegistroDiario::class)
                 ? ['estacion' => $estacion->id, 'fecha' => $fecha->toDateString()]
                 : [])
-            ->with('status', __('Oficio generado correctamente.'));
+            ->with('status', __('Oficio generado correctamente.'))
+            ->with('paso', 'oficio');
     }
 
     public function storeZona(GenerarOficioZonaRequest $request): RedirectResponse

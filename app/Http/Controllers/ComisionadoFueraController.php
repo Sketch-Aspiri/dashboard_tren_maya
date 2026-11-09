@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreComisionadoFueraRequest;
 use App\Http\Requests\UpdateComisionadoFueraRequest;
+use App\Http\Resources\ComisionadoFueraCapturaResource;
 use App\Models\ComisionadoFuera;
 use App\Models\RegistroDiario;
 use App\Services\ComisionadoFueraService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -21,30 +23,51 @@ class ComisionadoFueraController extends Controller
 {
     public function __construct(private readonly ComisionadoFueraService $service) {}
 
-    public function store(StoreComisionadoFueraRequest $request): RedirectResponse
+    public function store(StoreComisionadoFueraRequest $request): RedirectResponse|JsonResponse
     {
-        $this->service->create($request->validated(), $request->user());
+        $comision = $this->service->create($request->validated(), $request->user());
+
+        if ($request->expectsJson()) {
+            return $this->json(new ComisionadoFueraCapturaResource($comision->refresh()), 201);
+        }
 
         return $this->volverACaptura($request)
             ->with('status', __('Comisionado fuera agregado correctamente.'));
     }
 
-    public function update(UpdateComisionadoFueraRequest $request, ComisionadoFuera $comisionadoFuera): RedirectResponse
+    public function update(UpdateComisionadoFueraRequest $request, ComisionadoFuera $comisionadoFuera): RedirectResponse|JsonResponse
     {
         $this->service->update($comisionadoFuera, $request->validated());
+
+        if ($request->expectsJson()) {
+            return $this->json(new ComisionadoFueraCapturaResource($comisionadoFuera->refresh()));
+        }
 
         return $this->volverACaptura($request)
             ->with('status', __('Comisionado fuera actualizado correctamente.'));
     }
 
-    public function destroy(Request $request, ComisionadoFuera $comisionadoFuera): RedirectResponse
+    public function destroy(Request $request, ComisionadoFuera $comisionadoFuera): RedirectResponse|JsonResponse
     {
         $this->authorize('delete', $comisionadoFuera);
 
         $this->service->delete($comisionadoFuera);
 
+        if ($request->expectsJson()) {
+            return $this->json(null);
+        }
+
         return $this->volverACaptura($request)
             ->with('status', __('Comisionado fuera eliminado correctamente.'));
+    }
+
+    /**
+     * The capture screen saves these without reloading, so a commissioned
+     * person never costs the unsaved attendance on the same page.
+     */
+    private function json(?ComisionadoFueraCapturaResource $data, int $status = 200): JsonResponse
+    {
+        return response()->json(['success' => true, 'data' => $data, 'error' => null, 'meta' => null], $status);
     }
 
     /**

@@ -15,10 +15,12 @@ use App\Services\Documentos\ConvertidorPdf;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Activitylog\Models\Activity;
 use Tests\Concerns\InteractsWithTwoFactor;
 use Tests\TestCase;
+use ZipArchive;
 
 /**
  * Generation + download of the station oficio through the real HTTP stack.
@@ -103,6 +105,42 @@ class OficioEstacionTest extends TestCase
         Storage::disk('local')->assertExists($documento->pdf_path);
     }
 
+    public function test_estacion_sube_su_firma_y_queda_dentro_del_word(): void
+    {
+        $estacion = $this->estacionCapturada();
+        $this->actingAsTwoFactorVerified($this->usuario('Estación', $estacion));
+
+        $this->post(route('asistencia.captura.oficio.store'), $this->payload([
+            'firma' => UploadedFile::fake()->image('firma.png', 600, 240),
+            'iniciales' => 'JPU',
+        ]))->assertRedirect()->assertSessionHas('paso', 'oficio');
+
+        $documento = DocumentoAsistencia::firstOrFail();
+        $zip = new ZipArchive;
+        $this->assertTrue($zip->open(Storage::disk('local')->path($documento->docx_path)) === true);
+        $imagenes = 0;
+        for ($indice = 0; $indice < $zip->numFiles; $indice++) {
+            $imagenes += str_starts_with((string) $zip->getNameIndex($indice), 'word/media/') ? 1 : 0;
+        }
+        $texto = (string) $zip->getFromName('word/document.xml');
+        $zip->close();
+
+        $this->assertSame(3, $imagenes, 'membrete, pie y firma');
+        $this->assertStringContainsString('JPU', $texto);
+    }
+
+    public function test_estacion_no_puede_subir_como_firma_algo_que_no_es_imagen(): void
+    {
+        $estacion = $this->estacionCapturada();
+        $this->actingAsTwoFactorVerified($this->usuario('Estación', $estacion));
+
+        $this->post(route('asistencia.captura.oficio.store'), $this->payload([
+            'firma' => UploadedFile::fake()->create('firma.pdf', 10, 'application/pdf'),
+        ]))->assertInvalid('firma');
+
+        $this->assertSame(0, DocumentoAsistencia::count());
+    }
+
     public function test_el_docx_guardado_es_un_word_valido_con_el_folio(): void
     {
         $estacion = $this->estacionCapturada();
@@ -113,7 +151,7 @@ class OficioEstacionTest extends TestCase
         $documento = DocumentoAsistencia::firstOrFail();
         $ruta = tempnam(sys_get_temp_dir(), 'chk').'.docx';
         file_put_contents($ruta, Storage::disk('local')->get($documento->docx_path));
-        $zip = new \ZipArchive;
+        $zip = new ZipArchive;
         $this->assertTrue($zip->open($ruta) === true);
         $this->assertStringContainsString('T.M.M./RR.HH./23PMO/00001/2026', (string) $zip->getFromName('word/document.xml'));
         $zip->close();

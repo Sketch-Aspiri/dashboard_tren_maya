@@ -5,6 +5,7 @@ import { Chart } from 'chart.js/auto';
 import { registrarAsistente } from './asistente';
 import { registrarSecciones } from './secciones';
 import { hojaCalculo } from './hoja/componente';
+import { capturaAsistencia } from './asistencia/captura';
 
 window.Alpine = Alpine;
 window.Chart = Chart;
@@ -92,6 +93,7 @@ window.__pendingCharts = [];
 
 registrarSecciones(Alpine);
 Alpine.data('hojaCalculo', hojaCalculo);
+Alpine.data('capturaAsistencia', capturaAsistencia);
 registrarAsistente(Alpine);
 
 Alpine.start();

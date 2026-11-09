@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreComisionadoVisitanteRequest;
 use App\Http\Requests\UpdateComisionadoVisitanteRequest;
+use App\Http\Resources\ComisionadoVisitanteCapturaResource;
 use App\Models\ComisionadoVisitante;
 use App\Models\RegistroDiario;
 use App\Services\ComisionadoVisitanteService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -21,32 +23,53 @@ class ComisionadoVisitanteController extends Controller
 {
     public function __construct(private readonly ComisionadoVisitanteService $service) {}
 
-    public function store(StoreComisionadoVisitanteRequest $request): RedirectResponse
+    public function store(StoreComisionadoVisitanteRequest $request): RedirectResponse|JsonResponse
     {
         $estacion = $request->estacionObjetivo();
 
-        $this->service->create($estacion, $request->validated(), $request->user());
+        $visitante = $this->service->create($estacion, $request->validated(), $request->user());
+
+        if ($request->expectsJson()) {
+            return $this->json(new ComisionadoVisitanteCapturaResource($visitante->refresh()), 201);
+        }
 
         return $this->volverACaptura($request)
             ->with('status', __('Comisionado visitante agregado correctamente.'));
     }
 
-    public function update(UpdateComisionadoVisitanteRequest $request, ComisionadoVisitante $comisionadoVisitante): RedirectResponse
+    public function update(UpdateComisionadoVisitanteRequest $request, ComisionadoVisitante $comisionadoVisitante): RedirectResponse|JsonResponse
     {
         $this->service->update($comisionadoVisitante, $request->validated());
+
+        if ($request->expectsJson()) {
+            return $this->json(new ComisionadoVisitanteCapturaResource($comisionadoVisitante->refresh()));
+        }
 
         return $this->volverACaptura($request)
             ->with('status', __('Comisionado visitante actualizado correctamente.'));
     }
 
-    public function destroy(Request $request, ComisionadoVisitante $comisionadoVisitante): RedirectResponse
+    public function destroy(Request $request, ComisionadoVisitante $comisionadoVisitante): RedirectResponse|JsonResponse
     {
         $this->authorize('delete', $comisionadoVisitante);
 
         $this->service->delete($comisionadoVisitante);
 
+        if ($request->expectsJson()) {
+            return $this->json(null);
+        }
+
         return $this->volverACaptura($request)
             ->with('status', __('Comisionado visitante eliminado correctamente.'));
+    }
+
+    /**
+     * The capture screen saves these without reloading, so a commissioned
+     * person never costs the unsaved attendance on the same page.
+     */
+    private function json(?ComisionadoVisitanteCapturaResource $data, int $status = 200): JsonResponse
+    {
+        return response()->json(['success' => true, 'data' => $data, 'error' => null, 'meta' => null], $status);
     }
 
     /**

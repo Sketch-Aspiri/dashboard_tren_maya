@@ -42,8 +42,14 @@ final readonly class FilaPersonal
             fechaFin: $registro?->fecha_fin,
             notas: $registro?->notas,
             ubicacion: $ubicacion,
-            destacada: preg_match('/^(Gerencia de Estaci|Direcci)/iu', (string) $empleado->puesto) === 1,
+            destacada: self::esDirectivo($empleado->puesto),
         );
+    }
+
+    /** Station managers and above: bold in the oficio and first in their list. */
+    public static function esDirectivo(?string $puesto): bool
+    {
+        return preg_match('/^(Gerencia de Estaci|Direcci)/iu', (string) $puesto) === 1;
     }
 
     /**

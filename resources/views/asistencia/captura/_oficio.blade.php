@@ -6,7 +6,7 @@
     $documento = $oficio['documento'];
 @endphp
 
-<div class="overflow-hidden rounded-xl border border-brand-green/10 bg-white p-4 shadow-sm shadow-brand-green/5 sm:p-6 space-y-4">
+<div class="space-y-4 rounded-xl border border-brand-green/10 bg-white p-4 shadow-sm shadow-brand-green/5 sm:p-5">
     <div>
         <h3 class="font-heading text-base font-semibold text-brand-green">{{ __('Oficio de asistencia') }}</h3>
         <p class="mt-1 text-sm text-gray-600">
@@ -21,7 +21,7 @@
     @endif
 
     @if ($documento)
-        <div class="rounded-md border border-brand-green/20 bg-brand-mist px-4 py-3 text-sm text-brand-green-dark space-y-2">
+        <div class="space-y-2 rounded-md border border-brand-green/20 bg-brand-mist px-4 py-3 text-sm text-brand-green-dark">
             <p>
                 {{ __('Generado') }}: <span class="font-medium">{{ $documento->updated_at->format('d/m/Y H:i') }}</span>
                 — {{ __('No. de oficio') }}: <span class="font-medium">{{ $documento->numero_oficio }}</span>
@@ -29,6 +29,10 @@
             @if ($oficio['desactualizado'])
                 <p class="font-medium text-amber-700" role="status">
                     {{ __('La asistencia cambió después de generar este oficio. Regénéralo para actualizar los archivos.') }}
+                </p>
+            @else
+                <p x-show="oficioDesactualizado" x-cloak class="font-medium text-amber-700" role="status">
+                    {{ __('Los comisionados cambiaron después de generar este oficio. Regénéralo para actualizar los archivos.') }}
                 </p>
             @endif
             <div class="flex flex-wrap gap-2">
@@ -51,7 +55,7 @@
             {{ __('Guarda la asistencia de todo el personal de la estación para poder generar el oficio.') }}
         </p>
     @else
-        <form method="POST" action="{{ route('asistencia.captura.oficio.store') }}" enctype="multipart/form-data" class="space-y-4 border-t border-brand-green/10 pt-4">
+        <form method="POST" action="{{ route('asistencia.captura.oficio.store') }}" enctype="multipart/form-data" @submit="sucio = false" class="space-y-4 border-t border-brand-green/10 pt-4">
             @csrf
             <input type="hidden" name="fecha" value="{{ $fecha->toDateString() }}">
             @if (auth()->user()->can('captureAnyEstacion', \App\Models\RegistroDiario::class))
@@ -61,40 +65,40 @@
             <div class="grid gap-4 sm:grid-cols-3">
                 <div class="sm:col-span-3">
                     <x-input-label for="oficio-numero" :value="__('No. de oficio (Tjta. No.)')" />
-                    <x-text-input id="oficio-numero" name="numero_oficio" class="block mt-1 w-full" maxlength="80" required
-                                  :value="old('numero_oficio', $oficio['numero'])" />
+                    <x-text-input id="oficio-numero" name="numero_oficio" class="mt-1 block w-full" maxlength="80" required value="{{ $estadoPantalla['oficio']['numero'] }}" x-model="oficio.numero" />
                     <p class="mt-1 text-xs text-gray-500">{{ __('Sugerido por el sistema; corrígelo si el folio real es otro.') }}</p>
                     <x-input-error :messages="$errors->get('numero_oficio')" class="mt-1" />
                 </div>
                 <div class="sm:col-span-1">
                     <x-input-label for="oficio-cargo" :value="__('Cargo de quien firma')" />
-                    <x-text-input id="oficio-cargo" name="firmante_cargo" class="block mt-1 w-full" maxlength="150" required
-                                  :value="old('firmante_cargo', $oficio['firmante_cargo'])" />
+                    <x-text-input id="oficio-cargo" name="firmante_cargo" class="mt-1 block w-full" maxlength="150" required x-model="oficio.cargo" />
                     <x-input-error :messages="$errors->get('firmante_cargo')" class="mt-1" />
                 </div>
                 <div class="sm:col-span-2">
                     <x-input-label for="oficio-firmante" :value="__('Nombre de quien firma')" />
-                    <x-text-input id="oficio-firmante" name="firmante_nombre" class="block mt-1 w-full" maxlength="150" required
-                                  :value="old('firmante_nombre', $oficio['firmante_nombre'])" />
+                    <x-text-input id="oficio-firmante" name="firmante_nombre" class="mt-1 block w-full" maxlength="150" required x-model="oficio.nombre" />
                     <x-input-error :messages="$errors->get('firmante_nombre')" class="mt-1" />
                 </div>
                 <div class="sm:col-span-1">
                     <x-input-label for="oficio-iniciales" :value="__('Iniciales (opcional)')" />
-                    <x-text-input id="oficio-iniciales" name="iniciales" class="block mt-1 w-full" maxlength="30"
-                                  :value="old('iniciales')" />
+                    <x-text-input id="oficio-iniciales" name="iniciales" class="mt-1 block w-full" maxlength="30" x-model="oficio.iniciales" />
                     <x-input-error :messages="$errors->get('iniciales')" class="mt-1" />
                 </div>
                 <div class="sm:col-span-2">
                     <x-input-label for="oficio-firma" :value="__('Firma digital (imagen PNG o JPG, opcional)')" />
-                    <input id="oficio-firma" type="file" name="firma" accept="image/png,image/jpeg"
+                    <input id="oficio-firma" type="file" name="firma" accept="image/png,image/jpeg" @change="alElegirFirma($event)"
                            class="mt-1 block w-full text-sm text-gray-700 file:mr-3 file:rounded-md file:border-0 file:bg-brand-mist file:px-3 file:py-2 file:text-xs file:font-semibold file:uppercase file:text-brand-green hover:file:bg-brand-green/10">
                     <p class="mt-1 text-xs text-gray-500">{{ __('Se inserta en el espacio de la firma del Word y del PDF. Fondo transparente o blanco; no se guarda aparte, hay que subirla de nuevo al regenerar.') }}</p>
                     <x-input-error :messages="$errors->get('firma')" class="mt-1" />
                 </div>
             </div>
 
+            <p x-show="sucio" x-cloak class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800" role="status">
+                {{ __('Tienes cambios de asistencia sin guardar: guárdalos antes para que el oficio los incluya.') }}
+            </p>
+
             <div class="flex justify-end">
-                <x-primary-button class="w-full sm:w-auto">
+                <x-primary-button class="w-full disabled:opacity-60 sm:w-auto" x-bind:disabled="sucio">
                     {{ $documento ? __('Regenerar oficio') : __('Generar oficio') }}
                 </x-primary-button>
             </div>

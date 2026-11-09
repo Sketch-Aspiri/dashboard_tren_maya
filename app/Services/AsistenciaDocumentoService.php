@@ -165,13 +165,8 @@ final class AsistenciaDocumentoService
         // edit made while the oficio was being generated still counts as newer.
         $datosAl = ($documento->datos_al ?? $documento->updated_at)->toDateTimeString();
 
-        // The station oficio only prints daily statuses; the zone oficio also
-        // prints the commissioned people.
-        $tablas = $documento->estacion_id === null
-            ? ['registros_diarios', 'comisionados_fuera', 'comisionados_visitantes']
-            : ['registros_diarios'];
-
-        foreach ($tablas as $tabla) {
+        // Both oficios print the daily statuses and the commissioned people.
+        foreach (['registros_diarios', 'comisionados_fuera', 'comisionados_visitantes'] as $tabla) {
             $ultimoCambio = DB::table($tabla)
                 ->whereDate('fecha', $documento->fecha)
                 ->when(

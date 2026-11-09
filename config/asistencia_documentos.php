@@ -85,6 +85,15 @@ return [
         ],
     ],
 
+    /*
+     | Sugerencias iniciales de la pantalla de captura; se les suman los valores
+     | que ya se han capturado.
+     */
+    'captura' => [
+        'coordinaciones' => ['CGGIF', 'CGOFP'],
+        'ubicaciones' => ['EDIFICIO DE LA DIRECCIÓN GENERAL MÉRIDA', 'EDIFICIO TEC. OPE. CAP. CANCÚN'],
+    ],
+
     'estacion' => [
         /*
          | Clave de cada estación dentro del No. de oficio (T.M.M./RR.HH./23PMO/00340/2026).
