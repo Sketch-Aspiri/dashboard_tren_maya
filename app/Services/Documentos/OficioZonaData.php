@@ -2,10 +2,12 @@
 
 namespace App\Services\Documentos;
 
+use App\Models\Estacion;
 use Carbon\CarbonInterface;
 
 /**
- * Everything the zone oficio needs. Personnel lists exclude anyone who is
+ * Everything an attendance oficio needs. It is the same document for the
+ * whole zone ($estacion null) and for a single station: personnel lists exclude anyone who is
  * commissioned out that day (they appear only in section D), so each
  * summary table always equals its own list.
  */
@@ -31,5 +33,6 @@ final readonly class OficioZonaData
         public array $comisionadosAOtrasAreas,
         public array $eventualesAOtrasAreas,
         public ResumenComisionados $resumenComisionados,
+        public ?Estacion $estacion = null,
     ) {}
 }

@@ -11,14 +11,15 @@ use App\Models\User;
 use App\Services\Documentos\AsistenciaDocumentoDataBuilder;
 use App\Services\Documentos\ConvertidorPdf;
 use App\Services\Documentos\DirectorioTemporal;
-use App\Services\Documentos\GeneradorOficioEstacion;
-use App\Services\Documentos\GeneradorOficioZona;
+use App\Services\Documentos\GeneradorOficioAsistencia;
+use App\Services\Documentos\ImportadorFirma;
 use App\Services\Documentos\MetadatosOficio;
 use App\Services\Documentos\NumeroOficioService;
 use Carbon\CarbonInterface;
 use Closure;
 use DomainException;
 use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -40,8 +41,8 @@ final class AsistenciaDocumentoService
     public function __construct(
         private readonly AsistenciaCapturaService $captura,
         private readonly AsistenciaDocumentoDataBuilder $builder,
-        private readonly GeneradorOficioEstacion $generadorEstacion,
-        private readonly GeneradorOficioZona $generadorZona,
+        private readonly GeneradorOficioAsistencia $generador,
+        private readonly ImportadorFirma $importadorFirma,
         private readonly ConvertidorPdf $convertidor,
         private readonly NumeroOficioService $numeros,
     ) {}
@@ -49,7 +50,7 @@ final class AsistenciaDocumentoService
     /**
      * @throws DomainException when the station has not captured everything yet
      */
-    public function generarEstacion(Estacion $estacion, CarbonInterface $fecha, MetadatosOficio $meta, User $actor): DocumentoAsistencia
+    public function generarEstacion(Estacion $estacion, CarbonInterface $fecha, MetadatosOficio $meta, User $actor, ?UploadedFile $firma = null): DocumentoAsistencia
     {
         if (! $this->captura->estacionCapturada($estacion, $fecha)) {
             throw new DomainException(__('La estación aún no captura toda su asistencia de este día.'));
@@ -66,7 +67,8 @@ final class AsistenciaDocumentoService
             $meta,
             false,
             $actor,
-            fn (string $docx) => $this->generadorEstacion->generar($data, $meta, $docx),
+            fn (string $docx, ?string $firmaPath) => $this->generador->generar($data, $meta->conFirma($firmaPath), $docx),
+            $firma,
         );
     }
 
@@ -75,7 +77,7 @@ final class AsistenciaDocumentoService
      *
      * @throws DomainException when a station is still pending or the signer is unknown
      */
-    public function generarZona(CarbonInterface $fecha, string $numeroOficio, string $firmanteClave, User $actor): DocumentoAsistencia
+    public function generarZona(CarbonInterface $fecha, string $numeroOficio, string $firmanteClave, User $actor, ?UploadedFile $firma = null): DocumentoAsistencia
     {
         $pendientes = $this->captura->estacionesPendientes($fecha);
 
@@ -109,7 +111,8 @@ final class AsistenciaDocumentoService
             $meta,
             (bool) $firmante['suplencia'],
             $actor,
-            fn (string $docx) => $this->generadorZona->generar($data, $meta, $docx),
+            fn (string $docx, ?string $firmaPath) => $this->generador->generar($data, $meta->conFirma($firmaPath), $docx),
+            $firma,
         );
     }
 
@@ -201,8 +204,16 @@ final class AsistenciaDocumentoService
             ->orderBy('orden_oficio')
             ->first();
 
+        // Offices that are not stations (Edificio Zonal Este) are signed by the Dirección.
+        if (! $estacion->is_operativa) {
+            return [
+                'cargo' => (string) config('asistencia_documentos.estacion.firmante_oficina_cargo'),
+                'nombre' => $gerente?->nombre_completo ?: (string) config('asistencia_documentos.estacion.firmante_oficina_nombre'),
+            ];
+        }
+
         return [
-            'cargo' => 'Gerente de Estación '.$estacion->nombre,
+            'cargo' => 'Gerencia de Estación '.$estacion->nombre,
             'nombre' => $gerente?->nombre_completo ?? '',
         ];
     }
@@ -235,7 +246,8 @@ final class AsistenciaDocumentoService
     }
 
     /**
-     * @param  Closure(string): void  $llenarDocx  writes the .docx at the given absolute path
+     * @param  Closure(string, ?string): void  $llenarDocx  writes the .docx at the given absolute path, given the
+     *                                                      path of the signature image converted to PNG (or null)
      */
     private function producir(
         TipoDocumentoAsistencia $tipo,
@@ -246,6 +258,7 @@ final class AsistenciaDocumentoService
         bool $esSuplencia,
         User $actor,
         Closure $llenarDocx,
+        ?UploadedFile $firma = null,
     ): DocumentoAsistencia {
         // One generation at a time per oficio: the unique index cannot stop
         // duplicate zone rows (estacion_id is NULL there) and two racing
@@ -259,9 +272,12 @@ final class AsistenciaDocumentoService
         $base = DirectorioTemporal::ruta().DIRECTORY_SEPARATOR.'oficio_'.Str::uuid()->toString();
         $docxTemporal = $base.'.docx';
         $pdfTemporal = $base.'.pdf';
+        $firmaTemporal = null;
 
         try {
-            $llenarDocx($docxTemporal);
+            // The signature is only embedded in the files; it is never stored on its own.
+            $firmaTemporal = $firma !== null ? $this->importadorFirma->aPng($firma, $base.'_firma.png') : null;
+            $llenarDocx($docxTemporal, $firmaTemporal);
             @chmod($docxTemporal, 0600);
             $this->convertidor->convertir($docxTemporal, $pdfTemporal);
 
@@ -270,8 +286,8 @@ final class AsistenciaDocumentoService
                 (string) file_get_contents($docxTemporal), (string) file_get_contents($pdfTemporal),
             );
         } finally {
-            foreach ([$docxTemporal, $pdfTemporal] as $temporal) {
-                if (is_file($temporal)) {
+            foreach ([$docxTemporal, $pdfTemporal, $firmaTemporal] as $temporal) {
+                if ($temporal !== null && is_file($temporal)) {
                     unlink($temporal);
                 }
             }

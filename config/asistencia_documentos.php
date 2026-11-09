@@ -5,10 +5,11 @@
 | Oficios de asistencia (Control de Asistencia Diaria)
 |--------------------------------------------------------------------------
 |
-| Texto fijo y ajustes de los documentos autogenerados (.docx/.pdf). Los
-| valores que cambian de un año a otro (leyenda, memorándums de referencia)
-| viven aquí, no en las plantillas ni en el código. Nunca leer env() fuera
-| de este archivo: tras `config:cache` devolvería null.
+| Texto fijo y ajustes de los documentos autogenerados (.docx/.pdf). El
+| formato reproduce el que imprime el Excel automatizado (n8n): membrete y
+| pie de página son imágenes en resources/documentos/assets (el pie lleva la
+| leyenda del año: cámbiala ahí cada año). Nunca leer env() fuera de este
+| archivo: tras `config:cache` devolvería null.
 |
 */
 
@@ -46,15 +47,45 @@ return [
     // error message rather than a 504 while the server keeps working.
     'conversion_timeout' => 55,
 
-    'leyenda_anio' => '2026, Año de Margarita Maza Parada',
+    /*
+     | Firma digital que se importa al generar el oficio (PNG o JPG). Se
+     | reescala y se guarda como PNG en el disco privado.
+     */
+    'firma' => [
+        'max_kb' => 2048,
+        'max_lado_px' => 900,
+        // Rechaza imágenes enormes antes de decodificarlas (consumo de memoria).
+        'max_dimension_origen_px' => 6000,
+    ],
+
+    /*
+     | Texto fijo del formato del Excel automatizado (igual en estación y zona).
+     */
+    'formato' => [
+        'titulo' => 'CONTROL DE ASISTENCIA DIARIA',
+        'destinatario' => 'Para atención del C. Coord. Gral. de R.H., “Tren Maya S.A de C.V.”',
+        'memorandum' => 'TMM/DRH/Admón./877/847 de fecha 14 marzo de 2025',
+        'despedida' => 'Respetuosamente.',
+
+        /*
+         | Orden de las estaciones en las listas del oficio de zona (ruta de
+         | norte a sur; el Edificio Zonal va al final), como en el Excel.
+         */
+        'orden_ubicaciones' => [
+            'Puerto Morelos',
+            'Playa del Carmen',
+            'Tulum',
+            'Tulum Aeropuerto',
+            'Felipe Carrillo Puerto',
+            'Limones',
+            'Bacalar',
+            'Chetumal',
+            'Kohunlich',
+            'Edificio Zonal Este',
+        ],
+    ],
 
     'estacion' => [
-        'destinatario_nombre' => 'Lic. Miguel Ángel Milanez Navarrete',
-        'destinatario_cargo' => 'Dir. De Gest. Territorial Zona Oriente',
-        'memorandum' => 'TM/RH/089, del 21 Mar. 2024',
-        'coordinacion' => 'COORD. GRAL. DE GEST. DE INFRA. FERROVIARIA',
-        'copia_para' => 'Coord. Gral. de R.H. de Tren Maya S.A. de C.V.',
-
         /*
          | Clave de cada estación dentro del No. de oficio (T.M.M./RR.HH./23PMO/00340/2026).
          | Solo se conoce la de Puerto Morelos; para las demás el folio sugerido
@@ -63,23 +94,27 @@ return [
         'claves' => [
             'Puerto Morelos' => '23PMO',
         ],
+
+        // Quien firma por defecto en las oficinas que no son estación (Edificio Zonal Este).
+        'firmante_oficina_cargo' => 'Dirección de Gestión Territorial Zona Oriente',
+        'firmante_oficina_nombre' => 'Lic. Miguel Ángel Milanez Navarrete',
     ],
 
     'zona' => [
         'direccion' => 'Dir. Gest. Territ. Oriente',
+        'sujeto' => 'Dirección Zona Oriente',
         'folio_prefijo' => 'TM/UAI/CGGIF/DGTZO/',
 
         /*
          | Quién puede firmar el oficio de zona. "suplencia" agrega el párrafo de
          | suplencia (el Subgerente firma por ausencia temporal del Director).
-         | Las iniciales del Director no constan en el ejemplo: completarlas aquí.
          */
         'firmantes' => [
             'director' => [
                 'etiqueta' => 'Director de Gestión Territorial Zona Oriente',
                 'cargo' => 'Dirección de Gestión Territorial Zona Oriente',
-                'nombre' => 'Lic. Miguel Ángel Milanez Navarrete',
-                'iniciales' => '',
+                'nombre' => 'Lic. Miguel Angel Milanez Navarrete',
+                'iniciales' => 'jatp-aaga',
                 'suplencia' => false,
             ],
             'subgerente' => [

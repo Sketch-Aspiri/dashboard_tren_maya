@@ -13,6 +13,9 @@ class ConvertidorPdfLibreOfficeTest extends TestCase
 {
     private string $pdf;
 
+    /** @var list<string> */
+    private array $temporales = [];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -22,8 +25,10 @@ class ConvertidorPdfLibreOfficeTest extends TestCase
 
     protected function tearDown(): void
     {
-        if (is_file($this->pdf)) {
-            unlink($this->pdf);
+        foreach ([$this->pdf, ...$this->temporales] as $temporal) {
+            if (is_file($temporal)) {
+                unlink($temporal);
+            }
         }
 
         parent::tearDown();
@@ -47,6 +52,17 @@ class ConvertidorPdfLibreOfficeTest extends TestCase
         return null;
     }
 
+    private function docxDePrueba(): string
+    {
+        $ruta = sys_get_temp_dir().DIRECTORY_SEPARATOR.'convertidor_'.uniqid().'.docx';
+        $word = new \PhpOffice\PhpWord\PhpWord;
+        $word->addSection()->addText('Documento de prueba');
+        $word->save($ruta, 'Word2007');
+        $this->temporales[] = $ruta;
+
+        return $ruta;
+    }
+
     public function test_convierte_un_docx_a_pdf_valido(): void
     {
         $soffice = $this->localizarSoffice();
@@ -54,7 +70,7 @@ class ConvertidorPdfLibreOfficeTest extends TestCase
             $this->markTestSkipped('LibreOffice no está instalado en este entorno.');
         }
 
-        (new ConvertidorPdfLibreOffice($soffice, 90))->convertir(resource_path('documentos/asistencia_estacion.docx'), $this->pdf);
+        (new ConvertidorPdfLibreOffice($soffice, 90))->convertir($this->docxDePrueba(), $this->pdf);
 
         $this->assertFileExists($this->pdf);
         $this->assertStringStartsWith('%PDF', (string) file_get_contents($this->pdf, false, null, 0, 4));
@@ -73,7 +89,7 @@ class ConvertidorPdfLibreOfficeTest extends TestCase
         $this->expectException(ConversionPdfException::class);
 
         (new ConvertidorPdfLibreOffice('/ruta/que/no/existe/soffice', 10))
-            ->convertir(resource_path('documentos/asistencia_estacion.docx'), $this->pdf);
+            ->convertir($this->docxDePrueba(), $this->pdf);
     }
 
     public function test_no_deja_carpetas_temporales_tras_convertir(): void
@@ -88,7 +104,7 @@ class ConvertidorPdfLibreOfficeTest extends TestCase
         $patron = DirectorioTemporal::ruta().DIRECTORY_SEPARATOR.'lo_*-*-*-*-*';
         $antes = glob($patron) ?: [];
 
-        (new ConvertidorPdfLibreOffice($soffice, 90))->convertir(resource_path('documentos/asistencia_estacion.docx'), $this->pdf);
+        (new ConvertidorPdfLibreOffice($soffice, 90))->convertir($this->docxDePrueba(), $this->pdf);
 
         $despues = glob($patron) ?: [];
         $this->assertSame(count($antes), count($despues));

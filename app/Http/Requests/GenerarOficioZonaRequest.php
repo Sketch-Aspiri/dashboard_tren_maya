@@ -40,6 +40,11 @@ class GenerarOficioZonaRequest extends FormRequest
                 Rule::unique('documentos_asistencia', 'numero_oficio')->ignore($existente?->id),
             ],
             'firmante' => ['required', 'string', Rule::in(array_keys(config('asistencia_documentos.zona.firmantes')))],
+            'firma' => [
+                'nullable', 'file', 'mimes:png,jpg,jpeg',
+                'max:'.config('asistencia_documentos.firma.max_kb'),
+                'dimensions:max_width='.config('asistencia_documentos.firma.max_dimension_origen_px').',max_height='.config('asistencia_documentos.firma.max_dimension_origen_px'),
+            ],
         ];
     }
 

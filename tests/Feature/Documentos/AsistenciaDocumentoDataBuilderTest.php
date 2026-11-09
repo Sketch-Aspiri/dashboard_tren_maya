@@ -4,6 +4,8 @@ namespace Tests\Feature\Documentos;
 
 use App\Enums\EstatusAsistencia;
 use App\Enums\TipoPlaza;
+use App\Models\ComisionadoFuera;
+use App\Models\ComisionadoVisitante;
 use App\Models\Empleado;
 use App\Models\Estacion;
 use App\Models\RegistroDiario;
@@ -75,17 +77,18 @@ class AsistenciaDocumentoDataBuilderTest extends TestCase
 
         $data = $this->builder()->paraEstacion($estacion, $fecha);
 
-        $this->assertSame(1, $data->resumen->de(EstatusAsistencia::Descanso));
-        $this->assertSame(0, $data->resumen->de(EstatusAsistencia::DiaNoLaborable));
-        $this->assertSame(0, $data->resumen->de(EstatusAsistencia::LicenciaMedica));
-        $this->assertSame(0, $data->resumen->de(EstatusAsistencia::Comision));
-        $this->assertSame(0, $data->resumen->de(EstatusAsistencia::AvisoIncidencia));
-        $this->assertSame(0, $data->resumen->de(EstatusAsistencia::ReporteAusentismo));
-        $this->assertSame(1, $data->resumen->de(EstatusAsistencia::Vacaciones));
-        $this->assertSame(0, $data->resumen->de(EstatusAsistencia::Baja));
-        $this->assertSame(0, $data->resumen->de(EstatusAsistencia::NuevoIngreso));
-        $this->assertSame(3, $data->resumen->de(EstatusAsistencia::Presente));
-        $this->assertSame(5, $data->resumen->total());
+        $permanentes = $data->resumenPermanentes;
+        $this->assertSame(1, $permanentes->de(EstatusAsistencia::Descanso));
+        $this->assertSame(0, $permanentes->de(EstatusAsistencia::DiaNoLaborable));
+        $this->assertSame(0, $permanentes->de(EstatusAsistencia::LicenciaMedica));
+        $this->assertSame(0, $permanentes->de(EstatusAsistencia::Comision));
+        $this->assertSame(1, $permanentes->de(EstatusAsistencia::Vacaciones));
+        $this->assertSame(2, $permanentes->de(EstatusAsistencia::Presente));
+        $this->assertSame(4, $permanentes->total());
+        $this->assertSame(1, $data->resumenEventuales->de(EstatusAsistencia::Presente));
+        $this->assertSame(1, $data->resumenEventuales->total());
+        $this->assertSame(0, $data->resumenMilitares->total());
+        $this->assertSame($data->estacion?->id, $data->estacion->id);
     }
 
     public function test_lista_de_estacion_respeta_orden_oficio_y_arma_el_texto_de_estatus(): void
@@ -93,15 +96,17 @@ class AsistenciaDocumentoDataBuilderTest extends TestCase
         $fecha = CarbonImmutable::parse('2026-09-18');
         $estacion = $this->escenarioPuertoMorelos($fecha);
 
-        $filas = $this->builder()->paraEstacion($estacion, $fecha)->filas;
+        $data = $this->builder()->paraEstacion($estacion, $fecha);
+        $filas = $data->permanentes;
 
         $this->assertSame(
-            ['Gerente Dummy', 'Enlace Dummy', 'Descansa Dummy', 'Taquillera Dummy', 'Auxiliar Eventual Dummy'],
+            ['Gerente Dummy', 'Enlace Dummy', 'Descansa Dummy', 'Taquillera Dummy'],
             array_map(fn ($fila) => $fila->nombre, $filas),
         );
-        $this->assertSame('VACACIONES (07 AL 19 DE SEPTIEMBRE)', $filas[0]->estatusTexto(enEstacion: true));
-        $this->assertSame('PRESENTE EN ESTACIÓN PUERTO MORELOS', $filas[1]->estatusTexto(enEstacion: true));
-        $this->assertSame('DESCANSO', $filas[2]->estatusTexto(enEstacion: true));
+        $this->assertSame(['Auxiliar Eventual Dummy'], array_map(fn ($fila) => $fila->nombre, $data->eventuales));
+        $this->assertSame(['VACACIONES', '07 AL 19 SEP. 2026'], $filas[0]->estatusLineas());
+        $this->assertSame(['PRESENTE'], $filas[1]->estatusLineas());
+        $this->assertSame(['DESCANSO'], $filas[2]->estatusLineas());
     }
 
     public function test_resumen_siempre_cuadra_con_las_filas_de_la_lista(): void
@@ -114,10 +119,10 @@ class AsistenciaDocumentoDataBuilderTest extends TestCase
 
         $data = $this->builder()->paraEstacion($estacion, $fecha);
 
-        $this->assertCount(10, $data->filas);
-        $this->assertSame(10, $data->resumen->total());
+        $this->assertCount(10, $data->permanentes);
+        $this->assertSame(10, $data->resumenPermanentes->total());
         foreach (EstatusAsistencia::cases() as $estatus) {
-            $this->assertSame(1, $data->resumen->de($estatus), $estatus->value);
+            $this->assertSame(1, $data->resumenPermanentes->de($estatus), $estatus->value);
         }
     }
 
@@ -125,15 +130,15 @@ class AsistenciaDocumentoDataBuilderTest extends TestCase
     {
         $fecha = CarbonImmutable::parse('2026-09-18');
         $estacion = $this->estacionPmo();
-        Empleado::factory()->create(['estacion_id' => $estacion->id, 'nombre_completo' => 'Sin Registro']);
+        Empleado::factory()->create(['estacion_id' => $estacion->id, 'nombre_completo' => 'Sin Registro', 'tipo_plaza' => TipoPlaza::Permanente->value]);
 
         $data = $this->builder()->paraEstacion($estacion, $fecha);
 
-        $this->assertSame(1, $data->resumen->de(EstatusAsistencia::Presente));
-        $this->assertSame(1, $data->resumen->total());
+        $this->assertSame(1, $data->resumenPermanentes->de(EstatusAsistencia::Presente));
+        $this->assertSame(1, $data->resumenPermanentes->total());
     }
 
-    public function test_bajas_de_estacion_lista_solo_a_quienes_tienen_estatus_baja(): void
+    public function test_las_bajas_se_cuentan_en_el_resumen_y_siguen_en_la_lista(): void
     {
         $fecha = CarbonImmutable::parse('2026-09-18');
         $estacion = $this->estacionPmo();
@@ -142,7 +147,8 @@ class AsistenciaDocumentoDataBuilderTest extends TestCase
 
         $data = $this->builder()->paraEstacion($estacion, $fecha);
 
-        $this->assertSame(['Baja Dummy'], array_map(fn ($fila) => $fila->nombre, $data->bajas()));
+        $this->assertSame(1, $data->resumenPermanentes->de(EstatusAsistencia::Baja));
+        $this->assertSame(['Presente Dummy', 'Baja Dummy'], array_map(fn ($fila) => $fila->nombre, $data->permanentes));
     }
 
     public function test_registros_de_otro_dia_no_cuentan(): void
@@ -153,7 +159,33 @@ class AsistenciaDocumentoDataBuilderTest extends TestCase
 
         $data = $this->builder()->paraEstacion($estacion, $fecha);
 
-        $this->assertSame(0, $data->resumen->de(EstatusAsistencia::Descanso));
-        $this->assertSame(1, $data->resumen->de(EstatusAsistencia::Presente));
+        $this->assertSame(0, $data->resumenPermanentes->de(EstatusAsistencia::Descanso));
+        $this->assertSame(1, $data->resumenPermanentes->de(EstatusAsistencia::Presente));
+    }
+
+    public function test_el_oficio_de_estacion_solo_incluye_comisionados_de_esa_estacion(): void
+    {
+        $fecha = CarbonImmutable::parse('2026-09-18');
+        $estacion = $this->estacionPmo();
+        $otra = Estacion::factory()->create(['nombre' => 'Tulum', 'is_operativa' => true]);
+
+        $propio = $this->personal($estacion, 'Propio Dummy', TipoPlaza::Permanente, 1, EstatusAsistencia::Presente, $fecha);
+        $ajeno = $this->personal($otra, 'Ajeno Dummy', TipoPlaza::Permanente, 1, EstatusAsistencia::Presente, $fecha);
+
+        foreach ([$propio, $ajeno] as $empleado) {
+            ComisionadoFuera::factory()->create([
+                'empleado_id' => $empleado->id,
+                'estacion_id' => $empleado->estacion_id,
+                'fecha' => $fecha->toDateString(),
+            ]);
+        }
+        ComisionadoVisitante::factory()->create(['estacion_id' => $estacion->id, 'fecha' => $fecha->toDateString(), 'nombre' => 'Visita Pmo']);
+        ComisionadoVisitante::factory()->create(['estacion_id' => $otra->id, 'fecha' => $fecha->toDateString(), 'nombre' => 'Visita Tulum']);
+
+        $data = $this->builder()->paraEstacion($estacion, $fecha);
+
+        $this->assertSame([], $data->permanentes); // the commissioned person is listed only in section E
+        $this->assertSame(['PROPIO DUMMY'], array_map(fn ($f) => $f->nombre, $data->comisionadosAOtrasAreas));
+        $this->assertSame(['VISITA PMO'], array_map(fn ($f) => $f->nombre, $data->comisionadosOtrasCoordinaciones));
     }
 }

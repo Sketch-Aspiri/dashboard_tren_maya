@@ -35,8 +35,9 @@ class AsistenciaDocumentoController extends Controller
             $this->service->generarEstacion(
                 $estacion,
                 $fecha,
-                new MetadatosOficio($datos['numero_oficio'], $datos['firmante_cargo'], $datos['firmante_nombre']),
+                new MetadatosOficio($datos['numero_oficio'], $datos['firmante_cargo'], $datos['firmante_nombre'], trim((string) ($datos['iniciales'] ?? ''))),
                 $request->user(),
+                $request->file('firma'),
             );
         } catch (DomainException|ConversionPdfException $e) {
             return back()->withInput()->withErrors(['oficio' => $e->getMessage()]);
@@ -58,7 +59,7 @@ class AsistenciaDocumentoController extends Controller
         $datos = $request->validated();
 
         try {
-            $this->service->generarZona($fecha, $datos['numero_oficio'], $datos['firmante'], $request->user());
+            $this->service->generarZona($fecha, $datos['numero_oficio'], $datos['firmante'], $request->user(), $request->file('firma'));
         } catch (DomainException|ConversionPdfException $e) {
             return back()->withInput()->withErrors(['oficio' => $e->getMessage()]);
         } catch (UniqueConstraintViolationException) {

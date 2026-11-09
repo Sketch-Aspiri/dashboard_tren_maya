@@ -36,4 +36,24 @@ enum EstatusAsistencia: string
             self::NuevoIngreso => 'Nuevo ingreso',
         };
     }
+
+    /**
+     * The status exactly as the oficio prints it (the Excel's own spelling:
+     * no accents except "COMISIÓN").
+     */
+    public function etiquetaOficio(): string
+    {
+        return match ($this) {
+            self::Presente => 'PRESENTE',
+            self::Descanso => 'DESCANSO',
+            self::DiaNoLaborable => 'DIA NO LABORABLE',
+            self::LicenciaMedica => 'LICENCIA MEDICA',
+            self::Comision => 'COMISIÓN',
+            self::AvisoIncidencia => 'AVISO DE INCIDENCIA',
+            self::ReporteAusentismo => 'REPORTE DE AUSENTISMO',
+            self::Vacaciones => 'VACACIONES',
+            self::Baja => 'BAJA',
+            self::NuevoIngreso => 'NUEVO INGRESO',
+        };
+    }
 }

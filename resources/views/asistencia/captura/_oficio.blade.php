@@ -51,7 +51,7 @@
             {{ __('Guarda la asistencia de todo el personal de la estación para poder generar el oficio.') }}
         </p>
     @else
-        <form method="POST" action="{{ route('asistencia.captura.oficio.store') }}" class="space-y-4 border-t border-brand-green/10 pt-4">
+        <form method="POST" action="{{ route('asistencia.captura.oficio.store') }}" enctype="multipart/form-data" class="space-y-4 border-t border-brand-green/10 pt-4">
             @csrf
             <input type="hidden" name="fecha" value="{{ $fecha->toDateString() }}">
             @if (auth()->user()->can('captureAnyEstacion', \App\Models\RegistroDiario::class))
@@ -77,6 +77,19 @@
                     <x-text-input id="oficio-firmante" name="firmante_nombre" class="block mt-1 w-full" maxlength="150" required
                                   :value="old('firmante_nombre', $oficio['firmante_nombre'])" />
                     <x-input-error :messages="$errors->get('firmante_nombre')" class="mt-1" />
+                </div>
+                <div class="sm:col-span-1">
+                    <x-input-label for="oficio-iniciales" :value="__('Iniciales (opcional)')" />
+                    <x-text-input id="oficio-iniciales" name="iniciales" class="block mt-1 w-full" maxlength="30"
+                                  :value="old('iniciales')" />
+                    <x-input-error :messages="$errors->get('iniciales')" class="mt-1" />
+                </div>
+                <div class="sm:col-span-2">
+                    <x-input-label for="oficio-firma" :value="__('Firma digital (imagen PNG o JPG, opcional)')" />
+                    <input id="oficio-firma" type="file" name="firma" accept="image/png,image/jpeg"
+                           class="mt-1 block w-full text-sm text-gray-700 file:mr-3 file:rounded-md file:border-0 file:bg-brand-mist file:px-3 file:py-2 file:text-xs file:font-semibold file:uppercase file:text-brand-green hover:file:bg-brand-green/10">
+                    <p class="mt-1 text-xs text-gray-500">{{ __('Se inserta en el espacio de la firma del Word y del PDF. Fondo transparente o blanco; no se guarda aparte, hay que subirla de nuevo al regenerar.') }}</p>
+                    <x-input-error :messages="$errors->get('firma')" class="mt-1" />
                 </div>
             </div>
 

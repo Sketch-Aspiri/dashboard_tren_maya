@@ -16,9 +16,9 @@ use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Turns the day's captured attendance into the plain data structures the
- * oficio generators print. Station data reuses AsistenciaCapturaService's
- * roster query; zone data is read here. Either way the summary tables are
- * always derived from the very lists that get printed.
+ * oficio generators print. Station and zone oficios share one structure
+ * (the station's is the zone's restricted to its own people). The summary
+ * tables are always derived from the very lists that get printed.
  */
 final class AsistenciaDocumentoDataBuilder
 {
@@ -27,27 +27,23 @@ final class AsistenciaDocumentoDataBuilder
 
     public function __construct(private readonly AsistenciaCapturaService $capturaService) {}
 
-    public function paraEstacion(Estacion $estacion, CarbonInterface $fecha): OficioEstacionData
+    /**
+     * Same document as the zone's, restricted to one station: its own
+     * personnel, the people it sent on commission and the visitors it received.
+     */
+    public function paraEstacion(Estacion $estacion, CarbonInterface $fecha): OficioZonaData
     {
-        $roster = $this->capturaService->rosterFor($estacion, $fecha)
-            ->sort(fn (Empleado $a, Empleado $b) => $this->comparar($a, $b));
-
-        $filas = $roster
-            ->map(fn (Empleado $empleado) => FilaPersonal::desde(
-                $empleado,
-                $empleado->registrosDiarios->first(),
-                $estacion->nombre,
-            ))
-            ->values()
-            ->all();
-
-        return new OficioEstacionData($estacion, $fecha, $filas, ResumenAsistencia::desdeFilas($filas));
+        return $this->paraZona($fecha, $estacion);
     }
 
-    public function paraZona(CarbonInterface $fecha): OficioZonaData
+    public function paraZona(CarbonInterface $fecha, ?Estacion $estacion = null): OficioZonaData
     {
         $comisionesFuera = ComisionadoFuera::query()
             ->whereDate('fecha', $fecha)
+            ->when($estacion !== null, fn ($query) => $query->whereHas(
+                'empleado',
+                fn ($empleado) => $empleado->where('estacion_id', $estacion->id),
+            ))
             ->with(['empleado.registrosDiarios' => fn ($query) => $query->whereDate('fecha', $fecha)])
             ->get()
             // Several rows for one person the same day (two destinations) still
@@ -55,8 +51,8 @@ final class AsistenciaDocumentoDataBuilder
             ->unique('empleado_id')
             ->sort(fn (ComisionadoFuera $a, ComisionadoFuera $b) => $this->comparar($a->empleado, $b->empleado));
 
-        $filasPorTipo = $this->filasDePersonalEnEstaciones($fecha, $comisionesFuera->pluck('empleado_id')->all());
-        $visitantes = $this->visitantes($fecha);
+        $filasPorTipo = $this->filasDePersonalEnEstaciones($fecha, $comisionesFuera->pluck('empleado_id')->all(), $estacion);
+        $visitantes = $this->visitantes($fecha, $estacion);
 
         [$fueraEventuales, $fuera] = $comisionesFuera->partition(
             fn (ComisionadoFuera $comision) => $comision->empleado->tipo_plaza === TipoPlaza::Eventual,
@@ -73,7 +69,8 @@ final class AsistenciaDocumentoDataBuilder
             comisionadosOtrasCoordinaciones: $visitantes->map(fn (ComisionadoVisitante $v) => $this->filaVisitante($v))->values()->all(),
             comisionadosAOtrasAreas: $fuera->map(fn (ComisionadoFuera $c) => $this->filaFuera($c))->values()->all(),
             eventualesAOtrasAreas: $fueraEventuales->map(fn (ComisionadoFuera $c) => $this->filaFuera($c))->values()->all(),
-            resumenComisionados: $this->resumenComisionados($fuera->count(), $fueraEventuales->count(), $visitantes->count(), $comisionesFuera),
+            resumenComisionados: $this->resumenComisionados($comisionesFuera, $visitantes->count()),
+            estacion: $estacion,
         );
     }
 
@@ -85,11 +82,15 @@ final class AsistenciaDocumentoDataBuilder
      * @param  list<int>  $empleadosComisionadosIds
      * @return array{militares: list<FilaPersonal>, permanentes: list<FilaPersonal>, eventuales: list<FilaPersonal>}
      */
-    private function filasDePersonalEnEstaciones(CarbonInterface $fecha, array $empleadosComisionadosIds): array
+    private function filasDePersonalEnEstaciones(CarbonInterface $fecha, array $empleadosComisionadosIds, ?Estacion $estacion): array
     {
         $empleados = Empleado::query()
             ->where('estatus', EmpleadoEstatus::Activo->value)
-            ->whereNotNull('estacion_id')
+            ->when(
+                $estacion !== null,
+                fn ($query) => $query->where('estacion_id', $estacion->id),
+                fn ($query) => $query->whereNotNull('estacion_id'),
+            )
             ->whereNotIn('id', $empleadosComisionadosIds)
             ->with([
                 'estacion',
@@ -118,10 +119,11 @@ final class AsistenciaDocumentoDataBuilder
     /**
      * @return Collection<int, ComisionadoVisitante>
      */
-    private function visitantes(CarbonInterface $fecha): Collection
+    private function visitantes(CarbonInterface $fecha, ?Estacion $estacion): Collection
     {
         return ComisionadoVisitante::query()
             ->whereDate('fecha', $fecha)
+            ->when($estacion !== null, fn ($query) => $query->where('estacion_id', $estacion->id))
             ->with('estacion')
             ->orderBy('nombre')
             ->get();
@@ -129,69 +131,83 @@ final class AsistenciaDocumentoDataBuilder
 
     private function filaVisitante(ComisionadoVisitante $visitante): FilaComisionado
     {
-        $estacion = $visitante->estacion;
-        $ubicacion = $estacion->is_operativa ? 'ESTACIÓN '.mb_strtoupper($estacion->nombre) : mb_strtoupper($estacion->nombre);
+        $origen = mb_strtoupper((string) $visitante->direccion_origen);
 
         return new FilaComisionado(
-            direccion: mb_strtoupper((string) $visitante->direccion_origen),
+            direccion: $origen,
             noEmpleado: (string) $visitante->no_trabajador,
             nombre: mb_strtoupper($visitante->nombre),
-            estatus: 'PRESENTE',
-            ubicacion: $ubicacion,
+            estatus: trim("PRESENTE
+COMISIÓN ".$origen),
+            ubicacion: mb_strtoupper($visitante->estacion->nombre),
         );
     }
 
     /**
-     * One of our own people commissioned out. If the same day they also
-     * have a non-trivial daily status (e.g. vacaciones) it is printed first,
-     * as in the real oficio: "VACACIONES 14 AL 21 SEP. 2026 COMISIÓN CGOFP".
+     * One of our own people commissioned out, printed on two lines like the
+     * Excel: their own daily status (when it is not Presente/Comisión) over
+     * "COMISIÓN <destino> <periodo>", e.g. "DESCANSO / COMISIÓN CGGIF"; with
+     * no status of their own: "COMISIÓN / CGOFP".
      */
     private function filaFuera(ComisionadoFuera $comision): FilaComisionado
     {
         $empleado = $comision->empleado;
         $registro = $empleado->registrosDiarios->first();
-        $partes = [];
+        $destino = trim(mb_strtoupper((string) $comision->coordinacion_destino).' '.FormatoFechaOficio::rangoCorto($comision->fecha_inicio, $comision->fecha_fin));
 
-        if ($this->tieneEstatusPropio($registro)) {
-            $partes[] = FilaPersonal::desde($empleado, $registro, '')->estatusTextoZona();
-        }
-
-        $rango = FormatoFechaOficio::rangoCorto($comision->fecha_inicio, $comision->fecha_fin);
-        $partes[] = trim('COMISIÓN '.mb_strtoupper((string) $comision->coordinacion_destino).' '.$rango);
+        $estatus = $this->tieneEstatusPropio($registro)
+            ? FilaPersonal::desde($empleado, $registro, '')->estatusTexto()."
+COMISIÓN ".$destino
+            : "COMISIÓN
+".$destino;
 
         return new FilaComisionado(
             direccion: mb_strtoupper((string) config('asistencia_documentos.zona.direccion')),
             noEmpleado: (string) $empleado->no_empleado,
             nombre: mb_strtoupper((string) $empleado->nombre_completo),
-            estatus: implode(' ', $partes),
+            estatus: trim($estatus),
             ubicacion: mb_strtoupper((string) $comision->ubicacion_destino),
         );
     }
 
     /**
-     * Columns do not partition the people here: a commissioned person who
-     * is also on vacation counts under both, but only once in the total.
+     * Table d of the oficio, like the Excel: every commissioned person counts
+     * ONCE. Someone with a daily status of their own (descanso, vacaciones…)
+     * counts under it; otherwise under the commission column of their kind
+     * (permanente or eventual). Visitors from other coordinations always go
+     * under "otra coord.".
      *
      * @param  Collection<int, ComisionadoFuera>|\Illuminate\Support\Collection<int, ComisionadoFuera>  $comisionesFuera
      */
-    private function resumenComisionados(int $permanentes, int $eventuales, int $otras, $comisionesFuera): ResumenComisionados
+    private function resumenComisionados($comisionesFuera, int $visitantes): ResumenComisionados
     {
         $otrosEstatus = [];
+        $permanentes = 0;
+        $eventuales = 0;
 
         foreach ($comisionesFuera as $comision) {
             $registro = $comision->empleado->registrosDiarios->first();
 
             if ($this->tieneEstatusPropio($registro)) {
                 $otrosEstatus[$registro->estatus->value] = ($otrosEstatus[$registro->estatus->value] ?? 0) + 1;
+            } elseif ($comision->empleado->tipo_plaza === TipoPlaza::Eventual) {
+                $eventuales++;
+            } else {
+                $permanentes++;
             }
         }
 
-        return new ResumenComisionados($permanentes, $eventuales, $otras, $otrosEstatus, $permanentes + $eventuales + $otras);
+        return new ResumenComisionados($permanentes, $eventuales, $visitantes, $otrosEstatus, $comisionesFuera->count() + $visitantes);
     }
 
     private function tieneEstatusPropio(?RegistroDiario $registro): bool
     {
         return $registro !== null && ! in_array($registro->estatus, self::ESTATUS_SIN_COLUMNA_PROPIA, true);
+    }
+
+    private function esDirectivo(Empleado $empleado): bool
+    {
+        return preg_match('/^(Gerencia de Estaci|Direcci)/iu', (string) $empleado->puesto) === 1;
     }
 
     /**
@@ -203,7 +219,9 @@ final class AsistenciaDocumentoDataBuilder
         $ordenA = $a->orden_oficio ?? PHP_INT_MAX;
         $ordenB = $b->orden_oficio ?? PHP_INT_MAX;
 
-        return [$ordenA, $a->nombre_completo] <=> [$ordenB, $b->nombre_completo];
+        // Without an explicit position, the station manager heads the list (as in the Excel).
+        return [$ordenA, $this->esDirectivo($a) ? 0 : 1, $a->nombre_completo]
+            <=> [$ordenB, $this->esDirectivo($b) ? 0 : 1, $b->nombre_completo];
     }
 
     /**

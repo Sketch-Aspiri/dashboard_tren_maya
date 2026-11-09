@@ -130,9 +130,10 @@ class AsistenciaZonaDataBuilderTest extends TestCase
 
         $data = $this->builder()->paraZona($this->fecha);
 
-        $this->assertSame('PRESENTE', $data->permanentes[0]->estatusTextoZona());
-        $this->assertSame('VACACIONES 14 AL 21 SEP. 2026', $data->permanentes[1]->estatusTextoZona());
-        $this->assertSame('COMISIÓN CORP. MÉRIDA 16 AL 17 SEP. 2026', $data->permanentes[2]->estatusTextoZona());
+        $this->assertSame('PRESENTE', $data->permanentes[0]->estatusTexto());
+        $this->assertSame('VACACIONES 14 AL 21 SEP. 2026', $data->permanentes[1]->estatusTexto());
+        $this->assertSame('COMISIÓN CORP. MÉRIDA 16 AL 17 SEP. 2026', $data->permanentes[2]->estatusTexto());
+        $this->assertSame(['COMISIÓN CORP. MÉRIDA', '16 AL 17 SEP. 2026'], $data->permanentes[2]->estatusLineas());
         $this->assertSame('EDIFICIO ZONAL ESTE', $data->permanentes[2]->ubicacion);
     }
 
@@ -145,7 +146,7 @@ class AsistenciaZonaDataBuilderTest extends TestCase
         $this->assertCount(1, $data->comisionadosAOtrasAreas);
         $fuera = $data->comisionadosAOtrasAreas[0];
         $this->assertSame('PERM D', $fuera->nombre);
-        $this->assertSame('VACACIONES 14 AL 21 SEP. 2026 COMISIÓN CGOFP', $fuera->estatus);
+        $this->assertSame("VACACIONES 14 AL 21 SEP. 2026\nCOMISIÓN CGOFP", $fuera->estatus);
         $this->assertSame('EDIFICIO TEC. OPE. CAP. CANCÚN', $fuera->ubicacion);
 
         $this->assertCount(1, $data->eventualesAOtrasAreas);
@@ -156,8 +157,8 @@ class AsistenciaZonaDataBuilderTest extends TestCase
         $this->assertSame('VISITANTE DUMMY', $visitante->nombre);
         $this->assertSame('251742', $visitante->noEmpleado);
         $this->assertSame('DIR. DE MANTO. DE EQ. FERROV.', $visitante->direccion);
-        $this->assertSame('PRESENTE', $visitante->estatus);
-        $this->assertSame('ESTACIÓN PUERTO MORELOS', $visitante->ubicacion);
+        $this->assertSame("PRESENTE\nCOMISIÓN DIR. DE MANTO. DE EQ. FERROV.", $visitante->estatus);
+        $this->assertSame('PUERTO MORELOS', $visitante->ubicacion);
     }
 
     public function test_resumen_de_comisionados_cuenta_personas_distintas(): void
@@ -166,10 +167,10 @@ class AsistenciaZonaDataBuilderTest extends TestCase
 
         $resumen = $this->builder()->paraZona($this->fecha)->resumenComisionados;
 
-        $this->assertSame(1, $resumen->comisionPermanente);
+        // Perm D is commissioned AND on vacation: like the Excel, counted once, under Vacaciones.
+        $this->assertSame(0, $resumen->comisionPermanente);
         $this->assertSame(1, $resumen->comisionEventual);
         $this->assertSame(1, $resumen->comisionOtraCoordinacion);
-        // Perm D is commissioned AND on vacation: counted in both columns, once in the total.
         $this->assertSame(1, $resumen->de(EstatusAsistencia::Vacaciones));
         $this->assertSame(3, $resumen->total);
     }

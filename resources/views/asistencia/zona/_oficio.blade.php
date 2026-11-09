@@ -49,7 +49,7 @@
             <p class="mt-1">{{ $oficioZona['pendientes']->pluck('nombre')->implode(', ') }}</p>
         </div>
     @else
-        <form method="POST" action="{{ route('asistencia.zona.oficio.store') }}" class="space-y-4 border-t border-brand-green/10 pt-4">
+        <form method="POST" action="{{ route('asistencia.zona.oficio.store') }}" enctype="multipart/form-data" class="space-y-4 border-t border-brand-green/10 pt-4">
             @csrf
             <input type="hidden" name="fecha" value="{{ $fecha->toDateString() }}">
 
@@ -73,6 +73,13 @@
                     </select>
                     <p class="mt-1 text-xs text-gray-500">{{ __('Si firma el Subgerente se agrega el párrafo de suplencia.') }}</p>
                     <x-input-error :messages="$errors->get('firmante')" class="mt-1" />
+                </div>
+                <div class="sm:col-span-2">
+                    <x-input-label for="zona-firma" :value="__('Firma digital (imagen PNG o JPG, opcional)')" />
+                    <input id="zona-firma" type="file" name="firma" accept="image/png,image/jpeg"
+                           class="mt-1 block w-full text-sm text-gray-700 file:mr-3 file:rounded-md file:border-0 file:bg-brand-mist file:px-3 file:py-2 file:text-xs file:font-semibold file:uppercase file:text-brand-green hover:file:bg-brand-green/10">
+                    <p class="mt-1 text-xs text-gray-500">{{ __('Se inserta en el espacio de la firma del Word y del PDF. Fondo transparente o blanco; no se guarda aparte, hay que subirla de nuevo al regenerar.') }}</p>
+                    <x-input-error :messages="$errors->get('firma')" class="mt-1" />
                 </div>
             </div>
 

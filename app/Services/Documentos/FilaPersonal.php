@@ -10,7 +10,7 @@ use Carbon\CarbonInterface;
 
 /**
  * One person's line in an attendance oficio, already resolved to plain
- * values so templates/generators never touch Eloquent.
+ * values so generators never touch Eloquent.
  */
 final readonly class FilaPersonal
 {
@@ -23,6 +23,8 @@ final readonly class FilaPersonal
         public ?CarbonInterface $fechaFin,
         public ?string $notas,
         public string $ubicacion,
+        /** Station managers (and above) print in bold, like the Excel. */
+        public bool $destacada = false,
     ) {}
 
     /**
@@ -40,48 +42,40 @@ final readonly class FilaPersonal
             fechaFin: $registro?->fecha_fin,
             notas: $registro?->notas,
             ubicacion: $ubicacion,
+            destacada: preg_match('/^(Gerencia de Estaci|Direcci)/iu', (string) $empleado->puesto) === 1,
         );
     }
 
     /**
-     * Status text as printed in the station oficio: "PRESENTE EN ESTACIÓN
-     * PUERTO MORELOS", "DESCANSO", "VACACIONES (07 AL 19 DE SEPTIEMBRE)".
+     * Status as the oficio prints it, one entry per printed line:
+     * ["PRESENTE"], ["DESCANSO"], ["VACACIONES", "14 AL 21 SEP. 2026"],
+     * ["COMISIÓN CORP. MÉRIDA", "17 AL 18 SEP. 2026"].
+     *
+     * @return list<string>
      */
-    public function estatusTexto(bool $enEstacion): string
+    public function estatusLineas(): array
     {
-        if ($this->estatus === EstatusAsistencia::Presente) {
-            return $enEstacion ? 'PRESENTE EN ESTACIÓN '.mb_strtoupper($this->ubicacion) : 'PRESENTE';
-        }
+        $texto = $this->estatus->etiquetaOficio();
 
-        $texto = mb_strtoupper($this->estatus->label());
-
-        if ($this->notas !== null && trim($this->notas) !== '') {
+        if ($this->estatus !== EstatusAsistencia::Presente && $this->notas !== null && trim($this->notas) !== '') {
             $texto .= ' '.mb_strtoupper(trim($this->notas));
         }
 
-        $rango = FormatoFechaOficio::rangoLargo($this->fechaInicio, $this->fechaFin);
+        $lineas = [$texto];
+        $rango = $this->estatus === EstatusAsistencia::Presente
+            ? null
+            : FormatoFechaOficio::rangoCorto($this->fechaInicio, $this->fechaFin);
 
-        return $rango === null ? $texto : $texto.' ('.$rango.')';
+        if ($rango !== null) {
+            $lineas[] = $rango;
+        }
+
+        return $lineas;
     }
 
-    /**
-     * Status text as printed in the zone oficio: "PRESENTE", "DESCANSO",
-     * "VACACIONES 14 AL 21 SEP. 2026", "COMISIÓN CORP. MÉRIDA 17 AL 18 SEP. 2026".
-     */
-    public function estatusTextoZona(): string
+    /** The same lines joined with a space ("VACACIONES 14 AL 21 SEP. 2026"). */
+    public function estatusTexto(): string
     {
-        if ($this->estatus === EstatusAsistencia::Presente) {
-            return 'PRESENTE';
-        }
-
-        $texto = mb_strtoupper($this->estatus->label());
-
-        if ($this->notas !== null && trim($this->notas) !== '') {
-            $texto .= ' '.mb_strtoupper(trim($this->notas));
-        }
-
-        $rango = FormatoFechaOficio::rangoCorto($this->fechaInicio, $this->fechaFin);
-
-        return $rango === null ? $texto : $texto.' '.$rango;
+        return implode(' ', $this->estatusLineas());
     }
 }

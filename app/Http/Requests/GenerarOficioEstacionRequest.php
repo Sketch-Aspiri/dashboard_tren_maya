@@ -57,6 +57,12 @@ class GenerarOficioEstacionRequest extends FormRequest
             ],
             'firmante_cargo' => ['required', 'string', 'max:150', 'not_regex:'.self::FIRMANTE_PROHIBIDO],
             'firmante_nombre' => ['required', 'string', 'max:150', 'not_regex:'.self::FIRMANTE_PROHIBIDO],
+            'iniciales' => ['nullable', 'string', 'max:30', 'not_regex:'.self::FIRMANTE_PROHIBIDO],
+            'firma' => [
+                'nullable', 'file', 'mimes:png,jpg,jpeg',
+                'max:'.config('asistencia_documentos.firma.max_kb'),
+                'dimensions:max_width='.config('asistencia_documentos.firma.max_dimension_origen_px').',max_height='.config('asistencia_documentos.firma.max_dimension_origen_px'),
+            ],
         ];
     }
 
