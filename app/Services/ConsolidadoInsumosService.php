@@ -11,7 +11,8 @@ use Illuminate\Support\Collection;
  * Consolidado mensual de solicitudes de insumos de la zona: un bloque por
  * estación con sus partidas aprobadas, totales con IVA y el saldo del fondo
  * rotatorio, más las alertas de revisión. Sustituye la parte de consolidación
- * del Flujo 1 de n8n; solo cuentan las solicitudes APROBADAS.
+ * del Flujo 1 de n8n; solo cuentan las solicitudes APROBADAS
+ * (o ya enviadas a la Coordinación) y sin los renglones que esta quitó.
  */
 final class ConsolidadoInsumosService
 {
@@ -41,8 +42,8 @@ final class ConsolidadoInsumosService
 
         $bloques = $this->estacionesEnOrden()->map(function (Estacion $estacion) use ($solicitudes) {
             $solicitud = $solicitudes->get($estacion->id);
-            $incluida = $solicitud?->estado === SolicitudInsumo::APROBADA;
-            $partidas = $incluida ? $solicitud->partidas : collect();
+            $incluida = $solicitud?->estaAprobada() === true;
+            $partidas = $incluida ? $solicitud->partidas->reject(fn (SolicitudInsumoPartida $p) => $p->eliminada_por_coordinacion)->values() : collect();
             $desglose = $this->proveedores->desglose($partidas);
             $subtotal = round(array_sum(array_column($desglose, 'base')), 2);
             $iva = round(array_sum(array_column($desglose, 'iva')), 2);

@@ -26,7 +26,23 @@ class SolicitudInsumo extends Model
 
     public const APROBADA = 'aprobada';
 
-    public const ESTADOS = [self::BORRADOR, self::ENVIADA, self::OBSERVADA, self::APROBADA];
+    public const ENVIADA_COORDINACION = 'enviada_coordinacion';
+
+    public const DEVUELTA = 'devuelta';
+
+    public const ESTADOS = [self::BORRADOR, self::ENVIADA, self::OBSERVADA, self::APROBADA, self::ENVIADA_COORDINACION, self::DEVUELTA];
+
+    /** Estados en los que la Zona ya aprobó la solicitud (cuentan en el consolidado). */
+    public const ESTADOS_APROBADOS = [self::APROBADA, self::ENVIADA_COORDINACION, self::DEVUELTA];
+
+    private const ETIQUETAS = [
+        self::BORRADOR => 'Borrador',
+        self::ENVIADA => 'Enviada',
+        self::OBSERVADA => 'Observada',
+        self::APROBADA => 'Aprobada',
+        self::ENVIADA_COORDINACION => 'Enviada a Coordinación',
+        self::DEVUELTA => 'Devuelta por Coordinación',
+    ];
 
     protected $table = 'solicitudes_insumos';
 
@@ -47,6 +63,9 @@ class SolicitudInsumo extends Model
         'revisada_por',
         'revisada_at',
         'comentario_zona',
+        'oficio_numero',
+        'enviada_coordinacion_at',
+        'devuelta_at',
     ];
 
     /**
@@ -59,6 +78,8 @@ class SolicitudInsumo extends Model
             'mes' => 'integer',
             'enviada_at' => 'datetime',
             'revisada_at' => 'datetime',
+            'enviada_coordinacion_at' => 'datetime',
+            'devuelta_at' => 'datetime',
         ];
     }
 
@@ -69,6 +90,16 @@ class SolicitudInsumo extends Model
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->useLogName('solicitud_insumo');
+    }
+
+    public function etiquetaEstado(): string
+    {
+        return self::ETIQUETAS[$this->estado] ?? ucfirst($this->estado);
+    }
+
+    public function estaAprobada(): bool
+    {
+        return in_array($this->estado, self::ESTADOS_APROBADOS, true);
     }
 
     public function esEditablePorEstacion(): bool

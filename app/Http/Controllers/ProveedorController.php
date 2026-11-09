@@ -42,6 +42,7 @@ class ProveedorController extends Controller
         Proveedor::query()->create([
             'nombre' => trim((string) preg_replace('/\s+/u', ' ', $request->validated('nombre'))),
             'iva' => $request->validated('iva'),
+            'retiene_isr' => (bool) $request->validated('retiene_isr'),
         ]);
 
         return redirect()->route('insumos.proveedores.index')->with('status', __('Proveedor agregado.'));
@@ -49,7 +50,7 @@ class ProveedorController extends Controller
 
     public function update(Proveedor $proveedor, GuardarProveedorRequest $request): RedirectResponse
     {
-        $proveedor->update(['iva' => $request->validated('iva')]);
+        $proveedor->update(['iva' => $request->validated('iva'), 'retiene_isr' => (bool) $request->validated('retiene_isr')]);
 
         return redirect()->back()->with('status', __('IVA de :nombre actualizado.', ['nombre' => $proveedor->nombre]));
     }

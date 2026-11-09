@@ -26,6 +26,7 @@ class GuardarProveedorRequest extends FormRequest
     {
         $reglas = [
             'iva' => ['nullable', 'integer', Rule::in(config('insumos.tasas_iva'))],
+            'retiene_isr' => ['nullable', 'boolean'],
         ];
 
         if ($this->route('proveedor') === null) {

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\SolicitudInsumo;
+use Illuminate\Support\Collection;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -43,13 +44,13 @@ final class FormatoSolicitudInsumoLibro
         $libro->setActiveSheetIndex(0);
         $hoja = $libro->getSheetByName('SOLICITUD');
 
-        $partidas = $solicitud->partidas;
+        $partidas = $solicitud->partidas->reject(fn ($p) => $p->eliminada_por_coordinacion)->values();
         $extra = max(0, $partidas->count() - self::FILAS_PLANTILLA);
         $ultima = self::PRIMERA_FILA + max($partidas->count(), self::FILAS_PLANTILLA) - 1;
 
         $this->cabecera($hoja, $solicitud);
         $this->prepararFilas($hoja, $extra);
-        $filasPorTasa = $this->partidas($hoja, $solicitud, $conPrecios);
+        $filasPorTasa = $this->partidas($hoja, $partidas, $conPrecios);
         $this->totales($hoja, $ultima, $conPrecios, $filasPorTasa);
         $this->firmas($hoja, $solicitud, $extra);
         $this->impresion($hoja, 33 + $extra, $extra === 0);
@@ -95,12 +96,12 @@ final class FormatoSolicitudInsumoLibro
     /**
      * @return array<int, list<int>> Filas de partida con precio, por tasa de IVA (%).
      */
-    private function partidas(Worksheet $hoja, SolicitudInsumo $solicitud, bool $conPrecios): array
+    private function partidas(Worksheet $hoja, Collection $partidas, bool $conPrecios): array
     {
         $tasas = $this->proveedores->tasas();
         $filasPorTasa = [];
 
-        foreach ($solicitud->partidas as $indice => $partida) {
+        foreach ($partidas as $indice => $partida) {
             $fila = self::PRIMERA_FILA + $indice;
 
             $hoja->setCellValue('B'.$fila, $partida->numero);

@@ -57,6 +57,10 @@
                             @endforeach
                         </select>
                     </div>
+                    <label class="flex min-h-[44px] items-center gap-2 text-sm text-gray-700">
+                        <input type="checkbox" name="retiene_isr" value="1" class="rounded border-gray-300 text-brand-teal">
+                        {{ __('Retiene ISR (persona física)') }}
+                    </label>
                     <x-primary-button type="submit">{{ __('Agregar') }}</x-primary-button>
                 </form>
             </div>
@@ -67,6 +71,7 @@
                         <tr>
                             <th class="px-4 py-3">{{ __('Proveedor') }}</th>
                             <th class="px-4 py-3">{{ __('IVA') }}</th>
+                            <th class="px-4 py-3">{{ __('Retiene ISR') }}</th>
                             <th class="px-4 py-3"></th>
                         </tr>
                     </thead>
@@ -82,6 +87,9 @@
                                             <option value="{{ $tasa }}" @selected($proveedor->iva === $tasa)>{{ $tasa }} %</option>
                                         @endforeach
                                     </select>
+                                </td>
+                                <td class="px-4 py-2">
+                                    <input form="{{ $formId }}" type="checkbox" name="retiene_isr" value="1" @checked($proveedor->retiene_isr) class="rounded border-gray-300 text-brand-teal">
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-2 text-right">
                                     <form id="{{ $formId }}" method="POST" action="{{ route('insumos.proveedores.update', $proveedor) }}" class="inline">
@@ -99,7 +107,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="3" class="px-4 py-8 text-center text-gray-500">{{ __('Aún no hay proveedores. Agrega uno o carga el catálogo.') }}</td>
+                                <td colspan="4" class="px-4 py-8 text-center text-gray-500">{{ __('Aún no hay proveedores. Agrega uno o carga el catálogo.') }}</td>
                             </tr>
                         @endforelse
                     </tbody>

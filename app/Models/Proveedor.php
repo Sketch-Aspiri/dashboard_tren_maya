@@ -23,6 +23,7 @@ class Proveedor extends Model
     protected $fillable = [
         'nombre',
         'iva',
+        'retiene_isr',
     ];
 
     /**
@@ -32,6 +33,7 @@ class Proveedor extends Model
     {
         return [
             'iva' => 'integer',
+            'retiene_isr' => 'boolean',
         ];
     }
 

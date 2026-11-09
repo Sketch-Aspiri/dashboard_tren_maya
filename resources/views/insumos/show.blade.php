@@ -62,7 +62,10 @@
             @endif
 
             <div class="flex flex-wrap items-center gap-3 text-sm text-gray-600">
-                <span class="inline-flex rounded-full bg-brand-mist px-3 py-1 font-medium text-brand-green">{{ __(ucfirst($solicitud->estado)) }}</span>
+                <span class="inline-flex rounded-full bg-brand-mist px-3 py-1 font-medium text-brand-green">{{ __($solicitud->etiquetaEstado()) }}</span>
+                @if ($solicitud->oficio_numero)
+                    <span>{{ __('Oficio') }}: {{ $solicitud->oficio_numero }}</span>
+                @endif
                 @if ($solicitud->enviada_at)
                     <span>{{ __('Enviada') }}: {{ $solicitud->enviada_at->format('d/m/Y H:i') }}</span>
                 @endif
@@ -214,11 +217,17 @@
                             </thead>
                             <tbody class="divide-y divide-gray-100">
                                 @foreach ($solicitud->partidas as $partida)
-                                    <tr class="align-top {{ in_array($partida->id, $atipicas, true) ? 'bg-amber-50' : '' }}">
+                                    <tr class="align-top {{ in_array($partida->id, $atipicas, true) ? 'bg-amber-50' : '' }} {{ $partida->eliminada_por_coordinacion ? 'text-gray-400 line-through' : '' }}">
                                         <td class="px-2 py-2">{{ $partida->numero }}</td>
                                         <td class="px-2 py-2">{{ $partida->cantidad + 0 }}</td>
                                         <td class="px-2 py-2">{{ $partida->unidad }}</td>
-                                        <td class="px-2 py-2">{{ $partida->descripcion }}</td>
+                                        <td class="px-2 py-2">{{ $partida->descripcion }}
+                                            @if ($partida->eliminada_por_coordinacion)
+                                                <span class="ml-1 text-xs not-italic text-red-600 no-underline">({{ __('quitada por la Coordinación') }})</span>
+                                            @elseif ($partida->agregada_por_coordinacion)
+                                                <span class="ml-1 text-xs text-blue-600">({{ __('agregada por la Coordinación') }})</span>
+                                            @endif
+                                        </td>
                                         <td class="px-2 py-2 text-gray-600">{{ $partida->justificacion }}</td>
                                         @if ($puedeRevisar)
                                             <td class="px-2 py-1"><input type="text" maxlength="50" class="{{ $campo }} w-28" name="partidas[{{ $partida->id }}][codigo]" value="{{ old('partidas.'.$partida->id.'.codigo', $partida->codigo) }}"></td>
@@ -228,7 +237,7 @@
                                         @else
                                             <td class="px-2 py-2">{{ $partida->codigo ?? '—' }}</td>
                                             <td class="px-2 py-2">{{ $dinero($partida->precio_unitario === null ? null : (float) $partida->precio_unitario) }}</td>
-                                            <td class="px-2 py-2">{{ $partida->partida_presupuestal ?? '—' }}</td>
+                                            <td class="px-2 py-2">{{ $partida->partida_final ?? $partida->partida_presupuestal ?? '—' }}</td>
                                             <td class="px-2 py-2">{{ $partida->proveedor ?? '—' }}</td>
                                         @endif
                                         <td class="px-2 py-2 text-right">{{ $dinero($partida->total()) }}</td>

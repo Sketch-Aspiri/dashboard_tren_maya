@@ -32,6 +32,9 @@ class SolicitudInsumoPartida extends Model
         'codigo',
         'precio_unitario',
         'partida_presupuestal',
+        'partida_final',
+        'eliminada_por_coordinacion',
+        'agregada_por_coordinacion',
         'proveedor',
     ];
 
@@ -44,6 +47,8 @@ class SolicitudInsumoPartida extends Model
             'numero' => 'integer',
             'cantidad' => 'decimal:2',
             'precio_unitario' => 'decimal:2',
+            'eliminada_por_coordinacion' => 'boolean',
+            'agregada_por_coordinacion' => 'boolean',
         ];
     }
 

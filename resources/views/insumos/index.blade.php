@@ -14,6 +14,8 @@
         'enviada' => ['Enviada', 'bg-brand-mist text-brand-green'],
         'observada' => ['Observada', 'bg-amber-100 text-amber-800'],
         'aprobada' => ['Aprobada', 'bg-green-100 text-green-800'],
+        'enviada_coordinacion' => ['Enviada a Coordinación', 'bg-blue-100 text-blue-800'],
+        'devuelta' => ['Devuelta por Coordinación', 'bg-purple-100 text-purple-800'],
     ];
     $enviadas = $tablero->filter(fn ($fila) => $fila['solicitud'] && $fila['solicitud']->estado !== 'borrador')->count();
 @endphp
@@ -53,6 +55,9 @@
                     @can('manage', \App\Models\CatalogoInsumo::class)
                         <a href="{{ route('insumos.catalogo.index') }}" class="inline-flex min-h-[44px] items-center text-sm text-brand-teal hover:underline">{{ __('Catálogo de insumos') }}</a>
                     @endcan
+                    @can('consolidate', \App\Models\SolicitudInsumo::class)
+                        <a href="{{ route('insumos.coordinacion.index', ['anio' => $anio, 'mes' => $mes]) }}" class="inline-flex min-h-[44px] items-center rounded-md border border-brand-teal px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Coordinación') }}</a>
+                    @endcan
                     @can('manage', \App\Models\Proveedor::class)
                         <a href="{{ route('insumos.proveedores.index') }}" class="inline-flex min-h-[44px] items-center rounded-md border border-brand-teal px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Proveedores e IVA') }}</a>
                     @endcan
@@ -87,7 +92,7 @@
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <x-kpi-card :label="__('Estaciones que enviaron')" :value="$enviadas.' / '.$tablero->count()"
                             :hint="__('Incluye enviadas, observadas y aprobadas.')" />
-                <x-kpi-card :label="__('Aprobadas')" :value="$tablero->filter(fn ($f) => $f['solicitud']?->estado === 'aprobada')->count()"
+                <x-kpi-card :label="__('Aprobadas')" :value="$tablero->filter(fn ($f) => $f['solicitud']?->estaAprobada())->count()"
                             :hint="__('Listas para el consolidado.')" />
                 <x-kpi-card :label="__('Sin iniciar')" :value="$tablero->filter(fn ($f) => $f['solicitud'] === null)->count()"
                             :hint="__('Aún no abren su solicitud del mes.')" />

@@ -214,7 +214,7 @@ final class ConsolidadoInsumosLibro
             $hoja->setCellValue('F'.$fila, $partida->precio_unitario === null ? null : (float) $partida->precio_unitario);
             $hoja->setCellValue('G'.$fila, '=C'.$fila.'*F'.$fila);
             $this->texto($hoja, 'H'.$fila, $partida->partida_presupuestal);
-            $this->texto($hoja, 'I'.$fila, $partida->partida_presupuestal);
+            $this->texto($hoja, 'I'.$fila, $partida->partida_final ?? $partida->partida_presupuestal);
             $this->texto($hoja, 'J'.$fila, $partida->justificacion);
             $this->texto($hoja, 'K'.$fila, $partida->proveedor);
             $filasPorGrupo[ProveedorService::clave($partida->proveedor)][] = $fila;

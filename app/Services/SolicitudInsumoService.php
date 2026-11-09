@@ -186,7 +186,7 @@ final class SolicitudInsumoService
      */
     public function totales(SolicitudInsumo $solicitud): array
     {
-        $desglose = $this->proveedores->desglose($solicitud->partidas);
+        $desglose = $this->proveedores->desglose($solicitud->partidas->reject(fn (SolicitudInsumoPartida $p) => $p->eliminada_por_coordinacion));
         $subtotal = round(array_sum(array_column($desglose, 'base')), 2);
         $iva = round(array_sum(array_column($desglose, 'iva')), 2);
         $total = round($subtotal + $iva, 2);
@@ -223,7 +223,7 @@ final class SolicitudInsumoService
 
             $historial = SolicitudInsumoPartida::query()
                 ->whereHas('solicitud', fn ($q) => $q
-                    ->where('estado', SolicitudInsumo::APROBADA)
+                    ->whereIn('estado', SolicitudInsumo::ESTADOS_APROBADOS)
                     ->where('id', '!=', $solicitud->id)
                     ->whereRaw('(anio * 12 + mes) >= ?', [$desde->year * 12 + $desde->month]))
                 ->where('descripcion', $partida->descripcion)

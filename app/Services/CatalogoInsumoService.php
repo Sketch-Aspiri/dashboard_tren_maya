@@ -79,9 +79,7 @@ final class CatalogoInsumoService
      */
     public function leerAnexo(string $ruta): array
     {
-        $lector = new Xlsx;
-        $lector->setReadDataOnly(true);
-        $hoja = $this->hojaDeCotizacion($lector->load($ruta)->getAllSheets());
+        $hoja = $this->abrirHojaAnexo($ruta);
 
         $filas = [];
         $limite = min($hoja->getHighestRow(), self::MAX_FILAS);
@@ -95,6 +93,18 @@ final class CatalogoInsumoService
         }
 
         return array_values($filas);
+    }
+
+    /**
+     * Hoja "ZO_Cotización" (o la primera visible) de un ANEXO .xlsx; la usan
+     * la carga del catálogo y la respuesta de la Coordinación.
+     */
+    public function abrirHojaAnexo(string $ruta): Worksheet
+    {
+        $lector = new Xlsx;
+        $lector->setReadDataOnly(true);
+
+        return $this->hojaDeCotizacion($lector->load($ruta)->getAllSheets());
     }
 
     /**
