@@ -30,6 +30,15 @@ final class GeneradorOficioAsistencia
     /** A4 (11906 twips) minus 0.5" margins on both sides. */
     private const ANCHO_PAGINA = 10466;
 
+    /** Lists up to this many rows are never split between pages; longer ones keep header+2 rows and the last 2 together. */
+    private const FILAS_INDIVISIBLE = 8;
+
+    /** Height of the single blank row of an empty table (collapsed, like the Excel). */
+    private const ALTO_FILA_VACIA = 280;
+
+    /** "Keep with next" for the paragraphs of the row being written (keeps tables and the signature from being cut). */
+    private bool $mantener = false;
+
     /** Columns of the three personnel summary tables, in print order ("|" = line break). */
     private const COLUMNAS = [
         ['DESCANSO', EstatusAsistencia::Descanso],
@@ -111,10 +120,10 @@ final class GeneradorOficioAsistencia
             ? 'de la '.($data->estacion->is_operativa ? 'Estación ' : '').$data->estacion->nombre
             : 'de la '.config('asistencia_documentos.zona.sujeto');
 
-        $seccion->addText('Tjta. No. '.$meta->numeroOficio, ['size' => 7.5], ['alignment' => Jc::END, 'spaceAfter' => 200]);
-        $seccion->addText($formato['titulo'], ['size' => 10, 'bold' => true], ['alignment' => Jc::CENTER, 'spaceAfter' => 200]);
-        $seccion->addText($formato['destinatario'], ['size' => 9, 'bold' => true, 'underline' => 'single'], ['alignment' => Jc::CENTER, 'spaceAfter' => 80]);
-        $seccion->addText($fecha, ['size' => 9], ['alignment' => Jc::CENTER, 'spaceAfter' => 80]);
+        $seccion->addText('Tjta. No. '.$meta->numeroOficio, ['size' => 7.5], ['alignment' => Jc::END, 'spaceAfter' => 200, 'keepNext' => true]);
+        $seccion->addText($formato['titulo'], ['size' => 10, 'bold' => true], ['alignment' => Jc::CENTER, 'spaceAfter' => 200, 'keepNext' => true]);
+        $seccion->addText($formato['destinatario'], ['size' => 9, 'bold' => true, 'underline' => 'single'], ['alignment' => Jc::CENTER, 'spaceAfter' => 80, 'keepNext' => true]);
+        $seccion->addText($fecha, ['size' => 9], ['alignment' => Jc::CENTER, 'spaceAfter' => 80, 'keepNext' => true]);
         $seccion->addText(
             sprintf(
                 'En relación al Memorándum No. %s, referente a las Directivas para el control de asistencia del personal perteneciente a la Empresa Tren Maya, S.A. de C.V., me permito %s a esa superioridad, el control de asistencia diaria %s del %s.',
@@ -124,7 +133,7 @@ final class GeneradorOficioAsistencia
                 $fecha,
             ),
             ['size' => 8.5],
-            ['alignment' => Jc::BOTH, 'spaceAfter' => 160],
+            ['alignment' => Jc::BOTH, 'spaceAfter' => 160, 'keepNext' => true],
         );
     }
 
@@ -133,6 +142,7 @@ final class GeneradorOficioAsistencia
     private function seccionA(Section $seccion, OficioZonaData $data): void
     {
         $this->titulo($seccion, 'A.   CONTROL DE LICENCIAS MEDICAS, COMISIONES, INCIDENCIAS, AUSENTISMOS, VACACIONES, BAJA Y NUEVOS INGRESOS.');
+        $this->mantener = true;
 
         $this->subtitulo($seccion, 'a)   TOTAL, MILITARES EN ACTIVO:');
         $this->resumen($seccion, $data->resumenMilitares, 'TOTAL MIL.ACT.');
@@ -142,6 +152,7 @@ final class GeneradorOficioAsistencia
         $this->resumen($seccion, $data->resumenEventuales, 'TOTAL EVENTUAL');
         $this->subtitulo($seccion, 'd)   TOTAL, PLAZAS PERMANENTES, EVENTUALES Y DE OTRAS COORDINACIONES COMISIONADOS');
         $this->resumenComisionados($seccion, $data->resumenComisionados);
+        $this->mantener = false;
 
         $this->espacio($seccion, 10);
     }
@@ -201,6 +212,7 @@ final class GeneradorOficioAsistencia
             $r->de(EstatusAsistencia::Baja), $r->de(EstatusAsistencia::NuevoIngreso), $r->de(EstatusAsistencia::Presente), $r->total,
         ];
 
+        $this->mantener = false;
         $tabla->addRow(null, ['cantSplit' => true]);
         foreach ($anchos as $i => $ancho) {
             $this->celdaDato($tabla, $ancho, (string) $valores[$i]);
@@ -219,13 +231,12 @@ final class GeneradorOficioAsistencia
             ['c.   PERSONAL EVENTUAL COMISIONADO A OTRAS ÁREAS:', $data->eventualesAOtrasAreas],
         ];
 
-        foreach ($grupos as [$subtitulo, $filas]) {
+        foreach ($grupos as $indice => [$subtitulo, $filas]) {
             $this->subtitulo($seccion, $subtitulo, true);
             $this->tablaDeLista($seccion, array_map(fn (FilaComisionado $f) => [
                 'dir' => $f->direccion, 'trab' => $f->noEmpleado, 'nombre' => $f->nombre,
                 'estatus' => $f->estatus, 'ubic' => $f->ubicacion, 'negrita' => true, 'estatusNegrita' => true,
-            ], $filas), true, 'DIRECCIÓN', true);
-            $this->espacio($seccion, 5);
+            ], $filas), true, 'DIRECCIÓN', true, $indice === count($grupos) - 1);
         }
     }
 
@@ -251,7 +262,7 @@ final class GeneradorOficioAsistencia
     /**
      * @param  list<array<string, mixed>>  $filas
      */
-    private function tablaDeLista(Section $seccion, array $filas, bool $conDireccion, string $etiquetaDireccion = 'DIRECCIÓN', bool $compacta = false): void
+    private function tablaDeLista(Section $seccion, array $filas, bool $conDireccion, string $etiquetaDireccion = 'DIRECCIÓN', bool $compacta = false, bool $hastaCierre = false): void
     {
         $tabla = $this->tabla($seccion);
         $tamTitulo = $compacta ? 5.5 : 6.5;
@@ -261,6 +272,7 @@ final class GeneradorOficioAsistencia
             : ['no' => 420, 'trab' => 1100, 'nombre' => 3300, 'estatus' => 2800, 'ubic' => 2846];
         $titulos = ['no' => 'NO.', 'dir' => $etiquetaDireccion, 'trab' => 'NO. TRAB.', 'nombre' => 'NOMBRE', 'estatus' => 'ESTATUS', 'ubic' => 'UBICACIÓN ACTUAL'];
 
+        $this->mantener = true;
         $tabla->addRow(null, ['tblHeader' => true, 'cantSplit' => true]);
         foreach ($anchos as $clave => $ancho) {
             $this->celdaTitulo($tabla, $ancho, $titulos[$clave], $tamTitulo);
@@ -269,9 +281,15 @@ final class GeneradorOficioAsistencia
         // An empty list keeps one blank row so the table does not disappear.
         $vacia = $filas === [];
         $filas = $vacia ? [['dir' => '', 'trab' => '', 'nombre' => '', 'estatus' => '', 'ubic' => '', 'negrita' => false, 'estatusNegrita' => false]] : array_values($filas);
-        $alto = $compacta ? 430 : 520;
+        $alto = $vacia ? self::ALTO_FILA_VACIA : ($compacta ? 430 : 520);
+        $total = count($filas);
 
         foreach ($filas as $indice => $fila) {
+            // Small tables stay whole; long ones keep header + 2 rows and the last 2 rows together
+            // (never a header alone nor a single orphan row); the last table sticks to the signature.
+            $this->mantener = $total <= self::FILAS_INDIVISIBLE
+                ? ($indice < $total - 1 || $hastaCierre)
+                : ($indice <= 1 || $indice === $total - 2 || ($indice === $total - 1 && $hastaCierre));
             $tabla->addRow($alto, ['cantSplit' => true]);
 
             $this->celdaTexto($tabla, $anchos['no'], $vacia ? '' : (string) ($indice + 1), Jc::CENTER, 7, false);
@@ -284,7 +302,9 @@ final class GeneradorOficioAsistencia
             $this->celdaTexto($tabla, $anchos['ubic'], $fila['ubic'], Jc::START, 7, $fila['negrita']);
         }
 
+        $this->mantener = $hastaCierre;
         $this->espacio($seccion, $compacta ? 3 : 8);
+        $this->mantener = false;
     }
 
     // ---------------------------------------------------------- closing
@@ -344,7 +364,7 @@ final class GeneradorOficioAsistencia
     /** A thin empty paragraph used as vertical space between blocks. */
     private function espacio(Section $seccion, int $puntos): void
     {
-        $seccion->addText('', ['size' => $puntos]);
+        $seccion->addText('', ['size' => $puntos], ['keepNext' => $this->mantener]);
     }
 
     private function tabla(Section $seccion): Table
@@ -372,7 +392,7 @@ final class GeneradorOficioAsistencia
     private function celdaDato(Table $tabla, int $ancho, string $texto): void
     {
         $celda = $tabla->addCell($ancho, ['valign' => 'center']);
-        $celda->addText($texto, ['size' => 7, 'bold' => true], ['alignment' => Jc::CENTER, 'spaceBefore' => 20, 'spaceAfter' => 20]);
+        $celda->addText($texto, ['size' => 7, 'bold' => true], ['alignment' => Jc::CENTER, 'spaceBefore' => 20, 'spaceAfter' => 20, 'keepNext' => $this->mantener]);
     }
 
     private function celdaTexto(Table $tabla, int $ancho, string $texto, string $alineacion, float $tam, bool $negrita): void
@@ -389,7 +409,7 @@ final class GeneradorOficioAsistencia
     private function lineas(Cell $celda, string $texto, array $fuente, string $alineacion, string $separador): void
     {
         foreach (explode($separador, $texto) as $linea) {
-            $celda->addText($linea, $fuente, ['alignment' => $alineacion, 'spaceBefore' => 10, 'spaceAfter' => 10]);
+            $celda->addText($linea, $fuente, ['alignment' => $alineacion, 'spaceBefore' => 10, 'spaceAfter' => 10, 'keepNext' => $this->mantener]);
         }
     }
 }
