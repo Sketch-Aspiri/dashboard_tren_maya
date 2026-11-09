@@ -108,7 +108,7 @@ final class ConsolidadoInsumosLibro
             ['Estaciones sin solicitud', $bloques->filter(fn ($b) => $b['solicitud'] === null)->count()],
             ['Partidas incluidas', $bloques->sum(fn ($b) => $b['partidas']->count())],
             ['Subtotal', $datos['subtotal']],
-            ['IVA 8 %', $datos['iva']],
+            ['IVA (por proveedor)', $datos['iva']],
             ['Total con IVA', $datos['total']],
             ['Fondo rotatorio', $datos['tope']],
             ['Pendiente por ejercer', $datos['pendiente']],
@@ -197,6 +197,7 @@ final class ConsolidadoInsumosLibro
 
         $primera = $cabecera + 1;
         $fila = $primera;
+        $filasPorGrupo = [];
 
         if ($bloque['partidas']->isEmpty()) {
             $hoja->setCellValue('B'.$fila, 1);
@@ -216,6 +217,7 @@ final class ConsolidadoInsumosLibro
             $this->texto($hoja, 'I'.$fila, $partida->partida_presupuestal);
             $this->texto($hoja, 'J'.$fila, $partida->justificacion);
             $this->texto($hoja, 'K'.$fila, $partida->proveedor);
+            $filasPorGrupo[ProveedorService::clave($partida->proveedor)][] = $fila;
             $fila++;
         }
 
@@ -225,17 +227,28 @@ final class ConsolidadoInsumosLibro
 
         $hoja->setCellValue('E'.$fila, 'Subtotal');
         $hoja->setCellValue('G'.$fila, '=SUM(G'.$primera.':G'.$ultima.')');
-        $hoja->setCellValue('E'.($fila + 1), 'IVA');
-        $hoja->setCellValue('G'.($fila + 1), '=8%*G'.$fila);
-        $hoja->setCellValue('E'.($fila + 2), 'TOTAL ');
-        $hoja->setCellValue('G'.($fila + 2), '=SUM(G'.$fila.':G'.($fila + 1).')');
-        $hoja->getStyle('G'.$fila.':G'.($fila + 2))->getNumberFormat()->setFormatCode(self::DINERO);
-        $hoja->getStyle('E'.($fila + 2).':G'.($fila + 2))->getFont()->setBold(true);
-        $this->bordes($hoja, 'B'.$cabecera.':K'.($fila + 2));
 
-        $filasTotal[] = $fila + 2;
+        // Una fila de IVA por proveedor, con su tasa (8 % o 16 %).
+        $subtotal = $fila;
+        $ivas = $bloque['desglose'] !== [] ? $bloque['desglose'] : [['clave' => '', 'proveedor' => null, 'tasa' => (int) config('insumos.iva_defecto')]];
 
-        return $fila + 4;
+        foreach ($ivas as $grupo) {
+            $fila++;
+            $celdas = array_map(fn (int $f) => 'G'.$f, $filasPorGrupo[$grupo['clave']] ?? []);
+            $this->texto($hoja, 'E'.$fila, 'IVA '.$grupo['tasa'].' %'.($grupo['proveedor'] !== null ? ' — '.$grupo['proveedor'] : ''));
+            $hoja->setCellValue('G'.$fila, '='.$grupo['tasa'].'%*'.($celdas === [] ? 'G'.$subtotal : '('.implode('+', $celdas).')'));
+        }
+
+        $filaTotal = $fila + 1;
+        $hoja->setCellValue('E'.$filaTotal, 'TOTAL ');
+        $hoja->setCellValue('G'.$filaTotal, '=SUM(G'.$subtotal.':G'.$fila.')');
+        $hoja->getStyle('G'.$subtotal.':G'.$filaTotal)->getNumberFormat()->setFormatCode(self::DINERO);
+        $hoja->getStyle('E'.$filaTotal.':G'.$filaTotal)->getFont()->setBold(true);
+        $this->bordes($hoja, 'B'.$cabecera.':K'.$filaTotal);
+
+        $filasTotal[] = $filaTotal;
+
+        return $filaTotal + 2;
     }
 
     private function motivoSinPartidas(?SolicitudInsumo $solicitud): string

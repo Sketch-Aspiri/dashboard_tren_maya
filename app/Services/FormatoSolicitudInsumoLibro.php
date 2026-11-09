@@ -20,6 +20,8 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
  */
 final class FormatoSolicitudInsumoLibro
 {
+    public function __construct(private readonly ProveedorService $proveedores) {}
+
     private const PRIMERA_FILA = 11;
 
     private const FILAS_PLANTILLA = 12;
@@ -32,9 +34,9 @@ final class FormatoSolicitudInsumoLibro
     private const CARACTERES_JUSTIFICACION = 24;
 
     /**
-     * @param  bool  $conPrecios  false deja en blanco precios y totales (la estación aún no los ve).
+     * @param  bool  $conPrecios  false deja en blanco precios y totales.
      */
-    public function generar(SolicitudInsumo $solicitud, bool $conPrecios): Spreadsheet
+    public function generar(SolicitudInsumo $solicitud, bool $conPrecios = true): Spreadsheet
     {
         $libro = IOFactory::load(resource_path('documentos/formato_solicitud_insumos.xlsx'));
         $libro->removeSheetByIndex($libro->getIndex($libro->getSheetByName('Proveedores')));
@@ -47,8 +49,8 @@ final class FormatoSolicitudInsumoLibro
 
         $this->cabecera($hoja, $solicitud);
         $this->prepararFilas($hoja, $extra);
-        $this->partidas($hoja, $solicitud, $conPrecios);
-        $this->totales($hoja, $ultima, $conPrecios);
+        $filasPorTasa = $this->partidas($hoja, $solicitud, $conPrecios);
+        $this->totales($hoja, $ultima, $conPrecios, $filasPorTasa);
         $this->firmas($hoja, $solicitud, $extra);
         $this->impresion($hoja, 33 + $extra, $extra === 0);
 
@@ -90,8 +92,14 @@ final class FormatoSolicitudInsumoLibro
         }
     }
 
-    private function partidas(Worksheet $hoja, SolicitudInsumo $solicitud, bool $conPrecios): void
+    /**
+     * @return array<int, list<int>> Filas de partida con precio, por tasa de IVA (%).
+     */
+    private function partidas(Worksheet $hoja, SolicitudInsumo $solicitud, bool $conPrecios): array
     {
+        $tasas = $this->proveedores->tasas();
+        $filasPorTasa = [];
+
         foreach ($solicitud->partidas as $indice => $partida) {
             $fila = self::PRIMERA_FILA + $indice;
 
@@ -105,10 +113,13 @@ final class FormatoSolicitudInsumoLibro
             if ($conPrecios && $partida->precio_unitario !== null) {
                 $hoja->setCellValue('G'.$fila, (float) $partida->precio_unitario);
                 $hoja->setCellValue('H'.$fila, '=C'.$fila.'*G'.$fila);
+                $filasPorTasa[$this->proveedores->tasaAplicable($partida->proveedor, $tasas)][] = $fila;
             }
 
             $this->formatoFila($hoja, $fila, $partida->descripcion, $partida->justificacion);
         }
+
+        return $filasPorTasa;
     }
 
     /**
@@ -133,16 +144,39 @@ final class FormatoSolicitudInsumoLibro
 
     /**
      * La plantilla calcula el IVA al 16 % y el precio unitario como F×B;
-     * aquí quedan como en el ANEXO: subtotal, IVA 8 % y total.
+     * aquí quedan como en el ANEXO: subtotal, IVA y total. El IVA usa la
+     * tasa de cada proveedor (8 % o 16 %), sumando las filas de cada tasa.
+     *
+     * @param  array<int, list<int>>  $filasPorTasa
      */
-    private function totales(Worksheet $hoja, int $ultima, bool $conPrecios): void
+    private function totales(Worksheet $hoja, int $ultima, bool $conPrecios, array $filasPorTasa): void
     {
         $subtotal = $ultima + 1;
 
         $hoja->setCellValue('H'.$subtotal, $conPrecios ? '=SUM(H'.self::PRIMERA_FILA.':H'.$ultima.')' : null);
-        $hoja->setCellValue('H'.($subtotal + 1), $conPrecios ? '=8%*H'.$subtotal : null);
+        $hoja->setCellValue('H'.($subtotal + 1), $conPrecios ? $this->formulaIva($filasPorTasa, $subtotal) : null);
         $hoja->setCellValue('H'.($subtotal + 2), $conPrecios ? '=H'.$subtotal.'+H'.($subtotal + 1) : null);
         $hoja->getStyle('H'.$subtotal.':H'.($subtotal + 2))->getNumberFormat()->setFormatCode(self::DINERO);
+    }
+
+    /**
+     * Con una sola tasa: =8%*subtotal. Con varias: =8%*(H11+H13)+16%*(H12).
+     *
+     * @param  array<int, list<int>>  $filasPorTasa
+     */
+    private function formulaIva(array $filasPorTasa, int $subtotal): string
+    {
+        if (count($filasPorTasa) <= 1) {
+            return '='.(array_key_first($filasPorTasa) ?? (int) config('insumos.iva_defecto')).'%*H'.$subtotal;
+        }
+
+        ksort($filasPorTasa);
+
+        return '='.implode('+', array_map(
+            fn (int $tasa, array $filas) => $tasa.'%*('.implode('+', array_map(fn (int $f) => 'H'.$f, $filas)).')',
+            array_keys($filasPorTasa),
+            $filasPorTasa,
+        ));
     }
 
     private function firmas(Worksheet $hoja, SolicitudInsumo $solicitud, int $extra): void

@@ -149,15 +149,19 @@ class ConsolidadoInsumosTest extends TestCase
         $this->assertSame('24901', $hoja->getCell('H10')->getValue());
         $this->assertSame('Truper', $hoja->getCell('K10')->getValue());
         $this->assertSame('=SUM(G10:G11)', $hoja->getCell('G12')->getValue());
-        $this->assertSame('=8%*G12', $hoja->getCell('G13')->getValue());
+        $this->assertSame('IVA 8 % — Truper', $hoja->getCell('E13')->getValue());
+        $this->assertSame('=8%*(G10)', $hoja->getCell('G13')->getValue());
+        $this->assertSame('IVA 8 %', $hoja->getCell('E14')->getValue());
+        $this->assertSame('=8%*(G11)', $hoja->getCell('G14')->getValue());
+        $this->assertSame('=SUM(G12:G14)', $hoja->getCell('G15')->getValue());
 
         // Bloque 2: 24 Playa (solo enviada) y bloque 3: 00 (sin solicitud).
-        $this->assertSame('24_PLAYA DEL CARMEN', $hoja->getCell('B16')->getValue());
-        $this->assertStringContainsString('pendiente de aprobación', $hoja->getCell('E19')->getValue());
-        $this->assertSame('00_EDIFICIO ZONAL ESTE', $hoja->getCell('B24')->getValue());
-        $this->assertSame('No realizaron solicitud a la fecha', $hoja->getCell('E27')->getValue());
+        $this->assertSame('24_PLAYA DEL CARMEN', $hoja->getCell('B17')->getValue());
+        $this->assertStringContainsString('pendiente de aprobación', $hoja->getCell('E20')->getValue());
+        $this->assertSame('00_EDIFICIO ZONAL ESTE', $hoja->getCell('B25')->getValue());
+        $this->assertSame('No realizaron solicitud a la fecha', $hoja->getCell('E28')->getValue());
 
-        $this->assertSame('=SUM(G14,G22,G30)', $hoja->getCell('K3')->getValue());
+        $this->assertSame('=SUM(G15,G23,G31)', $hoja->getCell('K3')->getValue());
         $this->assertSame('=K2-K3', $hoja->getCell('K4')->getValue());
     }
 

@@ -207,7 +207,9 @@ class SolicitudInsumoTest extends TestCase
         $this->assertSame(1000.0, $totales['subtotal']);
         $this->assertSame(80.0, $totales['iva']);
         $this->assertSame(1080.0, $totales['total']);
-        $this->assertFalse($totales['excedeTope']);
+        $this->assertFalse($totales['excedeLimite']);
+        $this->assertSame(5000.0, $totales['limite']);
+        $this->assertSame(3920.0, $totales['restante']);
     }
 
     // --- Reglas del servicio --------------------------------------------------

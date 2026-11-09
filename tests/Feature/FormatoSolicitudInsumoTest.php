@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Estacion;
+use App\Models\Proveedor;
 use App\Models\SolicitudInsumo;
 use App\Models\SolicitudInsumoPartida;
 use App\Models\User;
@@ -144,23 +145,31 @@ class FormatoSolicitudInsumoTest extends TestCase
         $this->assertSame('Pieza', $hoja->getCell('D11')->getValue()); // unidad de la partida
     }
 
-    public function test_estacion_does_not_get_prices_until_approved(): void
+    public function test_estacion_also_gets_prices_to_keep_track_of_its_limit(): void
     {
         $solicitud = $this->solicitud(1);
         $this->actingAsTwoFactorVerified($this->userWithRole('Estación', ['estacion_id' => $this->estacion->id]));
 
         $hoja = $this->hoja($this->get(route('insumos.formato', $solicitud)));
+
         $this->assertSame('Insumo 1', $hoja->getCell('E11')->getValue());
-        $this->assertNull($hoja->getCell('G11')->getValue());
-        $this->assertNull($hoja->getCell('H11')->getValue());
-        $this->assertNull($hoja->getCell('F11')->getValue());
-        $this->assertNull($hoja->getCell('H23')->getValue());
-
-        $solicitud->update(['estado' => SolicitudInsumo::APROBADA]);
-
-        $hoja = $this->hoja($this->get(route('insumos.formato', $solicitud)));
         $this->assertEquals(100, $hoja->getCell('G11')->getValue());
         $this->assertSame('=SUM(H11:H22)', $hoja->getCell('H23')->getValue());
+    }
+
+    public function test_iva_formula_uses_each_providers_rate(): void
+    {
+        Proveedor::factory()->create(['nombre' => 'Ferreteria Uno', 'iva' => 16]);
+        Proveedor::factory()->create(['nombre' => 'Ferreteria Dos', 'iva' => 8]);
+        $solicitud = $this->solicitud(3);
+        $solicitud->partidas()->where('numero', 1)->update(['proveedor' => 'Ferreteria Uno']);
+        $solicitud->partidas()->where('numero', 2)->update(['proveedor' => 'ferreteria dos']);
+        $solicitud->partidas()->where('numero', 3)->update(['proveedor' => 'Ferreteria Uno']);
+        $this->actingAsTwoFactorVerified($this->userWithRole('Jefe de Zona'));
+
+        $hoja = $this->hoja($this->get(route('insumos.formato', $solicitud)));
+
+        $this->assertSame('=8%*(H12)+16%*(H11+H13)', $hoja->getCell('H24')->getValue());
     }
 
     public function test_more_than_twelve_partidas_insert_rows_and_move_totals_and_signers(): void

@@ -15,18 +15,17 @@ use Illuminate\Validation\ValidationException;
 /**
  * Lógica de "Recursos materiales" -> Solicitud de insumos (fondo rotatorio):
  * captura de la estación, revisión de la Zona, tablero de envíos y totales.
- * Sustituye el Flujo 1 de n8n; las reglas (IVA 8 %, tope de $50,000, precio
- * atípico > 30 % contra la mediana de 3 meses) vienen de consolidar_insumos.py.
+ * Sustituye el Flujo 1 de n8n. El IVA se calcula por proveedor (8 % o 16 %),
+ * cada estación tiene un límite mensual propio (config/insumos.php) y el
+ * precio atípico es > 30 % contra la mediana de 3 meses.
  */
 final class SolicitudInsumoService
 {
-    public const IVA = 0.08;
-
-    public const TOPE_FONDO = 50000.00;
-
     public const UMBRAL_PRECIO_ATIPICO = 0.30;
 
     public const MESES_HISTORIAL = 3;
+
+    public function __construct(private readonly ProveedorService $proveedores) {}
 
     /**
      * Mes que se está solicitando: desde el día 15 se pide el mes siguiente
@@ -107,6 +106,17 @@ final class SolicitudInsumoService
             ]);
         }
 
+        $totales = $this->totales($solicitud->load('partidas'));
+
+        if ($totales['excedeLimite']) {
+            throw ValidationException::withMessages([
+                'partidas' => __('El total con IVA (:total) excede el límite de :limite de la estación. Quita o reduce partidas antes de enviar.', [
+                    'total' => '$'.number_format($totales['total'], 2),
+                    'limite' => '$'.number_format($totales['limite'], 2),
+                ]),
+            ]);
+        }
+
         $solicitud->update([
             'estado' => SolicitudInsumo::ENVIADA,
             'enviada_at' => now(),
@@ -135,6 +145,7 @@ final class SolicitudInsumoService
                     'partida_presupuestal' => $fila['partida_presupuestal'] ?? null,
                     'proveedor' => $fila['proveedor'] ?? null,
                 ]);
+                $this->proveedores->registrar($fila['proveedor'] ?? null);
             }
 
             $accion = $datos['accion'];
@@ -164,15 +175,32 @@ final class SolicitudInsumoService
     }
 
     /**
-     * @return array{subtotal: float, iva: float, total: float, excedeTope: bool}
+     * Totales de una solicitud con el IVA de cada proveedor por separado, el
+     * límite mensual de la estación y lo que le queda de presupuesto.
+     *
+     * @return array{
+     *     subtotal: float, iva: float, total: float,
+     *     desglose: list<array{clave: string, proveedor: string|null, tasa: int, configurada: bool, base: float, iva: float}>,
+     *     limite: float, restante: float, excedeLimite: bool
+     * }
      */
     public function totales(SolicitudInsumo $solicitud): array
     {
-        $subtotal = round($solicitud->partidas->sum(fn (SolicitudInsumoPartida $p) => $p->total() ?? 0.0), 2);
-        $iva = round($subtotal * self::IVA, 2);
+        $desglose = $this->proveedores->desglose($solicitud->partidas);
+        $subtotal = round(array_sum(array_column($desglose, 'base')), 2);
+        $iva = round(array_sum(array_column($desglose, 'iva')), 2);
         $total = round($subtotal + $iva, 2);
+        $limite = (float) config('insumos.limite_estacion');
 
-        return ['subtotal' => $subtotal, 'iva' => $iva, 'total' => $total, 'excedeTope' => $total > self::TOPE_FONDO];
+        return [
+            'subtotal' => $subtotal,
+            'iva' => $iva,
+            'total' => $total,
+            'desglose' => $desglose,
+            'limite' => $limite,
+            'restante' => round($limite - $total, 2),
+            'excedeLimite' => $total > $limite,
+        ];
     }
 
     /**

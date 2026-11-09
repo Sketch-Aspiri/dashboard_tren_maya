@@ -53,6 +53,9 @@
                     @can('manage', \App\Models\CatalogoInsumo::class)
                         <a href="{{ route('insumos.catalogo.index') }}" class="inline-flex min-h-[44px] items-center text-sm text-brand-teal hover:underline">{{ __('Catálogo de insumos') }}</a>
                     @endcan
+                    @can('manage', \App\Models\Proveedor::class)
+                        <a href="{{ route('insumos.proveedores.index') }}" class="inline-flex min-h-[44px] items-center rounded-md border border-brand-teal px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Proveedores e IVA') }}</a>
+                    @endcan
                 </form>
             </div>
 

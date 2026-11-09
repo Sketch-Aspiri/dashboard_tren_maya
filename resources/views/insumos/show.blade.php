@@ -1,6 +1,9 @@
 @php
     /** @var \App\Models\SolicitudInsumo $solicitud */
-    /** @var array{subtotal: float, iva: float, total: float, excedeTope: bool} $totales */
+    /** @var array{subtotal: float, iva: float, total: float, desglose: list<array{proveedor: string|null, tasa: int, base: float, iva: float}>, limite: float, restante: float, excedeLimite: bool} $totales */
+    /** @var float $limite */
+    /** @var \Illuminate\Support\Collection<int, int> $ivaPorPartida */
+    /** @var \Illuminate\Support\Collection<int, string> $proveedores */
     /** @var list<int> $atipicas */
     /** @var bool $puedeEditar */
     /** @var bool $puedeRevisar */
@@ -16,9 +19,11 @@
         'descripcion' => $p->descripcion,
         'justificacion' => $p->justificacion,
         'catalogo_insumo_id' => $p->catalogo_insumo_id,
+        'precio' => $p->precio_unitario === null ? null : (float) $p->precio_unitario,
+        'iva' => $ivaPorPartida[$p->id] ?? null,
     ])->values()->all());
     if (empty($filasIniciales)) {
-        $filasIniciales = [['cantidad' => '', 'unidad' => 'Pieza', 'descripcion' => '', 'justificacion' => '', 'catalogo_insumo_id' => null]];
+        $filasIniciales = [['cantidad' => '', 'unidad' => 'Pieza', 'descripcion' => '', 'justificacion' => '', 'catalogo_insumo_id' => null, 'precio' => null, 'iva' => null]];
     }
     $campo = 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-teal focus:ring-brand-teal text-sm';
 @endphp
@@ -72,10 +77,29 @@
             @if ($puedeEditar)
                 {{-- Captura de la estación: cantidad, unidad, descripción y justificación. --}}
                 <form method="POST" action="{{ route('insumos.update', $solicitud) }}"
-                      x-data='{ filas: @json($filasIniciales), catalogo: @json($catalogo), agregar() { this.filas.push({cantidad: "", unidad: "Pieza", descripcion: "", justificacion: "", catalogo_insumo_id: null}) }, quitar(i) { if (this.filas.length > 1) this.filas.splice(i, 1) }, elegir(i) { const hallado = this.catalogo.find(c => c.descripcion === this.filas[i].descripcion); this.filas[i].catalogo_insumo_id = hallado ? hallado.id : null; if (hallado) this.filas[i].unidad = hallado.unidad } }'
+                      x-data='{ limite: {{ $limite }}, ivaDefecto: {{ (int) config('insumos.iva_defecto') }}, filas: @json($filasIniciales), catalogo: @json($catalogo), agregar() { this.filas.push({cantidad: "", unidad: "Pieza", descripcion: "", justificacion: "", catalogo_insumo_id: null, precio: null, iva: null}) }, quitar(i) { if (this.filas.length > 1) this.filas.splice(i, 1) }, elegir(i) { const hallado = this.catalogo.find(c => c.descripcion === this.filas[i].descripcion); this.filas[i].catalogo_insumo_id = hallado ? hallado.id : null; this.filas[i].precio = null; this.filas[i].iva = null; if (hallado) this.filas[i].unidad = hallado.unidad }, enCatalogo(f) { return this.catalogo.find(c => c.id == f.catalogo_insumo_id) }, precioDe(f) { if (f.precio !== null && f.precio !== undefined) return Number(f.precio); const c = this.enCatalogo(f); return c && c.precio !== null ? c.precio : null }, ivaDe(f) { if (f.iva !== null && f.iva !== undefined) return Number(f.iva); const c = this.enCatalogo(f); return c ? c.iva : this.ivaDefecto }, estimado() { return this.filas.reduce((t, f) => { const p = this.precioDe(f); return p === null ? t : t + (parseFloat(f.cantidad) || 0) * p * (1 + this.ivaDe(f) / 100) }, 0) }, sinPrecio() { return this.filas.filter(f => f.descripcion && this.precioDe(f) === null).length }, restante() { return this.limite - this.estimado() }, dinero(n) { return n.toLocaleString("es-MX", {style: "currency", currency: "MXN"}) } }'
                       class="space-y-6">
                     @csrf
                     @method('PUT')
+
+                    {{-- Presupuesto de la estación: límite mensual con IVA y lo que va quedando. --}}
+                    <div class="sticky top-2 z-10 rounded-xl border bg-white p-4 shadow-sm sm:p-6"
+                         :class="restante() < 0 ? 'border-red-300' : 'border-brand-green/10'">
+                        <div class="flex flex-wrap items-baseline justify-between gap-2">
+                            <p class="text-sm text-gray-600">{{ __('Límite de la estación (con IVA)') }}: <span class="font-semibold" x-text="dinero(limite)"></span></p>
+                            <p class="text-sm text-gray-600">{{ __('Estimado') }}: <span class="font-semibold" x-text="dinero(estimado())"></span></p>
+                            <p class="text-base font-semibold" :class="restante() < 0 ? 'text-red-600' : 'text-brand-green'"
+                               x-text="restante() < 0 ? '{{ __('Te pasaste por') }} ' + dinero(-restante()) : '{{ __('Te quedan') }} ' + dinero(restante())"></p>
+                        </div>
+                        <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                            <div class="h-2 rounded-full" :class="restante() < 0 ? 'bg-red-500' : (estimado() > limite * 0.85 ? 'bg-amber-500' : 'bg-brand-teal')"
+                                 :style="`width: ${Math.min(100, estimado() / limite * 100)}%`"></div>
+                        </div>
+                        <p x-show="sinPrecio() > 0" class="mt-2 text-xs text-amber-700">
+                            <span x-text="sinPrecio()"></span> {{ __('partida(s) sin precio estimado todavía no cuentan: la Zona les pondrá precio al revisar.') }}
+                        </p>
+                        <p x-show="restante() < 0" class="mt-2 text-xs text-red-600">{{ __('No podrás enviar la solicitud mientras el total estimado exceda el límite.') }}</p>
+                    </div>
 
                     <div class="overflow-hidden rounded-xl border border-brand-green/10 bg-white p-4 shadow-sm shadow-brand-green/5 sm:p-6">
                         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -159,6 +183,12 @@
                 <form method="POST" action="{{ route('insumos.revisar', $solicitud) }}" class="space-y-6">
                     @csrf
 
+                    <datalist id="lista-proveedores">
+                        @foreach ($proveedores as $nombreProveedor)
+                            <option value="{{ $nombreProveedor }}"></option>
+                        @endforeach
+                    </datalist>
+
                     <div class="overflow-x-auto rounded-xl border border-brand-green/10 bg-white p-4 shadow-sm shadow-brand-green/5 sm:p-6">
                         <p class="mb-3 text-sm text-gray-600">
                             {{ $solicitud->tipo_servicio }} · {{ $solicitud->lugar_trabajo }}
@@ -194,7 +224,7 @@
                                             <td class="px-2 py-1"><input type="text" maxlength="50" class="{{ $campo }} w-28" name="partidas[{{ $partida->id }}][codigo]" value="{{ old('partidas.'.$partida->id.'.codigo', $partida->codigo) }}"></td>
                                             <td class="px-2 py-1"><input type="number" step="0.01" min="0" class="{{ $campo }} w-28" name="partidas[{{ $partida->id }}][precio_unitario]" value="{{ old('partidas.'.$partida->id.'.precio_unitario', $partida->precio_unitario) }}"></td>
                                             <td class="px-2 py-1"><input type="text" maxlength="10" class="{{ $campo }} w-24" name="partidas[{{ $partida->id }}][partida_presupuestal]" value="{{ old('partidas.'.$partida->id.'.partida_presupuestal', $partida->partida_presupuestal) }}"></td>
-                                            <td class="px-2 py-1"><input type="text" maxlength="255" class="{{ $campo }} w-40" name="partidas[{{ $partida->id }}][proveedor]" value="{{ old('partidas.'.$partida->id.'.proveedor', $partida->proveedor) }}"></td>
+                                            <td class="px-2 py-1"><input type="text" maxlength="255" class="{{ $campo }} w-40" list="lista-proveedores" name="partidas[{{ $partida->id }}][proveedor]" value="{{ old('partidas.'.$partida->id.'.proveedor', $partida->proveedor) }}"></td>
                                         @else
                                             <td class="px-2 py-2">{{ $partida->codigo ?? '—' }}</td>
                                             <td class="px-2 py-2">{{ $dinero($partida->precio_unitario === null ? null : (float) $partida->precio_unitario) }}</td>
@@ -214,9 +244,11 @@
 
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-4">
                         <x-kpi-card :label="__('Subtotal')" :value="$dinero($totales['subtotal'])" />
-                        <x-kpi-card :label="__('IVA 8 %')" :value="$dinero($totales['iva'])" />
+                        <x-kpi-card :label="__('IVA (por proveedor)')" :value="$dinero($totales['iva'])"
+                                    :hint="collect($totales['desglose'])->map(fn ($g) => ($g['proveedor'] ?? __('Sin proveedor')).' '.$g['tasa'].' %: '.$dinero($g['iva']))->implode(' · ')" />
                         <x-kpi-card :label="__('Total')" :value="$dinero($totales['total'])" />
-                        <x-kpi-card :label="__('Fondo rotatorio')" :value="$totales['excedeTope'] ? __('Excede $50,000') : __('Dentro de $50,000')" />
+                        <x-kpi-card :label="$totales['excedeLimite'] ? __('Excede el límite') : __('Presupuesto restante')" :value="$dinero($totales['restante'])"
+                                    :hint="__('Límite de la estación: :limite con IVA', ['limite' => $dinero($totales['limite'])])" />
                     </div>
 
                     @if ($puedeRevisar)

@@ -20,12 +20,15 @@ final class ConsolidadoInsumosService
         7 => 'Julio', 8 => 'Agosto', 9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre',
     ];
 
-    public function __construct(private readonly SolicitudInsumoService $solicitudes) {}
+    public function __construct(
+        private readonly SolicitudInsumoService $solicitudes,
+        private readonly ProveedorService $proveedores,
+    ) {}
 
     /**
      * @return array{
      *     anio: int, mes: int, mesNombre: string,
-     *     bloques: list<array{estacion: Estacion, solicitud: SolicitudInsumo|null, incluida: bool, partidas: Collection<int, SolicitudInsumoPartida>, subtotal: float, iva: float, total: float}>,
+     *     bloques: list<array{estacion: Estacion, solicitud: SolicitudInsumo|null, incluida: bool, partidas: Collection<int, SolicitudInsumoPartida>, desglose: list<array{clave: string, proveedor: string|null, tasa: int, configurada: bool, base: float, iva: float}>, subtotal: float, iva: float, total: float, limite: float}>,
      *     subtotal: float, iva: float, total: float, tope: float, pendiente: float
      * }
      */
@@ -40,17 +43,20 @@ final class ConsolidadoInsumosService
             $solicitud = $solicitudes->get($estacion->id);
             $incluida = $solicitud?->estado === SolicitudInsumo::APROBADA;
             $partidas = $incluida ? $solicitud->partidas : collect();
-            $subtotal = round($partidas->sum(fn (SolicitudInsumoPartida $p) => $p->total() ?? 0.0), 2);
-            $iva = round($subtotal * SolicitudInsumoService::IVA, 2);
+            $desglose = $this->proveedores->desglose($partidas);
+            $subtotal = round(array_sum(array_column($desglose, 'base')), 2);
+            $iva = round(array_sum(array_column($desglose, 'iva')), 2);
 
             return [
                 'estacion' => $estacion,
                 'solicitud' => $solicitud,
                 'incluida' => $incluida,
                 'partidas' => $partidas,
+                'desglose' => $desglose,
                 'subtotal' => $subtotal,
                 'iva' => $iva,
                 'total' => round($subtotal + $iva, 2),
+                'limite' => (float) config('insumos.limite_estacion'),
             ];
         })->values();
 
@@ -66,8 +72,8 @@ final class ConsolidadoInsumosService
             'subtotal' => $subtotal,
             'iva' => $iva,
             'total' => $total,
-            'tope' => SolicitudInsumoService::TOPE_FONDO,
-            'pendiente' => round(SolicitudInsumoService::TOPE_FONDO - $total, 2),
+            'tope' => (float) config('insumos.fondo_zona'),
+            'pendiente' => round((float) config('insumos.fondo_zona') - $total, 2),
         ];
     }
 
@@ -97,6 +103,18 @@ final class ConsolidadoInsumosService
                 $filas[] = $this->fila($nombre, '(solicitud '.$solicitud->estado.')', null, null, 'Retenido', 'PENDIENTE_APROBACION', false);
 
                 continue;
+            }
+
+            if ($bloque['total'] > $bloque['limite']) {
+                $filas[] = $this->fila($nombre, 'Total con IVA $'.number_format($bloque['total'], 2).' excede el límite de $'.number_format($bloque['limite'], 2).' de la estación',
+                    null, null, 'Revisar', 'EXCEDE_LIMITE_ESTACION', true);
+            }
+
+            foreach ($bloque['desglose'] as $grupo) {
+                if ($grupo['proveedor'] !== null && ! $grupo['configurada']) {
+                    $filas[] = $this->fila($nombre, 'Proveedor '.$grupo['proveedor'].': IVA sin definir, se aplicó '.$grupo['tasa'].' %',
+                        null, null, 'Revisar', 'IVA_NO_CONFIGURADO', true);
+                }
             }
 
             $atipicas = $this->solicitudes->partidasAtipicas($solicitud);

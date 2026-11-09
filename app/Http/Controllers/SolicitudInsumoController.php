@@ -7,8 +7,10 @@ use App\Http\Requests\GuardarSolicitudInsumoRequest;
 use App\Http\Requests\RevisarSolicitudInsumoRequest;
 use App\Models\CatalogoInsumo;
 use App\Models\Estacion;
+use App\Models\Proveedor;
 use App\Models\SolicitudInsumo;
 use App\Services\ConsolidadoInsumosService;
+use App\Services\ProveedorService;
 use App\Services\SolicitudInsumoService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -26,6 +28,7 @@ class SolicitudInsumoController extends Controller
     public function __construct(
         private readonly SolicitudInsumoService $service,
         private readonly ConsolidadoInsumosService $consolidado,
+        private readonly ProveedorService $proveedores,
     ) {}
 
     /**
@@ -76,6 +79,7 @@ class SolicitudInsumoController extends Controller
         $this->authorize('view', $solicitud);
 
         $solicitud->load(['estacion', 'partidas.catalogo', 'revisor']);
+        $tasas = $this->proveedores->tasas();
 
         return view('insumos.show', [
             'solicitud' => $solicitud,
@@ -83,8 +87,20 @@ class SolicitudInsumoController extends Controller
             'atipicas' => $this->service->partidasAtipicas($solicitud),
             'puedeEditar' => $request->user()->can('update', $solicitud),
             'puedeRevisar' => $request->user()->can('review', $solicitud),
+            'limite' => (float) config('insumos.limite_estacion'),
+            // Precio e IVA estimados de cada insumo del catálogo, para calcular al
+            // vuelo cuánto presupuesto le queda a la estación mientras captura.
             'catalogo' => CatalogoInsumo::query()->where('activo', true)->orderBy('descripcion')
-                ->get(['id', 'descripcion', 'unidad']),
+                ->get(['id', 'descripcion', 'unidad', 'ultimo_precio', 'proveedor'])
+                ->map(fn (CatalogoInsumo $c) => [
+                    'id' => $c->id,
+                    'descripcion' => $c->descripcion,
+                    'unidad' => $c->unidad,
+                    'precio' => $c->ultimo_precio === null ? null : (float) $c->ultimo_precio,
+                    'iva' => $this->proveedores->tasaAplicable($c->proveedor, $tasas),
+                ]),
+            'ivaPorPartida' => $solicitud->partidas->mapWithKeys(fn ($p) => [$p->id => $this->proveedores->tasaAplicable($p->proveedor ?? $p->catalogo?->proveedor, $tasas)]),
+            'proveedores' => Proveedor::query()->orderBy('nombre')->pluck('nombre'),
         ]);
     }
 

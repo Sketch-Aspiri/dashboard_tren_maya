@@ -17,6 +17,7 @@ use App\Http\Controllers\Nube\NubeEstadoController;
 use App\Http\Controllers\Nube\NubeOAuthController;
 use App\Http\Controllers\PersonalImportacionController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\Secciones\AdministrarMenuController;
 use App\Http\Controllers\Secciones\MenuGrupoController;
 use App\Http\Controllers\Secciones\SeccionArchivoController;
@@ -254,6 +255,7 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
         Route::get('/catalogo/buscar', [SolicitudInsumoController::class, 'catalogo'])
             ->middleware('throttle:60,1')->name('catalogo.buscar');
         Route::get('/catalogo', [CatalogoInsumoController::class, 'index'])->name('catalogo.index');
+        Route::get('/proveedores', [ProveedorController::class, 'index'])->name('proveedores.index');
         Route::get('/consolidado', [ConsolidadoInsumosController::class, 'descargar'])
             ->middleware('throttle:insumos-export')->name('consolidado');
         Route::get('/estaciones/{estacion}', [SolicitudInsumoController::class, 'estacion'])->name('estacion');
@@ -262,6 +264,9 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
             ->middleware('throttle:insumos-export')->whereNumber('solicitud')->name('formato');
 
         Route::middleware('throttle:insumos-write')->group(function () {
+            Route::post('/proveedores', [ProveedorController::class, 'store'])->name('proveedores.store');
+            Route::put('/proveedores/{proveedor}', [ProveedorController::class, 'update'])->whereNumber('proveedor')->name('proveedores.update');
+            Route::delete('/proveedores/{proveedor}', [ProveedorController::class, 'destroy'])->whereNumber('proveedor')->name('proveedores.destroy');
             Route::post('/catalogo', [CatalogoInsumoController::class, 'store'])->name('catalogo.store');
             Route::post('/catalogo/importar', [CatalogoInsumoController::class, 'importar'])->name('catalogo.importar');
             Route::put('/catalogo/{catalogoInsumo}', [CatalogoInsumoController::class, 'update'])->whereNumber('catalogoInsumo')->name('catalogo.update');
