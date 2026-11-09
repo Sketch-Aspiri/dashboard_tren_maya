@@ -1,6 +1,9 @@
 @php
     /** @var int $anio */
     /** @var int $mes */
+    /** @var bool $puedeConsolidar */
+    /** @var array<string, mixed>|null $consolidado */
+    $dinero = fn (float $monto) => '$'.number_format($monto, 2);
     /** @var \Illuminate\Support\Collection<int, array{estacion: \App\Models\Estacion, solicitud: \App\Models\SolicitudInsumo|null}> $tablero */
     $nombresMes = [
         1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril', 5 => 'Mayo', 6 => 'Junio',
@@ -52,6 +55,31 @@
                     @endcan
                 </form>
             </div>
+
+            @if ($puedeConsolidar && $consolidado)
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <x-kpi-card :label="__('Total aprobado con IVA')" :value="$dinero($consolidado['total'])"
+                                :hint="__('Subtotal :s + IVA :i', ['s' => $dinero($consolidado['subtotal']), 'i' => $dinero($consolidado['iva'])])" />
+                    <x-kpi-card :label="__('Fondo rotatorio')" :value="$dinero($consolidado['tope'])"
+                                :hint="__('Tope mensual de la zona.')" />
+                    <x-kpi-card :label="__('Pendiente por ejercer')" :value="$dinero($consolidado['pendiente'])"
+                                :hint="$consolidado['pendiente'] < 0 ? __('Las solicitudes aprobadas exceden el fondo.') : __('Fondo menos lo aprobado.')" />
+                </div>
+
+                <form method="GET" action="{{ route('insumos.consolidado') }}"
+                      class="flex flex-wrap items-end gap-3 rounded-xl border border-brand-green/10 bg-white p-4 shadow-sm shadow-brand-green/5 sm:p-6">
+                    <input type="hidden" name="anio" value="{{ $anio }}">
+                    <input type="hidden" name="mes" value="{{ $mes }}">
+                    <div class="max-w-xs">
+                        <x-input-label for="oficio" :value="__('Número de oficio (para el nombre del ANEXO)')" />
+                        <x-text-input id="oficio" name="oficio" type="text" class="block mt-1 w-full" maxlength="20" pattern="[A-Za-z0-9_\-]+" placeholder="1918" />
+                    </div>
+                    <x-primary-button type="submit" name="tipo" value="anexo">{{ __('Descargar ANEXO') }}</x-primary-button>
+                    <x-secondary-button type="submit" name="tipo" value="listado">{{ __('Listado por producto') }}</x-secondary-button>
+                    <x-secondary-button type="submit" name="tipo" value="control">{{ __('Control del filtro') }}</x-secondary-button>
+                    <p class="basis-full text-xs text-gray-500">{{ __('Solo incluye las solicitudes aprobadas de :mes :anio.', ['mes' => $nombresMes[$mes], 'anio' => $anio]) }}</p>
+                </form>
+            @endif
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <x-kpi-card :label="__('Estaciones que enviaron')" :value="$enviadas.' / '.$tablero->count()"

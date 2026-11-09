@@ -8,6 +8,7 @@ use App\Http\Requests\RevisarSolicitudInsumoRequest;
 use App\Models\CatalogoInsumo;
 use App\Models\Estacion;
 use App\Models\SolicitudInsumo;
+use App\Services\ConsolidadoInsumosService;
 use App\Services\SolicitudInsumoService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -22,7 +23,10 @@ use Illuminate\Http\Request;
  */
 class SolicitudInsumoController extends Controller
 {
-    public function __construct(private readonly SolicitudInsumoService $service) {}
+    public function __construct(
+        private readonly SolicitudInsumoService $service,
+        private readonly ConsolidadoInsumosService $consolidado,
+    ) {}
 
     /**
      * Zona: tablero de envíos del mes. Estación: va directo a su solicitud.
@@ -45,6 +49,9 @@ class SolicitudInsumoController extends Controller
             'mes' => $mes,
             'tablero' => $this->service->tablero($anio, $mes),
             'puedeConsolidar' => $usuario->can('consolidate', SolicitudInsumo::class),
+            'consolidado' => $usuario->can('consolidate', SolicitudInsumo::class)
+                ? $this->consolidado->datos($anio, $mes)
+                : null,
         ]);
     }
 

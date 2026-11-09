@@ -55,17 +55,17 @@ class CatalogoInsumoTest extends TestCase
         $hoja = $libro->createSheet();
         $hoja->setTitle('ZO_Cotización');
         $filas = [
-            [10, 1, 2, 'carrete', 'Cable   primario rojo', 125, 24901],
-            [11, 2, 10, 'PIEZA', 'Interruptor de sobreponer', 17.5, null],
-            [12, 3, null, 'Pieza', 'No realizaron solicitud a la fecha', null, null],
-            [13, 4, 1, 'Pieza', 'Insumo sin precio', null, null],
-            [20, 1, 3, 'Pieza', 'cable primario rojo', 130, 24901],
-            [21, 2, 1, 'Galon', 'Cloro granulado', 800, null],
-            [22, 3, 1, 'Cuñeta', 'Pintura vinílica', 1500, null],
+            [10, 1, 2, 'carrete', 'Cable   primario rojo', 125, 24901, 'grupo industrial peninsular'],
+            [11, 2, 10, 'PIEZA', 'Interruptor de sobreponer', 17.5, null, 'para que es?'],
+            [12, 3, null, 'Pieza', 'No realizaron solicitud a la fecha', null, null, null],
+            [13, 4, 1, 'Pieza', 'Insumo sin precio', null, null, null],
+            [20, 1, 3, 'Pieza', 'cable primario rojo', 130, 24901, 'Continental'],
+            [21, 2, 1, 'Galon', 'Cloro granulado', 800, null, null],
+            [22, 3, 1, 'Cuñeta', 'Pintura vinílica', 1500, null, null],
         ];
-        foreach ($filas as [$fila, $numero, $cantidad, $unidad, $descripcion, $precio, $partida]) {
+        foreach ($filas as [$fila, $numero, $cantidad, $unidad, $descripcion, $precio, $partida, $proveedor]) {
             $hoja->setCellValue('B'.$fila, $numero)->setCellValue('C'.$fila, $cantidad)->setCellValue('D'.$fila, $unidad)
-                ->setCellValue('E'.$fila, $descripcion)->setCellValue('F'.$fila, $precio)->setCellValue('H'.$fila, $partida);
+                ->setCellValue('E'.$fila, $descripcion)->setCellValue('F'.$fila, $precio)->setCellValue('H'.$fila, $partida)->setCellValue('K'.$fila, $proveedor);
         }
         $hoja->setCellValue('E14', 'Subtotal')->setCellValue('F14', 500);
 
@@ -158,6 +158,8 @@ class CatalogoInsumoTest extends TestCase
         $cable = CatalogoInsumo::query()->where('descripcion', 'Cable primario rojo')->firstOrFail();
         $this->assertSame('130.00', $cable->ultimo_precio);
         $this->assertSame('24901', $cable->partida_presupuestal);
+        $this->assertSame('Continental', $cable->proveedor); // el de la última fila repetida
+        $this->assertNull(CatalogoInsumo::query()->where('descripcion', 'Interruptor de sobreponer')->value('proveedor')); // comentario, no proveedor
 
         $this->assertSame('Pieza', CatalogoInsumo::query()->where('descripcion', 'Interruptor de sobreponer')->value('unidad'));
         $this->assertDatabaseMissing('catalogo_insumos', ['descripcion' => 'Insumo de hoja oculta']);
@@ -175,6 +177,7 @@ class CatalogoInsumoTest extends TestCase
         $this->assertSame('130.00', $cable->ultimo_precio);
         $this->assertSame('Metro', $cable->unidad);                  // no pisa la unidad existente
         $this->assertSame('99999', $cable->partida_presupuestal);    // no pisa una partida ya capturada
+        $this->assertSame('Continental', $cable->fresh()->proveedor); // completa el proveedor vacío
     }
 
     public function test_import_rejects_non_xlsx_and_broken_files(): void

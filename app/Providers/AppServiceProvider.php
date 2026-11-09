@@ -189,6 +189,11 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
+        // Descarga del consolidado mensual de insumos (arma varios libros de Excel).
+        RateLimiter::for('insumos-export', function (Request $request) {
+            return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
+        });
+
         // Módulo "Solicitud de insumos" — captura, envío y revisión.
         RateLimiter::for('insumos-write', function (Request $request) {
             return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());

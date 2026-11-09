@@ -10,8 +10,9 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 /**
  * Carga del catálogo de insumos desde un ANEXO mensual ("ZO_Cotización"):
  * lee las partidas (N°, Cant., Unidad, Descripción, P.U., P.Ptal) y las
- * agrega o actualiza en el catálogo. La columna "Proveedor" del ANEXO trae
- * comentarios de la Coordinación, no proveedores, por eso no se importa.
+ * agrega o actualiza en el catálogo. La columna "Proveedor" del ANEXO mezcla
+ * nombres de proveedor con comentarios de la Coordinación ("para que es?"):
+ * solo se toma cuando parece un nombre (ver proveedor()).
  */
 final class CatalogoInsumoService
 {
@@ -45,6 +46,7 @@ final class CatalogoInsumoService
                     'unidad' => $fila['unidad'],
                     'ultimo_precio' => $fila['precio'],
                     'partida_presupuestal' => $fila['partida'],
+                    'proveedor' => $fila['proveedor'],
                 ]);
                 $resumen['creados']++;
 
@@ -54,6 +56,9 @@ final class CatalogoInsumoService
             $insumo->ultimo_precio = $fila['precio'];
             if ($insumo->partida_presupuestal === null && $fila['partida'] !== null) {
                 $insumo->partida_presupuestal = $fila['partida'];
+            }
+            if ($insumo->proveedor === null && $fila['proveedor'] !== null) {
+                $insumo->proveedor = $fila['proveedor'];
             }
 
             if ($insumo->isDirty()) {
@@ -70,7 +75,7 @@ final class CatalogoInsumoService
     /**
      * Filas válidas del ANEXO, sin repetir descripción (gana la última).
      *
-     * @return list<array{descripcion: string, unidad: string, precio: float, partida: string|null}>
+     * @return list<array{descripcion: string, unidad: string, precio: float, partida: string|null, proveedor: string|null}>
      */
     public function leerAnexo(string $ruta): array
     {
@@ -109,7 +114,7 @@ final class CatalogoInsumoService
     }
 
     /**
-     * @return array{descripcion: string, unidad: string, precio: float, partida: string|null}|null
+     * @return array{descripcion: string, unidad: string, precio: float, partida: string|null, proveedor: string|null}|null
      */
     private function leerFila(Worksheet $hoja, int $fila): ?array
     {
@@ -130,6 +135,7 @@ final class CatalogoInsumoService
             'unidad' => $this->unidad($unidad),
             'precio' => round((float) $precio, 2),
             'partida' => $partida,
+            'proveedor' => $this->proveedor($hoja->getCell('K'.$fila)->getValue()),
         ];
     }
 
@@ -145,6 +151,21 @@ final class CatalogoInsumoService
         $clave = Str::ascii(mb_strtolower($unidad));
 
         return self::UNIDADES[$clave] ?? mb_substr(mb_convert_case(mb_strtolower($unidad), MB_CASE_TITLE), 0, 30);
+    }
+
+    /**
+     * Un nombre de proveedor es corto, sin signos de pregunta ni comas; lo
+     * demás se considera comentario de la Coordinación y se descarta.
+     */
+    private function proveedor(mixed $valor): ?string
+    {
+        $texto = $this->limpiar($valor);
+
+        if ($texto === '' || mb_strlen($texto) > 40 || str_contains($texto, '?') || str_contains($texto, ',') || count(explode(' ', $texto)) > 4) {
+            return null;
+        }
+
+        return mb_convert_case(mb_strtolower($texto), MB_CASE_TITLE);
     }
 
     private function limpiar(mixed $valor): string

@@ -25,7 +25,6 @@ class ConsultarSolicitudesInsumosRequest extends FormRequest
         return [
             'anio' => ['nullable', 'integer', 'min:2000', 'max:2100'],
             'mes' => ['nullable', 'integer', 'min:1', 'max:12'],
-            'oficio' => ['nullable', 'string', 'max:60', 'regex:/^[\pL\pN\s._\/-]+$/u'],
         ];
     }
 }

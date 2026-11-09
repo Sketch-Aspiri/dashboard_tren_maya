@@ -7,6 +7,7 @@ use App\Http\Controllers\AsistenteController;
 use App\Http\Controllers\CatalogoInsumoController;
 use App\Http\Controllers\ComisionadoFueraController;
 use App\Http\Controllers\ComisionadoVisitanteController;
+use App\Http\Controllers\ConsolidadoInsumosController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\Nube\NubeCredencialController;
@@ -252,6 +253,8 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
         Route::get('/catalogo/buscar', [SolicitudInsumoController::class, 'catalogo'])
             ->middleware('throttle:60,1')->name('catalogo.buscar');
         Route::get('/catalogo', [CatalogoInsumoController::class, 'index'])->name('catalogo.index');
+        Route::get('/consolidado', [ConsolidadoInsumosController::class, 'descargar'])
+            ->middleware('throttle:insumos-export')->name('consolidado');
         Route::get('/estaciones/{estacion}', [SolicitudInsumoController::class, 'estacion'])->name('estacion');
         Route::get('/{solicitud}', [SolicitudInsumoController::class, 'show'])->whereNumber('solicitud')->name('show');
 

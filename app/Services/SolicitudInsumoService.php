@@ -214,8 +214,9 @@ final class SolicitudInsumoService
     }
 
     /**
-     * Tablero de la Zona: una fila por estación con el estado de su
-     * solicitud del mes (null = no ha iniciado).
+     * Tablero de la Zona: una fila por estación (incluido el Edificio Zonal
+     * Este, que también pide insumos) con el estado de su solicitud del mes
+     * (null = no ha iniciado).
      *
      * @return Collection<int, array{estacion: Estacion, solicitud: SolicitudInsumo|null}>
      */
@@ -225,7 +226,7 @@ final class SolicitudInsumoService
             ->where('anio', $anio)->where('mes', $mes)
             ->get()->keyBy('estacion_id');
 
-        return Estacion::query()->where('is_operativa', true)->orderBy('orden')->get()
+        return Estacion::query()->orderBy('orden')->get()
             ->map(fn (Estacion $estacion) => [
                 'estacion' => $estacion,
                 'solicitud' => $solicitudes->get($estacion->id),
