@@ -4,6 +4,7 @@ use App\Http\Controllers\AsistenciaCapturaController;
 use App\Http\Controllers\AsistenciaDocumentoController;
 use App\Http\Controllers\AsistenciaZonaController;
 use App\Http\Controllers\AsistenteController;
+use App\Http\Controllers\CatalogoInsumoController;
 use App\Http\Controllers\ComisionadoFueraController;
 use App\Http\Controllers\ComisionadoVisitanteController;
 use App\Http\Controllers\DashboardController;
@@ -248,12 +249,17 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
     // Sustituye al Flujo 1 de n8n.
     Route::prefix('insumos')->name('insumos.')->group(function () {
         Route::get('/', [SolicitudInsumoController::class, 'index'])->name('index');
-        Route::get('/catalogo', [SolicitudInsumoController::class, 'catalogo'])
-            ->middleware('throttle:60,1')->name('catalogo');
+        Route::get('/catalogo/buscar', [SolicitudInsumoController::class, 'catalogo'])
+            ->middleware('throttle:60,1')->name('catalogo.buscar');
+        Route::get('/catalogo', [CatalogoInsumoController::class, 'index'])->name('catalogo.index');
         Route::get('/estaciones/{estacion}', [SolicitudInsumoController::class, 'estacion'])->name('estacion');
         Route::get('/{solicitud}', [SolicitudInsumoController::class, 'show'])->whereNumber('solicitud')->name('show');
 
         Route::middleware('throttle:insumos-write')->group(function () {
+            Route::post('/catalogo', [CatalogoInsumoController::class, 'store'])->name('catalogo.store');
+            Route::post('/catalogo/importar', [CatalogoInsumoController::class, 'importar'])->name('catalogo.importar');
+            Route::put('/catalogo/{catalogoInsumo}', [CatalogoInsumoController::class, 'update'])->whereNumber('catalogoInsumo')->name('catalogo.update');
+            Route::delete('/catalogo/{catalogoInsumo}', [CatalogoInsumoController::class, 'destroy'])->whereNumber('catalogoInsumo')->name('catalogo.destroy');
             Route::put('/{solicitud}', [SolicitudInsumoController::class, 'update'])->whereNumber('solicitud')->name('update');
             Route::post('/{solicitud}/enviar', [SolicitudInsumoController::class, 'enviar'])->whereNumber('solicitud')->name('enviar');
             Route::post('/{solicitud}/revisar', [SolicitudInsumoController::class, 'revisar'])->whereNumber('solicitud')->name('revisar');

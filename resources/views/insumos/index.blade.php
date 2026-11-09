@@ -47,6 +47,9 @@
                                       value="{{ $anio }}" min="2000" max="2100" />
                     </div>
                     <x-secondary-button type="submit">{{ __('Ver mes') }}</x-secondary-button>
+                    @can('manage', \App\Models\CatalogoInsumo::class)
+                        <a href="{{ route('insumos.catalogo.index') }}" class="inline-flex min-h-[44px] items-center text-sm text-brand-teal hover:underline">{{ __('Catálogo de insumos') }}</a>
+                    @endcan
                 </form>
             </div>
 

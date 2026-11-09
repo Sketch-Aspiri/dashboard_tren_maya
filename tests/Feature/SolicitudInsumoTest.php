@@ -238,10 +238,10 @@ class SolicitudInsumoTest extends TestCase
 
     public function test_catalogo_endpoint_requires_auth_and_returns_envelope(): void
     {
-        $this->getJson(route('insumos.catalogo'))->assertUnauthorized();
+        $this->getJson(route('insumos.catalogo.buscar'))->assertUnauthorized();
 
         $this->actingAsTwoFactorVerified($this->userWithRole('Jefe de Zona'));
-        $this->getJson(route('insumos.catalogo', ['q' => 'x']))
+        $this->getJson(route('insumos.catalogo.buscar', ['q' => 'x']))
             ->assertOk()
             ->assertJsonPath('success', true);
     }

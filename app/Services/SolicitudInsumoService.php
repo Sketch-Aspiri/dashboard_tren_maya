@@ -233,18 +233,31 @@ final class SolicitudInsumoService
     }
 
     /**
-     * Al aprobar, el último precio y la partida de cada insumo del catálogo
-     * se actualizan con lo que acaba de validar la Zona.
+     * Al aprobar, el catálogo aprende de lo que validó la Zona: los insumos
+     * ya enlazados actualizan su último precio, código, partida y proveedor,
+     * y una partida escrita a mano (sin enlace) se agrega al catálogo, o se
+     * enlaza con el insumo existente de la misma descripción.
      */
     private function actualizarCatalogo(SolicitudInsumo $solicitud): void
     {
-        foreach ($solicitud->partidas()->whereNotNull('catalogo_insumo_id')->get() as $partida) {
-            $partida->catalogo?->update(array_filter([
+        foreach ($solicitud->partidas()->get() as $partida) {
+            $catalogo = $partida->catalogo
+                ?? CatalogoInsumo::query()->firstOrNew(
+                    ['descripcion' => $partida->descripcion],
+                    ['unidad' => $partida->unidad],
+                );
+
+            $catalogo->fill(array_filter([
                 'ultimo_precio' => $partida->precio_unitario,
                 'codigo' => $partida->codigo,
                 'partida_presupuestal' => $partida->partida_presupuestal,
                 'proveedor' => $partida->proveedor,
             ], fn ($valor) => $valor !== null));
+            $catalogo->save();
+
+            if ($partida->catalogo_insumo_id !== $catalogo->id) {
+                $partida->update(['catalogo_insumo_id' => $catalogo->id]);
+            }
         }
     }
 
