@@ -112,3 +112,146 @@
 
     .ins-barra-acciones { @apply sticky bottom-0 z-20 -mx-4 flex flex-col gap-3 border-t border-brand-green/10 bg-white/95 px-4 py-3 backdrop-blur sm:mx-0 sm:flex-row sm:items-center sm:justify-between sm:rounded-xl sm:border sm:shadow-lg sm:shadow-brand-green/10; }
 }
+
+/* Dashboard principal */
+@layer components {
+    .dash-icono { @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-mist text-brand-teal; }
+    .dash-acceso { @apply flex min-h-[64px] items-center gap-3 rounded-xl border border-brand-green/10 bg-white p-3 text-sm transition hover:border-brand-teal/40 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal; }
+    .dash-barra { @apply h-2 w-full overflow-hidden rounded-full bg-gray-100; }
+}
+
+/*
+ * Modo oscuro. La clase "dark" en <html> la pone el script del <head>
+ * (layouts/app y guest) según la preferencia guardada o la del sistema.
+ * En vez de repetir dark: en cada vista, aquí se reinterpretan las
+ * utilidades de color más usadas; las hojas que imitan papel (oficio,
+ * hoja de validación) usan estilos en línea y se quedan blancas.
+ */
+:root { color-scheme: light; }
+.dark {
+    color-scheme: dark;
+    --o-fondo: #0b1513;
+    --o-sup: #12201d;
+    --o-sup2: #192b27;
+    --o-sup3: #213833;
+    --o-borde: rgb(255 255 255 / 0.08);
+    --o-borde2: rgb(255 255 255 / 0.15);
+    --o-texto: #e4eeeb;
+    --o-texto2: #b6c7c2;
+    --o-texto3: #8fa39d;
+    --o-marca: #86d6c1;
+    --o-enlace: #6fcab3;
+}
+.dark body { background-color: var(--o-fondo); color: var(--o-texto); }
+
+/* Superficies */
+.dark .bg-white, .dark .bg-white\/70 { background-color: var(--o-sup); }
+.dark .bg-white\/95 { background-color: rgb(18 32 29 / 0.95); }
+.dark .bg-brand-mist, .dark .bg-gray-50, .dark .bg-gray-100 { background-color: var(--o-sup2); }
+.dark .bg-brand-mist\/40, .dark .bg-brand-mist\/50, .dark .bg-brand-mist\/60 { background-color: rgb(25 43 39 / 0.6); }
+.dark .bg-gray-300, .dark .bg-brand-green\/20 { background-color: var(--o-sup3); }
+.dark .min-h-screen.bg-brand-mist { background-color: var(--o-fondo); }
+.dark .hover\:bg-brand-mist:hover, .dark .hover\:bg-gray-50:hover, .dark .hover\:bg-gray-100:hover,
+.dark .focus\:bg-brand-mist:focus, .dark .hover\:bg-white:hover { background-color: var(--o-sup3); }
+.dark .hover\:bg-brand-mist\/40:hover, .dark .hover\:bg-brand-mist\/50:hover { background-color: rgb(33 56 51 / 0.6); }
+.dark .shadow-sm, .dark .shadow-lg, .dark .shadow-md { --tw-shadow-color: rgb(0 0 0 / 0.35); }
+
+/* Texto */
+.dark .text-gray-900, .dark .text-gray-800 { color: var(--o-texto); }
+.dark .text-gray-700, .dark .text-gray-600 { color: var(--o-texto2); }
+.dark .text-gray-500, .dark .text-gray-400, .dark .placeholder\:text-gray-500::placeholder { color: var(--o-texto3); }
+.dark .text-gray-300 { color: #5d706b; }
+.dark .text-brand-green, .dark .text-brand-green-dark, .dark .hover\:text-brand-green:hover,
+.dark .hover\:text-brand-green-dark:hover, .dark .focus\:text-brand-green:focus, .dark .\!text-brand-green { color: var(--o-marca) !important; }
+.dark .text-brand-teal, .dark .hover\:text-brand-teal:hover { color: var(--o-enlace); }
+.dark .hover\:text-gray-900:hover { color: #fff; }
+.dark .text-red-600, .dark .text-red-700, .dark .text-red-800, .dark .text-red-900 { color: #fca5a5; }
+.dark .text-amber-700, .dark .text-amber-800, .dark .text-amber-900 { color: #fcd34d; }
+.dark .text-green-600, .dark .text-green-700, .dark .text-green-800, .dark .text-green-900 { color: #86efac; }
+.dark .text-blue-800, .dark .text-blue-900 { color: #93c5fd; }
+.dark .text-purple-800 { color: #d8b4fe; }
+/* Sobre fondo verde de marca el texto sigue blanco. */
+.dark .bg-brand-green .text-brand-green, .dark .bg-brand-green.text-brand-green { color: #fff !important; }
+
+/* Bordes y divisores */
+.dark .border-gray-100, .dark .border-gray-200, .dark .border-brand-green\/10, .dark .border-brand-green\/15,
+.dark .divide-gray-100 > * + *, .dark .divide-gray-200 > * + * { border-color: var(--o-borde); }
+.dark .border-gray-300, .dark .border-brand-green\/20, .dark .border-brand-green\/25, .dark .border-brand-green\/30,
+.dark .border-brand-teal\/20, .dark .border-brand-teal\/30 { border-color: var(--o-borde2); }
+.dark .ring-black { --tw-ring-color: rgb(255 255 255 / 0.1); }
+
+/* Colores de estado (fondos claros a tintes oscuros) */
+.dark .bg-red-50, .dark .bg-red-50\/60, .dark .bg-red-100 { background-color: rgb(127 29 29 / 0.3); }
+.dark .hover\:bg-red-50:hover { background-color: rgb(127 29 29 / 0.45); }
+.dark .bg-amber-50, .dark .bg-amber-50\/70, .dark .bg-amber-100 { background-color: rgb(120 53 15 / 0.3); }
+.dark .hover\:bg-amber-100:hover { background-color: rgb(120 53 15 / 0.45); }
+.dark .bg-green-50, .dark .bg-green-100 { background-color: rgb(20 83 45 / 0.35); }
+.dark .bg-blue-50, .dark .bg-blue-100 { background-color: rgb(30 58 138 / 0.35); }
+.dark .bg-purple-100 { background-color: rgb(88 28 135 / 0.35); }
+.dark .border-red-200, .dark .border-red-300 { border-color: rgb(248 113 113 / 0.35); }
+.dark .border-amber-200, .dark .border-amber-300 { border-color: rgb(251 191 36 / 0.35); }
+.dark .border-green-200 { border-color: rgb(74 222 128 / 0.3); }
+.dark .border-blue-200 { border-color: rgb(96 165 250 / 0.3); }
+
+/* Formularios: @tailwindcss/forms pinta un fondo blanco fijo. */
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]),
+.dark select, .dark textarea {
+    background-color: var(--o-sup2);
+    border-color: var(--o-borde2);
+    color: var(--o-texto);
+}
+.dark input::placeholder, .dark textarea::placeholder { color: var(--o-texto3); }
+.dark input:disabled, .dark select:disabled, .dark textarea:disabled { background-color: var(--o-sup); color: var(--o-texto3); }
+.dark [type="checkbox"]:not(:checked), .dark [type="radio"]:not(:checked) { background-color: var(--o-sup2); border-color: var(--o-borde2); }
+
+/* Componentes armados con @apply (no llevan las clases sueltas). */
+.dark .ins-card, .dark .ins-btn-secundario, .dark .ins-btn-neutro, .dark .ins-btn-peligro, .dark .dash-acceso { background-color: var(--o-sup); border-color: var(--o-borde); }
+.dark .ins-btn-secundario { border-color: rgb(111 202 179 / 0.45); color: var(--o-enlace); }
+.dark .ins-btn-neutro { border-color: var(--o-borde2); color: var(--o-texto2); }
+.dark .ins-btn-peligro { border-color: rgb(248 113 113 / 0.35); color: #fca5a5; }
+.dark .ins-btn-secundario:hover, .dark .ins-btn-neutro:hover { background-color: var(--o-sup3); }
+.dark .ins-btn-peligro:hover { background-color: rgb(127 29 29 / 0.4); }
+.dark .ins-titulo, .dark .ins-tabla thead th { color: var(--o-marca); }
+.dark .ins-ayuda { color: var(--o-texto2); }
+.dark .ins-etiqueta { color: var(--o-texto3); }
+.dark .ins-enlace { color: var(--o-enlace); }
+.dark .ins-enlace-peligro { color: #fca5a5; }
+.dark .ins-archivo { background-color: var(--o-sup2); border-color: var(--o-borde2); color: var(--o-texto2); }
+.dark .ins-archivo::file-selector-button { background-color: var(--o-sup3); color: var(--o-marca); }
+.dark .ins-tabla thead th { background-color: var(--o-sup2); }
+.dark .ins-tabla tbody td { color: var(--o-texto2); }
+.dark .ins-tabla tbody tr { border-color: var(--o-borde); }
+.dark .ins-tabla tbody tr:hover { background-color: rgb(33 56 51 / 0.5); }
+.dark .ins-tabla .fuerte { color: var(--o-texto); }
+.dark .ins-chip-ok { background-color: rgb(20 83 45 / 0.45); color: #86efac; }
+.dark .ins-chip-alerta { background-color: rgb(120 53 15 / 0.45); color: #fcd34d; }
+.dark .ins-chip-error { background-color: rgb(127 29 29 / 0.45); color: #fca5a5; }
+.dark .ins-chip-info { background-color: rgb(30 58 138 / 0.45); color: #93c5fd; }
+.dark .ins-chip-morado { background-color: rgb(88 28 135 / 0.45); color: #d8b4fe; }
+.dark .ins-chip-marca { background-color: var(--o-sup3); color: var(--o-marca); --tw-ring-color: rgb(134 214 193 / 0.2); }
+.dark .ins-chip-neutro { background-color: var(--o-sup3); color: var(--o-texto2); }
+.dark .ins-aviso-ok { background-color: var(--o-sup2); border-color: var(--o-borde2); color: var(--o-marca); }
+.dark .ins-aviso-error { background-color: rgb(127 29 29 / 0.3); border-color: rgb(248 113 113 / 0.35); color: #fecaca; }
+.dark .ins-aviso-alerta { background-color: rgb(120 53 15 / 0.3); border-color: rgb(251 191 36 / 0.35); color: #fde68a; }
+.dark .ins-aviso-info { background-color: rgb(30 58 138 / 0.3); border-color: rgb(96 165 250 / 0.3); color: #bfdbfe; }
+.dark .ins-barra-acciones { background-color: rgb(18 32 29 / 0.95); border-color: var(--o-borde); }
+.dark .dash-icono { background-color: var(--o-sup3); color: var(--o-marca); }
+.dark .dash-barra { background-color: var(--o-sup3); }
+
+/* Hoja de cálculo */
+.dark .hoja-rejilla, .dark .hoja-celda-combinada, .dark .hoja-editor { background-color: var(--o-sup); border-color: var(--o-borde2); color: var(--o-texto); }
+.dark .hoja-esquina, .dark .hoja-panel-encabezados, .dark .hoja-panel-numeros { background-color: var(--o-sup2); border-color: var(--o-borde2); }
+.dark .hoja-encabezado, .dark .hoja-numero { border-color: var(--o-borde); color: var(--o-texto2); }
+.dark .hoja-celda { border-color: var(--o-borde); color: var(--o-texto); }
+.dark .hoja-encabezado-nombre { color: var(--o-texto); }
+.dark .hoja-encabezado-marcado, .dark .hoja-numero-marcado, .dark .hoja-boton-activo { background-color: var(--o-sup3); color: var(--o-marca); }
+.dark .hoja-boton, .dark .hoja-menu-item { color: var(--o-texto2); }
+.dark .hoja-boton:hover, .dark .hoja-menu-item:hover { background-color: var(--o-sup3); }
+.dark .hoja-separador { background-color: var(--o-borde2); }
+
+/* Lo que imita papel sigue siendo papel. */
+.dark .of-hoja, .dark .papel { color-scheme: light; }
+.dark .papel, .dark .papel * { color: #000 !important; }
+
+/* El logotipo es verde oscuro: en modo oscuro va sobre una placa clara. */
+.dark .logo-placa { background-color: #f2f7f5; border-radius: 0.5rem; padding: 0.25rem 0.5rem; }

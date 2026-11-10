@@ -8,12 +8,16 @@
     <div class="py-8 sm:py-12">
         <div class="mx-auto max-w-5xl space-y-6 px-4 sm:px-6 lg:px-8">
 
-            <div class="rounded-xl border border-l-4 border-brand-green/10 border-l-brand-teal bg-white p-5 shadow-sm shadow-brand-green/5 sm:p-6">
-                <p class="text-sm text-gray-600">{{ __('Sesión activa') }}</p>
-                <p class="mt-1 font-heading text-lg font-semibold text-brand-green">
-                    {{ __('Bienvenido(a),') }} {{ Auth::user()->name }}
-                </p>
-            </div>
+            @php
+                $ahora = now()->locale('es');
+                $saludo = $ahora->hour < 12 ? __('Buenos días') : ($ahora->hour < 19 ? __('Buenas tardes') : __('Buenas noches'));
+            @endphp
+            <section class="relative overflow-hidden rounded-2xl bg-brand-green px-5 py-6 text-white shadow-sm sm:px-8 sm:py-7">
+                <div class="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-brand-mint/20 blur-2xl" aria-hidden="true"></div>
+                <p class="relative text-sm font-medium text-white/75 first-letter:uppercase">{{ $ahora->isoFormat('dddd D [de] MMMM [de] YYYY') }}</p>
+                <p class="relative mt-1 font-heading text-2xl font-bold sm:text-3xl">{{ $saludo }}, {{ \Illuminate\Support\Str::of(Auth::user()->name)->explode(' ')->first() }}</p>
+                <p class="relative mt-1 text-sm text-white/80">{{ Auth::user()->estacion?->nombre ?? __('Zona Oriente') }}</p>
+            </section>
 
             @if ($inicio['asistencia'])
                 <a href="{{ route('asistencia.captura.index') }}"

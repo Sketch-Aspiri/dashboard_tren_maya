@@ -13,6 +13,8 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600|poppins:600,700,800&display=swap" rel="stylesheet" />
 
+        @include('layouts.partials.tema')
+
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
@@ -20,7 +22,7 @@
         <div class="min-h-screen flex flex-col items-center justify-center bg-brand-mist px-4 py-10 sm:py-16">
 
             <a href="/" class="mb-8 inline-flex" aria-label="{{ config('app.name', 'Dashboard - Zona Oriente') }} — inicio">
-                <img src="{{ asset('logo.png') }}" alt="Tren Maya" class="h-16 w-auto sm:h-20">
+                <img src="{{ asset('logo.png') }}" alt="Tren Maya" class="logo-placa h-16 w-auto sm:h-20">
             </a>
 
             <main class="w-full sm:max-w-md">

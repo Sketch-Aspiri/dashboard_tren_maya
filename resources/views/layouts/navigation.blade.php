@@ -10,7 +10,7 @@
             <a href="{{ route('dashboard') }}"
                class="flex min-w-0 items-center gap-3 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2"
                aria-label="{{ config('app.name', 'Dashboard - Zona Oriente') }} — {{ __('inicio') }}">
-                <x-brand-logo class="h-11 sm:h-14" />
+                <x-brand-logo class="logo-placa h-11 sm:h-14" />
                 <span class="h-8 w-px shrink-0 bg-brand-green/20 sm:h-10" aria-hidden="true"></span>
                 <span class="min-w-0 whitespace-nowrap font-heading leading-tight text-brand-green">
                     <span class="block text-sm font-semibold sm:text-base">{{ __('Dashboard') }}</span>
@@ -19,7 +19,8 @@
             </a>
 
             <!-- Settings Dropdown -->
-            <div class="hidden xl:flex xl:items-center">
+            <div class="hidden xl:flex xl:items-center xl:gap-2">
+                <x-selector-tema />
                 <x-dropdown align="right" width="w-56">
                     <x-slot name="trigger">
                         <button type="button" class="inline-flex min-h-[44px] items-center gap-2 rounded-md border border-brand-green/15 px-3 py-2 text-sm font-medium text-brand-green transition duration-150 ease-in-out hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">
@@ -176,6 +177,8 @@
                 <div class="font-heading text-base font-medium text-brand-green">{{ Auth::user()->name }}</div>
                 <div class="text-sm font-medium text-gray-600">{{ Auth::user()->email }}</div>
             </div>
+
+            <x-selector-tema variante="segmentos" class="mt-3 px-4" />
 
             <div class="mt-3 space-y-1">
                 @can('create', \App\Models\Seccion::class)

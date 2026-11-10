@@ -6,6 +6,7 @@ import { registrarAsistente } from './asistente';
 import { registrarSecciones } from './secciones';
 import { hojaCalculo } from './hoja/componente';
 import { capturaAsistencia } from './asistencia/captura';
+import { ajustarGraficas, selectorTema } from './tema';
 
 window.Alpine = Alpine;
 window.Chart = Chart;
@@ -81,6 +82,7 @@ Alpine.data('navBuscador', navBuscador);
 // (p. ej. un buscador con Alpine) actualice una gráfica ya renderizada
 // sin tener que reconstruirla desde cero.
 window.__charts = window.__charts || {};
+ajustarGraficas(Chart);
 
 (window.__pendingCharts || []).forEach(function (chart) {
     const ctx = document.getElementById(chart.canvasId);
@@ -95,5 +97,6 @@ registrarSecciones(Alpine);
 Alpine.data('hojaCalculo', hojaCalculo);
 Alpine.data('capturaAsistencia', capturaAsistencia);
 registrarAsistente(Alpine);
+Alpine.data('selectorTema', selectorTema);
 
 Alpine.start();

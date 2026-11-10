@@ -7,7 +7,9 @@ use App\Enums\EstatusAsistencia;
 use App\Models\Empleado;
 use App\Models\Estacion;
 use App\Models\RegistroDiario;
+use App\Models\SolicitudInsumo;
 use App\Models\User;
+use App\Services\SolicitudInsumoService;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -124,6 +126,36 @@ class DashboardTest extends TestCase
         $response = $this->get(route('dashboard'));
 
         $response->assertOk()->assertSee('Secciones para tu estación')->assertDontSee('Indicadores clave');
+    }
+
+    public function test_zone_chief_sees_attendance_per_station_and_the_insumos_progress(): void
+    {
+        $tulum = Estacion::factory()->create(['nombre' => 'Tulum', 'is_operativa' => true]);
+        Empleado::factory()->create(['estacion_id' => $tulum->id, 'estatus' => EmpleadoEstatus::Activo->value]);
+        $objetivo = app(SolicitudInsumoService::class)->mesObjetivo();
+        SolicitudInsumo::factory()->create([
+            'estacion_id' => $tulum->id, 'anio' => $objetivo['anio'], 'mes' => $objetivo['mes'], 'estado' => SolicitudInsumo::ENVIADA,
+        ]);
+
+        $this->actingAsTwoFactorVerified(tap(User::factory()->create())->assignRole('Jefe de Zona'));
+
+        $this->get(route('dashboard'))->assertOk()
+            ->assertSee('Asistencia de hoy')
+            ->assertSee('1 estación sin capturar asistencia')
+            ->assertSee('Revisar 1 solicitud')
+            ->assertSee(route('insumos.index', $objetivo))
+            ->assertSee(route('asistencia.zona.index'), false);
+    }
+
+    public function test_every_page_applies_the_saved_theme_before_painting_and_offers_the_selector(): void
+    {
+        $this->actingAsTwoFactorVerified(tap(User::factory()->create())->assignRole('Jefe de Zona'));
+
+        $this->get(route('dashboard'))->assertOk()
+            ->assertSee("localStorage.getItem('tema')", false)
+            ->assertSee('x-data="selectorTema"', false);
+        $this->post(route('logout'));
+        $this->get(route('login'))->assertSee("localStorage.getItem('tema')", false);
     }
 
     public function test_the_gate_still_denies_estacion_accounts(): void

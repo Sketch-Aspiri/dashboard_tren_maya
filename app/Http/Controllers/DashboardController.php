@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SolicitudInsumo;
 use App\Services\Asistente\ModeloLenguaje;
 use App\Services\DashboardService;
 use App\Services\InicioEstacionService;
@@ -28,8 +29,13 @@ class DashboardController extends Controller
 
         Gate::authorize('view-dashboard');
 
+        $verAsistencia = Gate::allows('view-asistencia-zona');
+        $verInsumos = Gate::allows('viewAny', SolicitudInsumo::class);
+
         return view('dashboard', [
-            'kpis' => $this->dashboard->kpis(Gate::allows('view-asistencia-zona')),
+            'kpis' => $this->dashboard->kpis($verAsistencia),
+            'asistencia' => $verAsistencia ? $this->dashboard->asistenciaHoy() : null,
+            'insumos' => $verInsumos ? $this->dashboard->insumosDelMes() : null,
             'recientes' => $this->dashboard->seccionesRecientes(),
             'asistenteDisponible' => $modelo->disponible() && Gate::allows('usar-asistente'),
         ]);
