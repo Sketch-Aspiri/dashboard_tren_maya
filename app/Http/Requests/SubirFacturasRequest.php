@@ -8,7 +8,8 @@ use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * Carga de uno o varios XML de factura (CFDI) para un mes del fondo
- * rotatorio. Solo Jefe de Zona, Administrador y Edificio.
+ * rotatorio, cada uno con su PDF (obligatorio; se empareja por el nombre del
+ * archivo). Solo Jefe de Zona, Administrador y Edificio.
  */
 class SubirFacturasRequest extends FormRequest
 {
@@ -27,6 +28,8 @@ class SubirFacturasRequest extends FormRequest
             'mes' => ['required', 'integer', 'min:1', 'max:12'],
             'xml' => ['required', 'array', 'min:1', 'max:40'],
             'xml.*' => ['file', 'extensions:xml', 'mimes:xml', 'max:2048'],
+            'pdf' => ['required', 'array', 'min:1', 'max:40'],
+            'pdf.*' => ['file', 'extensions:pdf', 'mimes:pdf', 'max:10240'],
         ];
     }
 }

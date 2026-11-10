@@ -148,7 +148,9 @@ class FacturaTest extends TestCase
     {
         $archivos = array_map(fn (string $contenido, int $i) => UploadedFile::fake()->createWithContent('factura'.$i.'.xml', $contenido), (array) $xml, array_keys((array) $xml));
 
-        return $this->post(route('insumos.facturas.store'), ['anio' => 2026, 'mes' => 12, 'xml' => $archivos] + $extra);
+        $pdfs = array_map(fn (int $i) => UploadedFile::fake()->createWithContent('factura'.$i.'.pdf', "%PDF-1.4\n"), array_keys((array) $xml));
+
+        return $this->post(route('insumos.facturas.store'), ['anio' => 2026, 'mes' => 12, 'xml' => $archivos, 'pdf' => $pdfs] + $extra);
     }
 
     protected function cargar(array $o = []): Factura
@@ -303,8 +305,27 @@ class FacturaTest extends TestCase
 
         $this->post(route('insumos.facturas.store'), ['anio' => 2026, 'mes' => 12])->assertInvalid('xml');
         $this->post(route('insumos.facturas.store'), ['anio' => 2026, 'mes' => 12, 'xml' => [UploadedFile::fake()->create('x.pdf', 10, 'application/pdf')]])->assertInvalid('xml.0');
-        $this->post(route('insumos.facturas.store'), ['anio' => 2026, 'mes' => 13, 'xml' => [UploadedFile::fake()->createWithContent('a.xml', $this->cfdi())]])->assertInvalid('mes');
+        $this->post(route('insumos.facturas.store'), ['anio' => 2026, 'mes' => 13, 'xml' => [UploadedFile::fake()->createWithContent('a.xml', $this->cfdi())], 'pdf' => [UploadedFile::fake()->createWithContent('a.pdf', "%PDF-1.4\n")]])->assertInvalid('mes');
+        // El PDF de la factura es obligatorio.
+        $this->post(route('insumos.facturas.store'), ['anio' => 2026, 'mes' => 12, 'xml' => [UploadedFile::fake()->createWithContent('a.xml', $this->cfdi())]])->assertInvalid('pdf');
+        $this->post(route('insumos.facturas.store'), ['anio' => 2026, 'mes' => 12, 'xml' => [UploadedFile::fake()->createWithContent('a.xml', $this->cfdi())], 'pdf' => [UploadedFile::fake()->create('virus.exe', 10)]])->assertInvalid('pdf.0');
         $this->assertSame(0, Factura::query()->count());
+    }
+
+    public function test_xml_is_paired_with_its_pdf_by_name_and_without_a_pdf_it_is_not_loaded(): void
+    {
+        $this->actingAsTwoFactorVerified($this->userWithRole('Jefe de Zona'));
+        $a = UploadedFile::fake()->createWithContent('Uno.xml', $this->cfdi());
+        $b = UploadedFile::fake()->createWithContent('dos.xml', $this->cfdi());
+
+        $this->post(route('insumos.facturas.store'), ['anio' => 2026, 'mes' => 12, 'xml' => [$a, $b], 'pdf' => [UploadedFile::fake()->createWithContent('UNO.pdf', "%PDF-1.4\n"), UploadedFile::fake()->createWithContent('otro.pdf', "%PDF-1.4\n")]])->assertSessionHasNoErrors();
+
+        $resultados = session('resultados_facturas');
+        $this->assertTrue($resultados[0]['ok']);
+        $this->assertFalse($resultados[1]['ok']);
+        $this->assertStringContainsString('Falta el PDF', $resultados[1]['mensaje']);
+        $this->assertSame(1, Factura::query()->count());
+        $this->assertNotNull(Factura::query()->firstOrFail()->pdf_ruta);
     }
 
     public function test_without_notas_the_cotizacion_is_found_by_clave_and_then_by_content(): void

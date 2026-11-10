@@ -364,11 +364,7 @@ final class FacturasLibro
      */
     private function denominaciones(): array
     {
-        if ($this->denominaciones === []) {
-            $this->denominaciones = json_decode((string) file_get_contents(resource_path('documentos/partidas_denominacion.json')), true) ?: [];
-        }
-
-        return $this->denominaciones;
+        return (new DenominacionPartidas)->todas();
     }
 
     // --- REPORTE_COMPROBACION ---------------------------------------------------------------

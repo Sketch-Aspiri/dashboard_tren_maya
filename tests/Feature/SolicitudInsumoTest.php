@@ -153,8 +153,16 @@ class SolicitudInsumoTest extends TestCase
             'partidas' => [['cantidad' => '0', 'unidad' => '', 'descripcion' => '']],
         ]))->assertInvalid(['partidas.0.cantidad', 'partidas.0.unidad', 'partidas.0.descripcion']);
 
+        // La justificación de cada insumo es obligatoria.
         $this->put(route('insumos.update', $solicitud), $this->payload([
-            'partidas' => [['cantidad' => '1', 'unidad' => 'Pieza', 'descripcion' => 'Cable', 'precio_unitario' => '9999']],
+            'partidas' => [['cantidad' => '1', 'unidad' => 'Pieza', 'descripcion' => 'Cable', 'justificacion' => '  ']],
+        ]))->assertInvalid('partidas.0.justificacion');
+        $this->put(route('insumos.update', $solicitud), $this->payload([
+            'partidas' => [['cantidad' => '1', 'unidad' => 'Pieza', 'descripcion' => 'Cable']],
+        ]))->assertInvalid('partidas.0.justificacion');
+
+        $this->put(route('insumos.update', $solicitud), $this->payload([
+            'partidas' => [['cantidad' => '1', 'unidad' => 'Pieza', 'descripcion' => 'Cable', 'justificacion' => 'Reposición', 'precio_unitario' => '9999']],
         ]))->assertRedirect();
         $this->assertNull($solicitud->partidas()->first()->precio_unitario);
     }

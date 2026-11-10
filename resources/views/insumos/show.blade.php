@@ -147,7 +147,7 @@
                                     <th class="px-2 py-2">{{ __('Cant.') }}</th>
                                     <th class="px-2 py-2">{{ __('Unidad') }}</th>
                                     <th class="px-2 py-2">{{ __('Descripción') }}</th>
-                                    <th class="px-2 py-2">{{ __('Justificación') }}</th>
+                                    <th class="px-2 py-2">{{ __('Justificación') }} *</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -161,7 +161,7 @@
                                             <input type="text" required maxlength="255" list="catalogo-insumos" class="{{ $campo }} min-w-[16rem]" :name="`partidas[${i}][descripcion]`" x-model="fila.descripcion" @change="elegir(i)">
                                             <input type="hidden" :name="`partidas[${i}][catalogo_insumo_id]`" :value="fila.catalogo_insumo_id ?? ''">
                                         </td>
-                                        <td class="px-2 py-1"><input type="text" maxlength="2000" class="{{ $campo }} min-w-[14rem]" :name="`partidas[${i}][justificacion]`" x-model="fila.justificacion"></td>
+                                        <td class="px-2 py-1"><input type="text" maxlength="2000" required class="{{ $campo }} min-w-[14rem]" :name="`partidas[${i}][justificacion]`" x-model="fila.justificacion"></td>
                                         <td class="px-2 py-1"><button type="button" @click="quitar(i)" class="min-h-[44px] px-2 text-red-600 hover:underline">{{ __('Quitar') }}</button></td>
                                     </tr>
                                 </template>

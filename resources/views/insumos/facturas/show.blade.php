@@ -56,6 +56,8 @@
                 <x-kpi-card :label="__('Cotización')" :value="$factura->cotizacion ? $factura->cotizacion->folio : '—'" :hint="$factura->vinculo_cotizacion ? __('Vinculada por :como', ['como' => $factura->vinculo_cotizacion]) : ($factura->referencia_cot ? __('Notas: COT-:n', ['n' => $factura->referencia_cot]) : '')" />
             </div>
 
+            @include('insumos.facturas._comprobacion', ['factura' => $factura, 'vista' => $vistaComprobacion])
+
             <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <form method="POST" action="{{ route('insumos.facturas.update', $factura) }}" class="rounded-xl border border-brand-green/10 bg-white p-4 shadow-sm shadow-brand-green/5 sm:p-6">
                     @csrf

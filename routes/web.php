@@ -14,6 +14,7 @@ use App\Http\Controllers\CotizacionIaController;
 use App\Http\Controllers\CotizacionReporteController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmpleadoController;
+use App\Http\Controllers\FacturaComprobacionController;
 use App\Http\Controllers\FacturaController;
 use App\Http\Controllers\FacturaReporteController;
 use App\Http\Controllers\FormatoSolicitudInsumoController;
@@ -266,6 +267,10 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
         Route::get('/facturas', [FacturaController::class, 'index'])->name('facturas.index');
         Route::get('/facturas/descargar', FacturaReporteController::class)
             ->middleware('throttle:insumos-export')->name('facturas.descargar');
+        Route::match(['get', 'post'], '/facturas/comprobacion', [FacturaComprobacionController::class, 'mes'])
+            ->middleware('throttle:insumos-export')->name('facturas.comprobacion.mes');
+        Route::match(['get', 'post'], '/facturas/{factura}/comprobacion', [FacturaComprobacionController::class, 'factura'])->whereNumber('factura')
+            ->middleware('throttle:insumos-export')->name('facturas.comprobacion');
         Route::get('/facturas/{factura}', [FacturaController::class, 'show'])->whereNumber('factura')->name('facturas.show');
         Route::get('/facturas/{factura}/archivo/{tipo}', [FacturaController::class, 'archivo'])->whereNumber('factura')->whereIn('tipo', ['xml', 'pdf'])->name('facturas.archivo');
         Route::get('/cotizaciones', [CotizacionController::class, 'index'])->name('cotizaciones.index');

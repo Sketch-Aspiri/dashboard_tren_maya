@@ -106,6 +106,12 @@ final class SolicitudInsumoService
             ]);
         }
 
+        if ($solicitud->partidas()->where(fn ($q) => $q->whereNull('justificacion')->orWhere('justificacion', ''))->exists()) {
+            throw ValidationException::withMessages([
+                'partidas' => __('Cada insumo debe llevar su justificación antes de enviar.'),
+            ]);
+        }
+
         $totales = $this->totales($solicitud->load('partidas'));
 
         if ($totales['excedeLimite']) {

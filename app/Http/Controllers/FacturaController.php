@@ -11,6 +11,7 @@ use App\Models\Cotizacion;
 use App\Models\Estacion;
 use App\Models\Factura;
 use App\Models\FacturaConcepto;
+use App\Services\ComprobacionPdfService;
 use App\Services\ComprobacionService;
 use App\Services\ConsolidadoInsumosService;
 use App\Services\CotizacionService;
@@ -37,7 +38,7 @@ class FacturaController extends Controller
         private readonly SolicitudInsumoService $solicitudes,
     ) {}
 
-    public function index(ConsultarFacturasRequest $request): View
+    public function index(ConsultarFacturasRequest $request, ComprobacionPdfService $comprobacionPdf): View
     {
         $objetivo = $this->solicitudes->mesObjetivo();
         $anio = (int) ($request->validated('anio') ?? $objetivo['anio']);
@@ -47,6 +48,7 @@ class FacturaController extends Controller
             'anio' => $anio,
             'mes' => $mes,
             'meses' => ConsolidadoInsumosService::MESES,
+            'firmantesComprobacion' => collect($comprobacionPdf->firmantes())->map(fn (array $f) => ['cargo' => $f['cargo'], 'nombre' => $f['nombre']])->all(),
             'resumen' => $this->comprobacion->resumen($anio, $mes),
             'facturas' => Factura::query()->with(['estacion', 'cotizacion'])->where('anio', $anio)->where('mes', $mes)->orderBy('fecha')->orderBy('id')->get(),
         ]);
@@ -59,10 +61,17 @@ class FacturaController extends Controller
     public function store(SubirFacturasRequest $request): RedirectResponse
     {
         $resultados = [];
+        $pdfs = $this->service->emparejarPdf($request->file('xml'), $request->file('pdf'));
 
-        foreach ($request->file('xml') as $archivo) {
+        foreach ($request->file('xml') as $i => $archivo) {
+            if (! isset($pdfs[$i])) {
+                $resultados[] = ['archivo' => $archivo->getClientOriginalName(), 'ok' => false, 'factura_id' => null, 'mensaje' => __('Falta el PDF de esta factura: debe llamarse igual que el XML (o sube un solo XML con un solo PDF).')];
+
+                continue;
+            }
+
             try {
-                $factura = $this->service->importar($archivo, (int) $request->validated('anio'), (int) $request->validated('mes'), $request->user());
+                $factura = $this->service->importar($archivo, (int) $request->validated('anio'), (int) $request->validated('mes'), $request->user(), $pdfs[$i]);
                 $resultados[] = ['archivo' => $archivo->getClientOriginalName(), 'ok' => true, 'factura_id' => $factura->id, 'mensaje' => $factura->referencia().' — '.$factura->estado];
             } catch (InvalidArgumentException $e) {
                 $resultados[] = ['archivo' => $archivo->getClientOriginalName(), 'ok' => false, 'factura_id' => null, 'mensaje' => $e->getMessage()];
@@ -77,7 +86,7 @@ class FacturaController extends Controller
             ->with('resultados_facturas', $resultados);
     }
 
-    public function show(Factura $factura, CotizacionService $cotizaciones): View
+    public function show(Factura $factura, CotizacionService $cotizaciones, ComprobacionPdfService $comprobacionPdf): View
     {
         $this->authorize('viewAny', Factura::class);
 
@@ -85,6 +94,12 @@ class FacturaController extends Controller
 
         return view('insumos.facturas.show', [
             'factura' => $factura,
+            'vistaComprobacion' => [
+                'datos' => $comprobacionPdf->datos($factura),
+                'hojas' => collect([ComprobacionPdfService::FACTURA, ComprobacionPdfService::XML])->map(fn (string $tipo) => ['titulo' => $comprobacionPdf->titulo($tipo), 'texto' => $comprobacionPdf->texto($factura, $tipo)])->all(),
+                'firmantes' => collect($comprobacionPdf->firmantes())->map(fn (array $f) => ['cargo' => $f['cargo'], 'nombre' => $f['nombre']])->all(),
+                'tienePdf' => $factura->pdf_ruta !== null,
+            ],
             'meses' => ConsolidadoInsumosService::MESES,
             'hallazgosPorConcepto' => $factura->hallazgos->groupBy(fn ($h) => $h->factura_concepto_id ?? 0),
             'cotizaciones' => Cotizacion::query()->where('anio', $factura->anio)->where('mes', $factura->mes)->orderBy('proveedor')->orderBy('folio')->get(),

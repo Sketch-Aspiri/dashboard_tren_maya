@@ -23,6 +23,14 @@ class GuardarSolicitudInsumoRequest extends FormRequest
     }
 
     /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return ['partidas.*.justificacion.required' => __('Escribe la justificación de cada insumo (renglón :position).')];
+    }
+
+    /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
@@ -37,7 +45,7 @@ class GuardarSolicitudInsumoRequest extends FormRequest
             'partidas.*.cantidad' => ['required', 'numeric', 'gt:0', 'max:99999999'],
             'partidas.*.unidad' => ['required', 'string', 'max:30'],
             'partidas.*.descripcion' => ['required', 'string', 'max:255'],
-            'partidas.*.justificacion' => ['nullable', 'string', 'max:2000'],
+            'partidas.*.justificacion' => ['required', 'string', 'max:2000'],
             'partidas.*.catalogo_insumo_id' => ['nullable', 'integer', 'exists:catalogo_insumos,id'],
         ];
     }

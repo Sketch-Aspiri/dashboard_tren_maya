@@ -28,7 +28,7 @@ final class FacturaService
     /**
      * @throws InvalidArgumentException Si el XML no es un CFDI válido o ya está cargado.
      */
-    public function importar(UploadedFile $archivo, int $anio, int $mes, User $usuario): Factura
+    public function importar(UploadedFile $archivo, int $anio, int $mes, User $usuario, UploadedFile $pdf): Factura
     {
         $contenido = (string) file_get_contents($archivo->getRealPath());
         $datos = $this->parser->leer($contenido);
@@ -42,7 +42,7 @@ final class FacturaService
         unset($datos['conceptos'], $datos['version']);
 
         try {
-            return DB::transaction(function () use ($datos, $conceptos, $anio, $mes, $usuario, $archivo, $ruta, $contenido) {
+            return DB::transaction(function () use ($datos, $conceptos, $anio, $mes, $usuario, $archivo, $ruta, $contenido, $pdf) {
                 Storage::disk('local')->put($ruta, $contenido);
 
                 $factura = Factura::query()->create($datos + [
@@ -57,6 +57,7 @@ final class FacturaService
                     $factura->conceptos()->create($concepto + ['numero' => $i + 1]);
                 }
 
+                $this->adjuntarPdf($factura, $pdf);
                 $this->comprobacion->analizar($factura);
 
                 return $factura->refresh();
@@ -66,6 +67,37 @@ final class FacturaService
 
             throw $e;
         }
+    }
+
+    /**
+     * Pareja cada XML con su PDF por el nombre del archivo (sin extensión y sin
+     * distinguir mayúsculas). Con un solo XML y un solo PDF se emparejan sin
+     * importar el nombre.
+     *
+     * @param  list<UploadedFile>  $xmls
+     * @param  list<UploadedFile>  $pdfs
+     * @return array<int, UploadedFile> posición del XML => su PDF
+     */
+    public function emparejarPdf(array $xmls, array $pdfs): array
+    {
+        if (count($xmls) === 1 && count($pdfs) === 1) {
+            return [array_key_first($xmls) => reset($pdfs)];
+        }
+
+        $porNombre = [];
+        foreach ($pdfs as $pdf) {
+            $porNombre[mb_strtolower(pathinfo($pdf->getClientOriginalName(), PATHINFO_FILENAME))] ??= $pdf;
+        }
+
+        $pares = [];
+        foreach ($xmls as $i => $xml) {
+            $nombre = mb_strtolower(pathinfo($xml->getClientOriginalName(), PATHINFO_FILENAME));
+            if (isset($porNombre[$nombre])) {
+                $pares[$i] = $porNombre[$nombre];
+            }
+        }
+
+        return $pares;
     }
 
     public function adjuntarPdf(Factura $factura, UploadedFile $pdf): void

@@ -21,4 +21,14 @@ return [
     'tolerancia_redondeo' => 0.05,
     'tolerancia_importe' => 0.10,
     'tolerancia_precio_alerta' => 0.05,
+    // Hoja de validación de la comprobación (PDF por factura): texto fijo y dirección.
+    'comprobacion' => [
+        'maximo_estaciones_en_texto' => 4,
+        // Quienes firman por defecto la hoja de validación; en pantalla se pueden cambiar.
+        'firmantes' => [
+            'recibio' => ['cargo' => 'El Director de Gestión Territorial Zona Oriente “Tren Maya S.A. de C.V.”', 'nombre' => 'Lic. Miguel Ángel Milanez Navarrete'],
+            'autorizo' => ['cargo' => 'El Coord. Gral. de Gest. de Infra. Ferroviaria de “Tren Maya S.A. de C.V.”', 'nombre' => 'Lic. Francisco Javier Moreno Carrillo'],
+        ],
+        'gs_path' => env('INSUMOS_GS_PATH', 'gs'),
+    ],
 ];

@@ -69,15 +69,48 @@
                 </form>
             </div>
 
+            <div x-data="comprobacionMes(@js($firmantesComprobacion), @js(route('insumos.facturas.comprobacion.mes')))" class="rounded-xl border border-brand-green/10 bg-white p-4 shadow-sm shadow-brand-green/5 sm:p-6">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <h3 class="font-semibold text-brand-green">{{ __('Comprobación del mes (PDF)') }}</h3>
+                    <button type="button" @click="abierto = ! abierto" class="min-h-[44px] rounded-md border border-brand-teal px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist"
+                            x-text="abierto ? '{{ __('Ocultar') }}' : '{{ __('Preparar PDF') }}'"></button>
+                </div>
+                @error('comprobacion')<p class="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ $message }}</p>@enderror
+                <form x-show="abierto" x-cloak x-ref="forma" method="POST" action="{{ route('insumos.facturas.comprobacion.mes') }}" enctype="multipart/form-data" class="mt-3 space-y-4">
+                    @csrf
+                    <input type="hidden" name="anio" value="{{ $anio }}">
+                    <input type="hidden" name="mes" value="{{ $mes }}">
+                    <p class="text-sm text-gray-600">{{ __('Junta en un solo PDF la comprobación de las :n facturas de :mes (cada una: factura, validación, factura y validación del XML). Los cargos, nombres y firmas se aplican a todas.', ['n' => $facturas->count(), 'mes' => $meses[$mes]]) }}</p>
+                    @include('insumos.facturas._firmantes', ['prefijo' => 'cm'])
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" @click="verPdf()" :disabled="cargando" class="min-h-[44px] rounded-md border border-brand-teal px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist disabled:opacity-50"
+                                x-text="cargando ? '{{ __('Generando…') }}' : (pdfUrl ? '{{ __('Actualizar vista previa') }}' : '{{ __('Vista previa del PDF') }}')"></button>
+                        <button type="submit" class="min-h-[44px] rounded-md bg-brand-green px-3 text-sm font-medium text-white hover:opacity-90">{{ __('Descargar PDF') }}</button>
+                    </div>
+                    <p x-show="error" x-cloak x-text="error" class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert"></p>
+                    <iframe x-show="pdfUrl" x-cloak :src="pdfUrl" title="{{ __('Comprobación del mes en PDF') }}" class="h-[80vh] w-full rounded-md border border-gray-300 bg-white"></iframe>
+                </form>
+            </div>
+
+
+            @include('insumos.facturas._comprobacion-scripts')
+
             <form method="POST" action="{{ route('insumos.facturas.store') }}" enctype="multipart/form-data"
                   class="rounded-xl border border-brand-green/10 bg-white p-4 shadow-sm shadow-brand-green/5 sm:p-6">
                 @csrf
                 <input type="hidden" name="anio" value="{{ $anio }}">
                 <input type="hidden" name="mes" value="{{ $mes }}">
                 <h3 class="font-semibold text-brand-green">{{ __('Cargar facturas (XML CFDI)') }}</h3>
-                <p class="mt-1 text-sm text-gray-600">{{ __('Elige uno o varios XML. Cada uno se compara con su cotización y con las partidas de :mes; el PDF se puede agregar después desde la factura.', ['mes' => $meses[$mes]]) }}</p>
+                <p class="mt-1 text-sm text-gray-600">{{ __('Elige uno o varios XML. Cada uno se compara con su cotización y con las partidas de :mes; el PDF de la factura es obligatorio y debe llamarse igual que su XML (factura1.xml y factura1.pdf).', ['mes' => $meses[$mes]]) }}</p>
                 <div class="mt-3 flex flex-wrap items-end gap-3">
-                    <input name="xml[]" type="file" multiple required accept=".xml" class="block text-sm text-gray-700">
+                    <div>
+                        <x-input-label for="xml-fac" :value="__('XML (CFDI)')" />
+                        <input id="xml-fac" name="xml[]" type="file" multiple required accept=".xml" class="mt-1 block text-sm text-gray-700">
+                    </div>
+                    <div>
+                        <x-input-label for="pdf-fac" :value="__('PDF de cada factura')" />
+                        <input id="pdf-fac" name="pdf[]" type="file" multiple required accept=".pdf,application/pdf" class="mt-1 block text-sm text-gray-700">
+                    </div>
                     <x-primary-button type="submit">{{ __('Cargar') }}</x-primary-button>
                 </div>
             </form>

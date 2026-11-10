@@ -10,6 +10,8 @@ use App\Services\Asistente\ClienteClaude;
 use App\Services\Asistente\ModeloLenguaje;
 use App\Services\Documentos\ConvertidorPdf;
 use App\Services\Documentos\ConvertidorPdfLibreOffice;
+use App\Services\Documentos\UnidorPdf;
+use App\Services\Documentos\UnidorPdfGhostscript;
 use App\Services\Nube\Contracts\ProveedorNube;
 use App\Services\Nube\Proveedores\EnlacePublico;
 use App\Services\Secciones\ExtractorDocumentos;
@@ -50,6 +52,8 @@ class AppServiceProvider extends ServiceProvider
             binario: (string) config('asistencia_documentos.soffice_path'),
             timeoutSegundos: (int) config('asistencia_documentos.conversion_timeout'),
         ));
+
+        $this->app->singleton(UnidorPdf::class, fn () => new UnidorPdfGhostscript((string) config('insumos.comprobacion.gs_path')));
 
         $this->app->singleton(ModeloLenguaje::class, ClienteClaude::class);
 
