@@ -33,7 +33,7 @@ final class Temayin
             ->map(fn (array $faq) => [
                 'q' => $faq['q'],
                 'a' => $faq['a'],
-                'url' => isset($faq['ruta']) ? route($faq['ruta']) : null,
+                'url' => isset($faq['ruta']) ? route($faq['ruta']) : ($faq['externo'] ?? null),
                 'enlace' => $faq['enlace'] ?? null,
             ])
             ->all();
@@ -71,7 +71,9 @@ final class Temayin
     }
 
     /**
-     * @return array<string, array{publico: string, q: string, a: string, ruta?: string, enlace?: string}>
+     * `externo`: enlace a otro sistema del ecosistema (Tickets), en lugar de una ruta propia.
+     *
+     * @return array<string, array{publico: string, q: string, a: string, ruta?: string, externo?: string, enlace?: string}>
      */
     private function catalogo(): array
     {
@@ -206,7 +208,21 @@ final class Temayin
             'tema' => [
                 'publico' => 'todos',
                 'q' => __('¿Puedo usar el modo oscuro?'),
-                'a' => __('Sí. Usa el botón del sol/luna junto a tu nombre (en celular, al final del menú): cambia entre el tema del sistema, claro y oscuro. Se recuerda en este navegador.'),
+                'a' => __('Sí. Usa el botón del sol/luna junto a tu nombre (en celular, al final del menú): cambia entre el tema del sistema, claro y oscuro. Se recuerda en este navegador y también se aplica en Tickets.'),
+            ],
+            'tickets' => [
+                'publico' => 'todos',
+                'q' => __('¿Qué es Tickets y cómo llego?'),
+                'a' => __('Es el otro sistema de la Zona Oriente: ahí se piden y atienden tickets, se asignan actividades y se conversa por chat. Usa el selector «Dashboard | Tickets» de arriba (en celular, al abrir el menú) para pasar de uno a otro.'),
+                'externo' => config('ecosistema.urls.tickets').'/dashboard',
+                'enlace' => __('Ir a Tickets'),
+            ],
+            'pendientes_tickets' => [
+                'publico' => 'todos',
+                'q' => __('¿Dónde veo mis tickets y actividades pendientes?'),
+                'a' => __('En «Mis pendientes» del sistema de Tickets: lo que tienes asignado, ordenado por fecha límite y prioridad, con lo vencido en rojo.'),
+                'externo' => config('ecosistema.urls.tickets').'/tickets/pending',
+                'enlace' => __('Abrir Mis pendientes'),
             ],
             'soporte' => [
                 'publico' => 'todos',

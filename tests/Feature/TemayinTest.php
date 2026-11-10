@@ -83,7 +83,8 @@ class TemayinTest extends TestCase
             $this->actingAsTwoFactorVerified($usuario);
 
             foreach (app(Temayin::class)->preguntas($usuario) as $clave => $faq) {
-                if ($faq['url'] !== null) {
+                // Los enlaces a Tickets (otro sistema del ecosistema) se prueban en EcosistemaTest.
+                if ($faq['url'] !== null && str_starts_with($faq['url'], config('app.url'))) {
                     $this->assertSame(200, $this->get($faq['url'])->status(), "{$rol}: {$clave} ({$faq['url']})");
                     $this->assertNotEmpty($faq['enlace'], "{$rol}: {$clave}");
                 }

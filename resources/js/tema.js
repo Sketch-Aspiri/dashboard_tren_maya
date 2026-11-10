@@ -7,7 +7,29 @@
 const OPCIONES = ['sistema', 'claro', 'oscuro'];
 const consultaOscuro = window.matchMedia('(prefers-color-scheme: dark)');
 
+/**
+ * Dominio de la cookie compartida: el padre común (".zonaorientetm.tech") para
+ * que Dashboard y Tickets lean la misma elección; en localhost o una IP, el host.
+ */
+function dominioCookie() {
+    const host = window.location.hostname;
+    const partes = host.split('.');
+    if (/^[\d.]+$/.test(host) || partes.length < 3) {
+        return '';
+    }
+    return `; domain=.${partes.slice(-2).join('.')}`;
+}
+
+function guardarCookie(tema) {
+    const seguro = window.location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `tema=${tema}; max-age=31536000; path=/; SameSite=Lax${dominioCookie()}${seguro}`;
+}
+
 function leer() {
+    const cookie = document.cookie.match(/(?:^|; )tema=(sistema|claro|oscuro)(?:;|$)/);
+    if (cookie) {
+        return cookie[1];
+    }
     try {
         const valor = localStorage.getItem('tema');
         return OPCIONES.includes(valor) ? valor : 'sistema';
@@ -43,6 +65,7 @@ export function selectorTema() {
             } catch {
                 // Sin almacenamiento (ventana privada): el cambio dura esta página.
             }
+            guardarCookie(tema);
             aplicar(tema);
         },
         siguiente() {

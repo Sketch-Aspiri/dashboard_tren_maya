@@ -20,6 +20,7 @@
 
             <!-- Settings Dropdown -->
             <div class="hidden xl:flex xl:items-center xl:gap-2">
+                <x-ecosistema-selector />
                 <x-selector-tema />
                 <x-dropdown align="right" width="w-56">
                     <x-slot name="trigger">
@@ -134,7 +135,8 @@
 
     <!-- Responsive Navigation Menu -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden border-b border-brand-green/10 xl:hidden">
-        <div class="px-4 pt-4">
+        <div class="space-y-3 px-4 pt-4">
+            <x-ecosistema-selector class="flex w-full [&>a]:flex-1 [&>a]:justify-center" />
             <x-buscador-menu id="buscar-nav-movil" :items="$navegacionBuscable" />
         </div>
         <div class="space-y-1 pb-3 pt-3">
