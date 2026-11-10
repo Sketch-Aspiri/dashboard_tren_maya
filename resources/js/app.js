@@ -7,6 +7,7 @@ import { registrarSecciones } from './secciones';
 import { hojaCalculo } from './hoja/componente';
 import { capturaAsistencia } from './asistencia/captura';
 import { ajustarGraficas, selectorTema } from './tema';
+import { registrarTemayin } from './temayin';
 
 window.Alpine = Alpine;
 window.Chart = Chart;
@@ -98,5 +99,6 @@ Alpine.data('hojaCalculo', hojaCalculo);
 Alpine.data('capturaAsistencia', capturaAsistencia);
 registrarAsistente(Alpine);
 Alpine.data('selectorTema', selectorTema);
+registrarTemayin(Alpine);
 
 Alpine.start();

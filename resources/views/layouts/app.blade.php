@@ -85,6 +85,8 @@
             </main>
         </div>
 
+        <x-temayin-asistente />
+
         @stack('scripts')
     </body>
 </html>

@@ -71,4 +71,9 @@ return [
         'redirect' => env('DROPBOX_REDIRECT_URI'),
     ],
 
+    // Sistema de Tickets (otro sitio en la misma VPS): Temayin enlaza ahí para reportar fallas a Soporte.
+    'tickets' => [
+        'soporte_url' => env('TICKETS_SOPORTE_URL', 'https://tickets.zonaorientetm.tech/tickets/create'),
+    ],
+
 ];
