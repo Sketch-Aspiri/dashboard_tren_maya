@@ -2,35 +2,42 @@
 @php
     /** @var \App\Models\Factura $factura */
     /** @var array{datos: array<string, mixed>, hojas: list<array{titulo: string, texto: string}>, firmantes: array<string, array{cargo: string, nombre: string}>, tienePdf: bool} $vista */
+    $bloqueada = $factura->verificacion_sat === 'CANCELADO' || ! $vista['tienePdf'];
 @endphp
 
-<div x-data="comprobacionFactura(@js($vista['firmantes']), @js(route('insumos.facturas.comprobacion', $factura)))" class="rounded-xl border border-brand-green/10 bg-gray-100 shadow-sm shadow-brand-green/5">
-    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-white px-4 py-2">
-        <h3 class="font-heading text-sm font-semibold text-brand-green">{{ __('Comprobación de la factura (vista previa)') }}</h3>
-        <button type="button" @click="abierto = ! abierto" class="min-h-[44px] rounded-md border border-brand-teal px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist"
+<section x-data="comprobacionFactura(@js($vista['firmantes']), @js(route('insumos.facturas.comprobacion', $factura)))" class="ins-card overflow-hidden" aria-labelledby="comprobacion-titulo">
+    <div class="flex flex-wrap items-center justify-between gap-3 p-4 sm:px-6">
+        <div>
+            <h3 id="comprobacion-titulo" class="ins-titulo">{{ __('Comprobación en PDF') }}</h3>
+            <p class="ins-ayuda mt-0.5">{{ __('Factura, hoja de validación de la factura, factura (bloque XML) y hoja de validación del XML.') }}</p>
+        </div>
+        <button type="button" @click="abierto = ! abierto" :aria-expanded="abierto.toString()" aria-controls="comprobacion-forma" class="ins-btn-secundario" @disabled($bloqueada)
                 x-text="abierto ? '{{ __('Ocultar') }}' : '{{ __('Abrir vista previa') }}'"></button>
     </div>
 
     @error('comprobacion')
-        <p class="border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{{ $message }}</p>
+        <p class="border-t border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 sm:px-6" role="alert">{{ $message }}</p>
     @enderror
+    @unless ($vista['tienePdf'])
+        <p class="border-t border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900 sm:px-6">{{ __('Falta el PDF de la factura: súbelo abajo para poder generar la comprobación.') }}</p>
+    @endunless
     @if ($vista['datos']['sinPartidas'])
-        <p class="bg-amber-50 px-4 py-2 text-sm text-amber-800">{{ __('Ningún concepto está vinculado a una partida presupuestal; la leyenda de partidas saldrá vacía.') }}</p>
+        <p class="border-t border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900 sm:px-6">{{ __('Ningún concepto está vinculado a una partida presupuestal; la leyenda de partidas saldrá vacía.') }}</p>
     @endif
 
-    <form x-show="abierto" x-cloak x-ref="forma" method="POST" action="{{ route('insumos.facturas.comprobacion', $factura) }}" enctype="multipart/form-data" class="space-y-4 p-3">
+    <form id="comprobacion-forma" x-show="abierto" x-cloak x-ref="forma" method="POST" action="{{ route('insumos.facturas.comprobacion', $factura) }}" enctype="multipart/form-data"
+          class="space-y-4 border-t border-gray-100 bg-gray-50 p-4 sm:p-6">
         @csrf
-        <p class="text-xs text-gray-500">{{ __('Orden del PDF: factura, hoja de validación de la factura, factura (bloque XML) y hoja de validación del XML.') }}</p>
 
         @include('insumos.facturas._firmantes', ['prefijo' => 'cf'])
 
         <div class="flex flex-wrap items-center gap-2">
-            <button type="button" @click="verPdf()" :disabled="cargando" class="min-h-[44px] rounded-md border border-brand-teal px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist disabled:opacity-50"
+            <button type="button" @click="verPdf()" :disabled="cargando" class="ins-btn-secundario"
                     x-text="cargando ? '{{ __('Generando…') }}' : (pdfUrl ? '{{ __('Actualizar PDF') }}' : '{{ __('Ver PDF completo') }}')"></button>
-            <button type="submit" class="min-h-[44px] rounded-md bg-brand-green px-3 text-sm font-medium text-white hover:opacity-90">{{ __('Descargar PDF') }}</button>
-            <button type="button" x-show="pdfUrl" x-cloak @click="pdfUrl = null" class="min-h-[44px] rounded-md px-3 text-sm text-gray-600 hover:underline">{{ __('Volver a las hojas') }}</button>
+            <button type="submit" class="ins-btn-primario">{{ __('Descargar PDF') }}</button>
+            <button type="button" x-show="pdfUrl" x-cloak @click="pdfUrl = null" class="ins-enlace">{{ __('Volver a las hojas') }}</button>
         </div>
-        <p x-show="error" x-cloak x-text="error" class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert"></p>
+        <p x-show="error" x-cloak x-text="error" class="ins-aviso-error" role="alert"></p>
 
         <div x-show="pdfUrl" x-cloak>
             <iframe :src="pdfUrl" title="{{ __('Comprobación en PDF') }}" class="h-[80vh] w-full rounded-md border border-gray-300 bg-white"></iframe>
@@ -61,6 +68,6 @@
             @endforeach
         </div>
     </form>
-</div>
+</section>
 
 @include('insumos.facturas._comprobacion-scripts')

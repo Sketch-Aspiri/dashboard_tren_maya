@@ -246,6 +246,6 @@ class VerificacionSatTest extends TestCase
         $this->actingAsTwoFactorVerified($this->jefe());
         $factura = $this->factura(['verificacion_sat' => 'CANCELADO', 'sat_consultado_at' => now()]);
 
-        $this->get(route('insumos.facturas.show', $factura))->assertOk()->assertSee('CANCELADO')->assertSee('Verificar ahora');
+        $this->get(route('insumos.facturas.show', $factura))->assertOk()->assertSee('Cancelada en el SAT')->assertSee('Verificar en el SAT');
     }
 }

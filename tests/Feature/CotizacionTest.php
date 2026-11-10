@@ -452,7 +452,7 @@ class CotizacionTest extends TestCase
         $this->guardar([$this->renglon($this->cable, 2, 110), $this->renglon($this->cinta, 10, 30)]);
 
         $this->get(route('insumos.cotizaciones.index', ['anio' => 2026, 'mes' => 12]))
-            ->assertOk()->assertSee('1 / 4')->assertSee('COT-196')->assertSee('Truper');
+            ->assertOk()->assertSee('1 de 4 partidas')->assertSee('COT-196')->assertSee('Truper');
 
         $this->get(route('insumos.index', ['anio' => 2026, 'mes' => 12]))->assertOk()->assertSee(e(route('insumos.cotizaciones.index', ['anio' => 2026, 'mes' => 12])), false);
     }

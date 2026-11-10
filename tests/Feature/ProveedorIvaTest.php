@@ -229,9 +229,9 @@ class ProveedorIvaTest extends TestCase
 
         $this->get(route('insumos.show', $solicitud))
             ->assertOk()
-            ->assertSee('Límite de la estación (con IVA)')
+            ->assertSee('límite con IVA')
             ->assertSee('Te quedan')
-            ->assertSee('limite: 5000', false)
+            ->assertSee('data-limite="5000"', false)
             ->assertSee('"precio":100', false)
             ->assertSee('"iva":16', false);
     }

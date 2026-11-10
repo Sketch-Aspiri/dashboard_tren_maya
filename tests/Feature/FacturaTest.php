@@ -527,7 +527,7 @@ class FacturaTest extends TestCase
         $factura = $this->cargar(['conceptos' => [['PC101', 'COLADERA', 4, 59.07, 0.08]]]);
 
         $this->get(route('insumos.facturas.index', ['anio' => 2026, 'mes' => 12]))->assertOk()->assertSee('000135RI')->assertSee('GRUPO FERRETERO CONTINENTAL')->assertSee('ERROR');
-        $this->get(route('insumos.facturas.show', $factura))->assertOk()->assertSee('PRECIO_DISTINTO')->assertSee('NO_VERIFICADO')->assertSee($factura->uuid);
+        $this->get(route('insumos.facturas.show', $factura))->assertOk()->assertSee('PRECIO_DISTINTO')->assertSee('Sin verificar en el SAT')->assertSee($factura->uuid);
         $this->get(route('insumos.index', ['anio' => 2026, 'mes' => 12]))->assertOk()->assertSee(e(route('insumos.facturas.index', ['anio' => 2026, 'mes' => 12])), false);
     }
 

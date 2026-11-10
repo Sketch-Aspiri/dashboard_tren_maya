@@ -9,128 +9,100 @@
         1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril', 5 => 'Mayo', 6 => 'Junio',
         7 => 'Julio', 8 => 'Agosto', 9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre',
     ];
-    $etiquetas = [
-        'borrador' => ['Borrador', 'bg-gray-100 text-gray-700'],
-        'enviada' => ['Enviada', 'bg-brand-mist text-brand-green'],
-        'observada' => ['Observada', 'bg-amber-100 text-amber-800'],
-        'aprobada' => ['Aprobada', 'bg-green-100 text-green-800'],
-        'enviada_coordinacion' => ['Enviada a Coordinación', 'bg-blue-100 text-blue-800'],
-        'devuelta' => ['Devuelta por Coordinación', 'bg-purple-100 text-purple-800'],
-    ];
+    $total = $tablero->count();
     $enviadas = $tablero->filter(fn ($fila) => $fila['solicitud'] && $fila['solicitud']->estado !== 'borrador')->count();
+    $aprobadas = $tablero->filter(fn ($f) => $f['solicitud']?->estaAprobada())->count();
+    $porRevisar = $tablero->filter(fn ($f) => $f['solicitud']?->estado === 'enviada')->count();
+    $sinIniciar = $tablero->filter(fn ($f) => $f['solicitud'] === null)->count();
+    $usado = $consolidado && $consolidado['tope'] > 0 ? min(100, max(0, $consolidado['total'] / $consolidado['tope'] * 100)) : 0;
 @endphp
 
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-heading text-xl font-semibold text-brand-green leading-tight">
-            {{ __('Recursos materiales') }} — {{ __('Solicitud de insumos') }} {{ $nombresMes[$mes] }} {{ $anio }}
-        </h2>
+        <x-insumos.titulo :titulo="__('Solicitud de insumos').' — '.$nombresMes[$mes].' '.$anio"
+                          :detalle="trans_choice(':n de :t estación envió su solicitud|:n de :t estaciones enviaron su solicitud', $enviadas, ['n' => $enviadas, 't' => $total])" />
     </x-slot>
 
-    <div class="py-8 sm:py-12">
+    <div class="py-6 sm:py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
-            @if (session('status'))
-                <div class="rounded-xl border border-brand-green/10 bg-brand-mist p-4 text-sm text-brand-green">
-                    {{ session('status') }}
-                </div>
-            @endif
+            <x-insumos.nav activo="solicitudes" :anio="$anio" :mes="$mes" />
 
-            <div class="overflow-hidden rounded-xl border border-brand-green/10 bg-white p-4 shadow-sm shadow-brand-green/5 sm:p-6">
-                <form method="GET" action="{{ route('insumos.index') }}" class="flex flex-wrap items-end gap-2">
-                    <div>
-                        <x-input-label for="mes-insumos" :value="__('Mes')" />
-                        <select id="mes-insumos" name="mes" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-teal focus:ring-brand-teal">
-                            @foreach ($nombresMes as $numero => $nombre)
-                                <option value="{{ $numero }}" @selected($numero === $mes)>{{ $nombre }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="max-w-xs">
-                        <x-input-label for="anio-insumos" :value="__('Año')" />
-                        <x-text-input id="anio-insumos" name="anio" type="number" class="block mt-1 w-full"
-                                      value="{{ $anio }}" min="2000" max="2100" />
-                    </div>
-                    <x-secondary-button type="submit">{{ __('Ver mes') }}</x-secondary-button>
-                    <a href="{{ route('insumos.inventario.index') }}" class="inline-flex min-h-[44px] items-center text-sm text-brand-teal hover:underline">{{ __('Inventario de estaciones') }}</a>
-                    @can('manage', \App\Models\CatalogoInsumo::class)
-                        <a href="{{ route('insumos.catalogo.index') }}" class="inline-flex min-h-[44px] items-center text-sm text-brand-teal hover:underline">{{ __('Catálogo de insumos') }}</a>
-                    @endcan
-                    @can('manage', \App\Models\Factura::class)
-                        <a href="{{ route('insumos.facturas.index', ['anio' => $anio, 'mes' => $mes]) }}" class="inline-flex min-h-[44px] items-center rounded-md border border-brand-teal px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Facturas') }}</a>
-                    @endcan
-                    @can('manage', \App\Models\Cotizacion::class)
-                        <a href="{{ route('insumos.cotizaciones.index', ['anio' => $anio, 'mes' => $mes]) }}" class="inline-flex min-h-[44px] items-center rounded-md border border-brand-teal px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Cotizaciones') }}</a>
-                    @endcan
-                    @can('consolidate', \App\Models\SolicitudInsumo::class)
-                        <a href="{{ route('insumos.coordinacion.index', ['anio' => $anio, 'mes' => $mes]) }}" class="inline-flex min-h-[44px] items-center rounded-md border border-brand-teal px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Coordinación') }}</a>
-                    @endcan
-                    @can('manage', \App\Models\Proveedor::class)
-                        <a href="{{ route('insumos.proveedores.index') }}" class="inline-flex min-h-[44px] items-center rounded-md border border-brand-teal px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Proveedores e IVA') }}</a>
-                    @endcan
-                </form>
+            <x-insumos.avisos />
+
+            <div class="flex flex-wrap items-end justify-between gap-3">
+                <x-insumos.periodo ruta="insumos.index" :anio="$anio" :mes="$mes" />
+                @if ($porRevisar > 0)
+                    <p class="ins-chip-info">{{ trans_choice(':n solicitud espera tu revisión|:n solicitudes esperan tu revisión', $porRevisar, ['n' => $porRevisar]) }}</p>
+                @endif
             </div>
 
             @if ($puedeConsolidar && $consolidado)
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <x-kpi-card :label="__('Total aprobado con IVA')" :value="$dinero($consolidado['total'])"
-                                :hint="__('Subtotal :s + IVA :i', ['s' => $dinero($consolidado['subtotal']), 'i' => $dinero($consolidado['iva'])])" />
-                    <x-kpi-card :label="__('Fondo rotatorio')" :value="$dinero($consolidado['tope'])"
-                                :hint="__('Tope mensual de la zona.')" />
-                    <x-kpi-card :label="__('Pendiente por ejercer')" :value="$dinero($consolidado['pendiente'])"
-                                :hint="$consolidado['pendiente'] < 0 ? __('Las solicitudes aprobadas exceden el fondo.') : __('Fondo menos lo aprobado.')" />
-                </div>
-
-                <form method="GET" action="{{ route('insumos.consolidado') }}"
-                      class="flex flex-wrap items-end gap-3 rounded-xl border border-brand-green/10 bg-white p-4 shadow-sm shadow-brand-green/5 sm:p-6">
-                    <input type="hidden" name="anio" value="{{ $anio }}">
-                    <input type="hidden" name="mes" value="{{ $mes }}">
-                    <div class="max-w-xs">
-                        <x-input-label for="oficio" :value="__('Número de oficio (para el nombre del ANEXO)')" />
-                        <x-text-input id="oficio" name="oficio" type="text" class="block mt-1 w-full" maxlength="20" pattern="[A-Za-z0-9_\-]+" placeholder="1918" />
+                {{-- Fondo de la zona: cuánto llevan aprobado las estaciones frente al tope mensual. --}}
+                <section class="ins-card ins-card-pad" aria-labelledby="fondo-titulo">
+                    <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+                        <h3 id="fondo-titulo" class="ins-titulo">{{ __('Fondo rotatorio del mes') }}</h3>
+                        <p class="text-sm text-gray-600">
+                            <span class="font-semibold text-gray-900">{{ $dinero($consolidado['total']) }}</span>
+                            {{ __('aprobado de') }} {{ $dinero($consolidado['tope']) }}
+                        </p>
                     </div>
-                    <x-primary-button type="submit" name="tipo" value="anexo">{{ __('Descargar ANEXO') }}</x-primary-button>
-                    <x-secondary-button type="submit" name="tipo" value="listado">{{ __('Listado por producto') }}</x-secondary-button>
-                    <x-secondary-button type="submit" name="tipo" value="control">{{ __('Control del filtro') }}</x-secondary-button>
-                    <p class="basis-full text-xs text-gray-500">{{ __('Solo incluye las solicitudes aprobadas de :mes :anio.', ['mes' => $nombresMes[$mes], 'anio' => $anio]) }}</p>
-                </form>
+                    <div class="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-gray-100" role="img"
+                         aria-label="{{ __(':p % del fondo aprobado', ['p' => round($usado)]) }}">
+                        <div class="h-full rounded-full {{ $consolidado['pendiente'] < 0 ? 'bg-red-500' : ($usado > 85 ? 'bg-amber-500' : 'bg-brand-teal') }}" style="width: {{ $usado }}%"></div>
+                    </div>
+                    <dl class="mt-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+                        <div><dt class="ins-etiqueta">{{ __('Subtotal') }}</dt><dd class="mt-0.5 font-semibold tabular-nums text-gray-900">{{ $dinero($consolidado['subtotal']) }}</dd></div>
+                        <div><dt class="ins-etiqueta">{{ __('IVA') }}</dt><dd class="mt-0.5 font-semibold tabular-nums text-gray-900">{{ $dinero($consolidado['iva']) }}</dd></div>
+                        <div><dt class="ins-etiqueta">{{ __('Total aprobado con IVA') }}</dt><dd class="mt-0.5 font-semibold tabular-nums text-gray-900">{{ $dinero($consolidado['total']) }}</dd></div>
+                        <div>
+                            <dt class="ins-etiqueta">{{ __('Pendiente por ejercer') }}</dt>
+                            <dd class="mt-0.5 font-semibold tabular-nums {{ $consolidado['pendiente'] < 0 ? 'text-red-700' : 'text-brand-green' }}">{{ $dinero($consolidado['pendiente']) }}</dd>
+                        </div>
+                    </dl>
+                    @if ($consolidado['pendiente'] < 0)
+                        <p class="mt-3 text-sm font-medium text-red-700">{{ __('Las solicitudes aprobadas exceden el fondo.') }}</p>
+                    @endif
+                </section>
             @endif
 
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <x-kpi-card :label="__('Estaciones que enviaron')" :value="$enviadas.' / '.$tablero->count()"
+            <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <x-kpi-card :label="__('Estaciones que enviaron')" :value="$enviadas.' / '.$total"
                             :hint="__('Incluye enviadas, observadas y aprobadas.')" />
-                <x-kpi-card :label="__('Aprobadas')" :value="$tablero->filter(fn ($f) => $f['solicitud']?->estaAprobada())->count()"
+                <x-kpi-card :label="__('Por revisar')" :value="$porRevisar" :tono="$porRevisar > 0 ? 'alerta' : null"
+                            :hint="__('Enviadas que esperan a la Zona.')" />
+                <x-kpi-card :label="__('Aprobadas')" :value="$aprobadas"
                             :hint="__('Listas para el consolidado.')" />
-                <x-kpi-card :label="__('Sin iniciar')" :value="$tablero->filter(fn ($f) => $f['solicitud'] === null)->count()"
+                <x-kpi-card :label="__('Sin iniciar')" :value="$sinIniciar" :tono="$sinIniciar > 0 ? 'peligro' : null"
                             :hint="__('Aún no abren su solicitud del mes.')" />
             </div>
 
-            <div class="overflow-x-auto rounded-xl border border-brand-green/10 bg-white shadow-sm shadow-brand-green/5">
-                <table class="min-w-full divide-y divide-gray-200 text-sm">
-                    <thead class="bg-brand-mist text-left text-xs font-semibold uppercase tracking-wide text-brand-green">
+            <div class="ins-tabla-marco">
+                <table class="ins-tabla">
+                    <caption class="sr-only">{{ __('Solicitudes por estación') }}</caption>
+                    <thead>
                         <tr>
-                            <th class="px-4 py-3">{{ __('Estación') }}</th>
-                            <th class="px-4 py-3">{{ __('Estado') }}</th>
-                            <th class="px-4 py-3">{{ __('Enviada') }}</th>
-                            <th class="px-4 py-3 text-right">{{ __('Acciones') }}</th>
+                            <th scope="col">{{ __('Estación') }}</th>
+                            <th scope="col">{{ __('Estado') }}</th>
+                            <th scope="col">{{ __('Enviada') }}</th>
+                            <th scope="col" class="!text-right">{{ __('Acciones') }}</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100">
+                    <tbody>
                         @foreach ($tablero as $fila)
                             @php
                                 $solicitud = $fila['solicitud'];
-                                [$texto, $clase] = $solicitud ? $etiquetas[$solicitud->estado] : ['Sin iniciar', 'bg-red-50 text-red-700'];
+                                $porAtender = $solicitud && in_array($solicitud->estado, ['enviada', 'observada'], true);
                             @endphp
                             <tr>
-                                <td class="px-4 py-3 font-medium text-gray-900">{{ $fila['estacion']->nombre }}</td>
-                                <td class="px-4 py-3">
-                                    <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium {{ $clase }}">{{ __($texto) }}</span>
-                                </td>
-                                <td class="px-4 py-3 text-gray-600">{{ $solicitud?->enviada_at?->format('d/m/Y H:i') ?? '—' }}</td>
-                                <td class="px-4 py-3 text-right">
+                                <th scope="row" class="px-3 py-2.5 text-left font-medium text-gray-900 sm:px-4">{{ $fila['estacion']->nombre }}</th>
+                                <td><x-insumos.estado :valor="$solicitud?->estado ?? 'sin_iniciar'" /></td>
+                                <td class="whitespace-nowrap text-gray-600">{{ $solicitud?->enviada_at?->format('d/m/Y H:i') ?? '—' }}</td>
+                                <td class="num">
                                     @if ($solicitud)
-                                        <a href="{{ route('insumos.show', $solicitud) }}" class="text-brand-teal hover:underline">
-                                            {{ in_array($solicitud->estado, ['enviada', 'observada'], true) ? __('Revisar') : __('Ver') }}
+                                        <a href="{{ route('insumos.show', $solicitud) }}" class="{{ $solicitud->estado === 'enviada' ? 'ins-btn-primario' : 'ins-btn-secundario' }} !min-h-[36px] !px-3"
+                                           aria-label="{{ ($porAtender ? __('Revisar') : __('Ver')).' '.$fila['estacion']->nombre }}">
+                                            {{ $porAtender ? __('Revisar') : __('Ver') }}
                                         </a>
                                     @else
                                         <span class="text-gray-400">—</span>
@@ -141,6 +113,24 @@
                     </tbody>
                 </table>
             </div>
+
+            @if ($puedeConsolidar && $consolidado)
+                <form id="consolidado" method="GET" action="{{ route('insumos.consolidado') }}" class="ins-card ins-card-pad scroll-mt-4">
+                    <input type="hidden" name="anio" value="{{ $anio }}">
+                    <input type="hidden" name="mes" value="{{ $mes }}">
+                    <h3 class="ins-titulo">{{ __('Consolidado del mes (Excel)') }}</h3>
+                    <p class="ins-ayuda mt-1">{{ __('Solo incluye las solicitudes aprobadas de :mes :anio.', ['mes' => $nombresMes[$mes], 'anio' => $anio]) }}</p>
+                    <div class="mt-4 flex flex-wrap items-end gap-3">
+                        <div class="w-full sm:w-64">
+                            <x-input-label for="oficio" :value="__('Número de oficio (para el nombre del ANEXO)')" />
+                            <input id="oficio" name="oficio" type="text" class="ins-campo mt-1" maxlength="20" pattern="[A-Za-z0-9_\-]+" placeholder="1918">
+                        </div>
+                        <button type="submit" name="tipo" value="anexo" class="ins-btn-primario">{{ __('Descargar ANEXO') }}</button>
+                        <button type="submit" name="tipo" value="listado" class="ins-btn-secundario">{{ __('Listado por producto') }}</button>
+                        <button type="submit" name="tipo" value="control" class="ins-btn-secundario">{{ __('Control del filtro') }}</button>
+                    </div>
+                </form>
+            @endif
         </div>
     </div>
 </x-app-layout>

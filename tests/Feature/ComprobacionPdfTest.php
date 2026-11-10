@@ -210,7 +210,7 @@ class ComprobacionPdfTest extends TestCase
         $this->actingAsTwoFactorVerified($this->usuario('Jefe de Zona'));
 
         $this->get(route('insumos.facturas.show', $factura))->assertOk()
-            ->assertSee('Comprobación de la factura (vista previa)')
+            ->assertSee('Comprobación en PDF')
             ->assertSee('VALIDAN LA PRESENTE FACTURA:')->assertSee('VALIDAN EL PRESENTE XML:')
             ->assertSee('Libramiento de Chetumal km 15')
             ->assertSee('firmantes[recibio][cargo]', false)->assertSee('firmantes[autorizo][firma]', false);

@@ -65,3 +65,50 @@
 .of-firma { display: flex; height: 70px; align-items: center; justify-content: center; }
 .of-firma img { max-width: 200px; max-height: 70px; }
 .of-iniciales { min-height: 10px; margin-top: 18px; font-size: 6.5pt; }
+
+/* Módulo de insumos (fondo rotatorio): piezas compartidas por todas sus vistas. */
+@layer components {
+    .ins-card { @apply rounded-xl border border-brand-green/10 bg-white shadow-sm shadow-brand-green/5; }
+    .ins-card-pad { @apply p-4 sm:p-6; }
+    .ins-titulo { @apply font-heading text-base font-semibold text-brand-green; }
+    .ins-ayuda { @apply text-sm leading-relaxed text-gray-600; }
+    .ins-etiqueta { @apply block text-xs font-semibold uppercase tracking-wide text-gray-500; }
+
+    .ins-campo { @apply block w-full rounded-md border-gray-300 text-sm shadow-sm placeholder:text-gray-400 focus:border-brand-teal focus:ring-brand-teal disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500; min-height: 40px; }
+    .ins-archivo { @apply block w-full cursor-pointer rounded-md border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-700 file:mr-3 file:cursor-pointer file:border-0 file:bg-brand-mist file:px-3 file:py-2.5 file:text-xs file:font-semibold file:uppercase file:tracking-wide file:text-brand-green hover:border-brand-teal hover:file:bg-brand-green/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal; }
+
+    .ins-btn { @apply inline-flex min-h-[44px] items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50; }
+    .ins-btn-primario { @apply ins-btn bg-brand-green text-white hover:bg-brand-green-dark; }
+    .ins-btn-secundario { @apply ins-btn border border-brand-teal/60 bg-white text-brand-teal hover:bg-brand-mist; }
+    .ins-btn-neutro { @apply ins-btn border border-gray-300 bg-white text-gray-700 hover:bg-gray-50; }
+    .ins-btn-peligro { @apply ins-btn border border-red-200 bg-white text-red-700 hover:bg-red-50 focus-visible:ring-red-500; }
+    .ins-enlace { @apply inline-flex min-h-[44px] items-center gap-1 rounded px-1 text-sm font-medium text-brand-teal hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal; }
+    .ins-enlace-peligro { @apply ins-enlace text-red-700 focus-visible:ring-red-500; }
+
+    .ins-tabla-marco { @apply ins-card overflow-x-auto; }
+    .ins-tabla { @apply min-w-full text-sm; font-variant-numeric: tabular-nums; }
+    .ins-tabla thead th { @apply whitespace-nowrap bg-brand-mist px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-brand-green sm:px-4; }
+    .ins-tabla tbody td { @apply px-3 py-2.5 align-top text-gray-700 sm:px-4; }
+    .ins-tabla tbody tr { @apply border-t border-gray-100; }
+    .ins-tabla tbody tr:hover { @apply bg-brand-mist/40; }
+    .ins-tabla .num { @apply whitespace-nowrap text-right; }
+    .ins-tabla .fuerte { @apply font-medium text-gray-900; }
+
+    .ins-chip { @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold; }
+    .ins-chip::before { content: ''; @apply h-1.5 w-1.5 rounded-full bg-current opacity-70; }
+    .ins-chip-ok { @apply ins-chip bg-green-100 text-green-800; }
+    .ins-chip-alerta { @apply ins-chip bg-amber-100 text-amber-800; }
+    .ins-chip-error { @apply ins-chip bg-red-100 text-red-800; }
+    .ins-chip-info { @apply ins-chip bg-blue-100 text-blue-800; }
+    .ins-chip-morado { @apply ins-chip bg-purple-100 text-purple-800; }
+    .ins-chip-marca { @apply ins-chip bg-brand-mist text-brand-green ring-1 ring-inset ring-brand-green/15; }
+    .ins-chip-neutro { @apply ins-chip bg-gray-100 text-gray-700; }
+
+    .ins-aviso { @apply flex items-start gap-3 rounded-xl border p-4 text-sm; }
+    .ins-aviso-ok { @apply ins-aviso border-brand-green/15 bg-brand-mist text-brand-green; }
+    .ins-aviso-error { @apply ins-aviso border-red-200 bg-red-50 text-red-800; }
+    .ins-aviso-alerta { @apply ins-aviso border-amber-200 bg-amber-50 text-amber-900; }
+    .ins-aviso-info { @apply ins-aviso border-blue-200 bg-blue-50 text-blue-900; }
+
+    .ins-barra-acciones { @apply sticky bottom-0 z-20 -mx-4 flex flex-col gap-3 border-t border-brand-green/10 bg-white/95 px-4 py-3 backdrop-blur sm:mx-0 sm:flex-row sm:items-center sm:justify-between sm:rounded-xl sm:border sm:shadow-lg sm:shadow-brand-green/10; }
+}

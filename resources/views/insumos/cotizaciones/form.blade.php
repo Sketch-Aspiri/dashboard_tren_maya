@@ -6,7 +6,7 @@
     /** @var \Illuminate\Support\Collection<int, array{id: int, etiqueta: string, cantidad: float, precio: float|null}> $partidas */
     /** @var \Illuminate\Support\Collection<int, string> $proveedores */
     /** @var bool $iaDisponible */
-    $campo = 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-teal focus:ring-brand-teal text-sm';
+    $campo = 'ins-campo mt-1';
     $editando = $cotizacion !== null;
     $renglonesIniciales = old('renglones', $editando ? $cotizacion->renglones->map(fn ($r) => [
         'partida_id' => $r->solicitud_insumo_partida_id,
@@ -25,19 +25,17 @@
 
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-heading text-xl font-semibold text-brand-green leading-tight">
-            {{ $editando ? __('Editar cotización') : __('Nueva cotización') }} — {{ $meses[$mes] }} {{ $anio }}
-        </h2>
+        <x-insumos.titulo :titulo="($editando ? __('Editar cotización') : __('Nueva cotización')).' — '.$meses[$mes].' '.$anio"
+                          :volver="$editando ? route('insumos.cotizaciones.show', $cotizacion) : route('insumos.cotizaciones.index', ['anio' => $anio, 'mes' => $mes])"
+                          :volver-texto="$editando ? __('Cotización :f', ['f' => $cotizacion->folio]) : __('Cotizaciones de :mes :anio', ['mes' => $meses[$mes], 'anio' => $anio])" />
     </x-slot>
 
-    <div class="py-8 sm:py-12">
+    <div class="py-6 sm:py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
-            @if ($errors->any())
-                <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                    <ul class="list-disc pl-5">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
-                </div>
-            @endif
+            <x-insumos.nav activo="cotizaciones" :anio="$anio" :mes="$mes" />
+
+            <x-insumos.avisos />
 
             <form method="POST" enctype="multipart/form-data"
                   action="{{ $editando ? route('insumos.cotizaciones.update', $cotizacion) : route('insumos.cotizaciones.store') }}"
@@ -61,22 +59,24 @@
                     @foreach ($proveedores as $nombre)<option value="{{ $nombre }}"></option>@endforeach
                 </datalist>
 
-                <div class="rounded-xl border border-brand-green/10 bg-white p-4 shadow-sm shadow-brand-green/5 sm:p-6">
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <section class="ins-card ins-card-pad">
+                    <h3 class="ins-titulo">{{ __('Documento del proveedor') }}</h3>
+                    <p class="ins-ayuda mt-1">{{ __('Sube el PDF y deja que la IA proponga los datos, o captúralos a mano.') }}</p>
+                    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
                         <div class="sm:col-span-2">
                             <x-input-label for="archivo" :value="$editando && $cotizacion->archivo_ruta ? __('Reemplazar el PDF (opcional)') : __('PDF de la cotización')" />
-                            <input id="archivo" name="archivo" type="file" accept=".pdf" x-ref="archivo" class="mt-1 block w-full text-sm text-gray-700">
+                            <input id="archivo" name="archivo" type="file" accept=".pdf" x-ref="archivo" class="ins-archivo mt-1">
                         </div>
                         <div class="flex items-end">
                             <button type="button" @click="leerIa()" :disabled="leyendo || !iaDisponible"
-                                    class="inline-flex min-h-[44px] w-full items-center justify-center rounded-md border border-brand-teal px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist disabled:cursor-not-allowed disabled:opacity-50">
+                                    class="ins-btn-secundario w-full">
                                 <span x-text="leyendo ? '{{ __('Leyendo…') }}' : '{{ __('Leer con IA') }}'"></span>
                             </button>
                         </div>
                     </div>
-                    <p x-show="!iaDisponible" class="mt-2 text-xs text-gray-500">{{ __('La lectura con IA no está configurada en este servidor; captura la cotización a mano.') }}</p>
-                    <p x-show="errorIa" x-text="errorIa" class="mt-2 text-sm text-red-600"></p>
-                    <p x-show="leidaIa" class="mt-2 text-sm text-blue-700">{{ __('La IA propuso estos datos. Revísalos y corrígelos antes de guardar: nada se aplica a las partidas hasta que guardes.') }}</p>
+                    <p x-show="!iaDisponible" x-cloak class="mt-2 text-xs text-gray-500">{{ __('La lectura con IA no está configurada en este servidor; captura la cotización a mano.') }}</p>
+                    <p x-show="errorIa" x-cloak x-text="errorIa" class="ins-aviso-error mt-3" role="alert"></p>
+                    <p x-show="leidaIa" x-cloak class="ins-aviso-info mt-3" role="status">{{ __('La IA propuso estos datos. Revísalos y corrígelos antes de guardar: nada se aplica a las partidas hasta que guardes.') }}</p>
 
                     <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
                         <div>
@@ -105,14 +105,16 @@
                         </div>
                     </div>
                     <p class="mt-2 text-xs text-gray-500">{{ __('Subtotal, IVA y total son opcionales; con ellos el sistema valida que la cotización cuadre antes de aplicar sus precios.') }}</p>
-                </div>
+                </section>
 
-                <div class="space-y-3">
+                <section class="space-y-3" aria-labelledby="renglones-titulo">
+                    <h3 id="renglones-titulo" class="ins-titulo">{{ __('Renglones cotizados') }} <span class="font-normal text-gray-500" x-text="'(' + renglones.length + ')'"></span></h3>
                     <template x-for="(r, i) in renglones" :key="i">
-                        <div class="rounded-xl border border-brand-green/10 bg-white p-4 shadow-sm shadow-brand-green/5">
+                        <div class="ins-card p-4">
+                            <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{{ __('Renglón') }} <span x-text="i + 1"></span></p>
                             <div class="grid grid-cols-1 gap-3 lg:grid-cols-12">
                                 <div class="lg:col-span-5">
-                                    <label class="block text-xs font-medium text-gray-600">{{ __('Partida solicitada') }}</label>
+                                    <label class="ins-etiqueta">{{ __('Partida solicitada') }}</label>
                                     <select :name="`renglones[${i}][partida_id]`" x-model="r.partida_id" class="{{ $campo }}">
                                         <option value="">{{ __('— Sin partida (cotizado fuera del documento) —') }}</option>
                                         <template x-for="p in partidas" :key="p.id"><option :value="p.id" x-text="p.etiqueta"></option></template>
@@ -121,27 +123,27 @@
                                        x-text="partida(r.partida_id) ? 'Solicitado: ' + partida(r.partida_id).cantidad + ' pzas · estimado ' + (partida(r.partida_id).precio === null ? 'sin precio' : '$' + partida(r.partida_id).precio) : ''"></p>
                                 </div>
                                 <div class="lg:col-span-4">
-                                    <label class="block text-xs font-medium text-gray-600">{{ __('Descripción cotizada') }}</label>
+                                    <label class="ins-etiqueta">{{ __('Descripción cotizada') }}</label>
                                     <input type="text" required maxlength="255" :name="`renglones[${i}][descripcion]`" x-model="r.descripcion" class="{{ $campo }}">
                                 </div>
                                 <div class="lg:col-span-3">
-                                    <label class="block text-xs font-medium text-gray-600">{{ __('Clave / SKU') }}</label>
+                                    <label class="ins-etiqueta">{{ __('Clave / SKU') }}</label>
                                     <input type="text" maxlength="50" :name="`renglones[${i}][clave]`" x-model="r.clave" class="{{ $campo }}">
                                 </div>
                                 <div class="lg:col-span-2">
-                                    <label class="block text-xs font-medium text-gray-600">{{ __('Cantidad') }}</label>
+                                    <label class="ins-etiqueta">{{ __('Cantidad') }}</label>
                                     <input type="number" step="0.01" min="0.01" required :name="`renglones[${i}][cantidad]`" x-model="r.cantidad" class="{{ $campo }}">
                                 </div>
                                 <div class="lg:col-span-2">
-                                    <label class="block text-xs font-medium text-gray-600">{{ __('Precio unitario') }}</label>
+                                    <label class="ins-etiqueta">{{ __('Precio unitario') }}</label>
                                     <input type="number" step="0.01" min="0" :name="`renglones[${i}][precio_unitario]`" x-model="r.precio_unitario" class="{{ $campo }}">
                                 </div>
                                 <div class="lg:col-span-2">
-                                    <label class="block text-xs font-medium text-gray-600">{{ __('Importe') }}</label>
+                                    <label class="ins-etiqueta">{{ __('Importe') }}</label>
                                     <input type="number" step="0.01" min="0" :name="`renglones[${i}][importe]`" x-model="r.importe" class="{{ $campo }}">
                                 </div>
                                 <div class="lg:col-span-4">
-                                    <label class="block text-xs font-medium text-gray-600">{{ __('¿Es lo mismo que se pidió?') }}</label>
+                                    <label class="ins-etiqueta">{{ __('¿Es lo mismo que se pidió?') }}</label>
                                     <select :name="`renglones[${i}][coincidencia]`" x-model="r.coincidencia" class="{{ $campo }}">
                                         <option value="mismo">{{ __('Sí, el mismo producto') }}</option>
                                         <option value="otra_marca">{{ __('Otra marca, modelo o presentación') }}</option>
@@ -149,18 +151,20 @@
                                     </select>
                                 </div>
                                 <div class="flex items-end lg:col-span-2">
-                                    <button type="button" @click="quitar(i)" class="min-h-[44px] text-sm text-red-600 hover:underline">{{ __('Quitar renglón') }}</button>
+                                    <button type="button" @click="quitar(i)" x-show="renglones.length > 1" class="ins-enlace-peligro">{{ __('Quitar renglón') }}</button>
                                 </div>
                             </div>
                         </div>
                     </template>
-                    <button type="button" @click="agregar()" class="min-h-[44px] text-sm text-brand-teal hover:underline">+ {{ __('Agregar renglón') }}</button>
-                </div>
+                    <button type="button" @click="agregar()" class="ins-btn-secundario w-full border-dashed sm:w-auto">+ {{ __('Agregar renglón') }}</button>
+                </section>
 
-                <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                    <a href="{{ $editando ? route('insumos.cotizaciones.show', $cotizacion) : route('insumos.cotizaciones.index', ['anio' => $anio, 'mes' => $mes]) }}"
-                       class="inline-flex min-h-[44px] items-center justify-center text-sm text-gray-600 hover:text-brand-green sm:self-center">{{ __('Cancelar') }}</a>
-                    <x-primary-button type="submit">{{ __('Guardar cotización') }}</x-primary-button>
+                <div class="ins-barra-acciones">
+                    <p class="text-sm text-gray-500">{{ __('Nada se aplica a las partidas hasta que guardes.') }}</p>
+                    <div class="flex flex-col-reverse gap-2 sm:flex-row">
+                        <a href="{{ $editando ? route('insumos.cotizaciones.show', $cotizacion) : route('insumos.cotizaciones.index', ['anio' => $anio, 'mes' => $mes]) }}" class="ins-btn-neutro">{{ __('Cancelar') }}</a>
+                        <button type="submit" class="ins-btn-primario">{{ __('Guardar cotización') }}</button>
+                    </div>
                 </div>
             </form>
         </div>
