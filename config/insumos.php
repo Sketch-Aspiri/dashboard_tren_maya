@@ -22,6 +22,11 @@ return [
     'tolerancia_importe' => 0.10,
     'tolerancia_precio_alerta' => 0.05,
     // Hoja de validación de la comprobación (PDF por factura): texto fijo y dirección.
+    // Consulta del estado de cada factura en el servicio público del SAT.
+    'sat' => [
+        'consulta_automatica' => (bool) env('INSUMOS_SAT_AUTOMATICO', true),
+        'timeout' => 12,
+    ],
     'comprobacion' => [
         'maximo_estaciones_en_texto' => 4,
         // Quienes firman por defecto la hoja de validación; en pantalla se pueden cambiar.

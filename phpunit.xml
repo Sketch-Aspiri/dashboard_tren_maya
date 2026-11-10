@@ -29,6 +29,7 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="INSUMOS_SAT_AUTOMATICO" value="false"/>
         <env name="SECCIONES_NUBE_RESERVA_DISCO_GB" value="0"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>

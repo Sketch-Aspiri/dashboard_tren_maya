@@ -17,6 +17,7 @@ use App\Services\ConsolidadoInsumosService;
 use App\Services\CotizacionService;
 use App\Services\FacturaService;
 use App\Services\SolicitudInsumoService;
+use App\Services\VerificacionSatService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
@@ -127,6 +128,19 @@ class FacturaController extends Controller
         $this->service->adjuntarPdf($factura, $request->file('archivo'));
 
         return redirect()->route('insumos.facturas.show', $factura)->with('status', __('PDF guardado.'));
+    }
+
+    /**
+     * Consulta el estado de la factura en el SAT en este momento (el botón
+     * "Verificar ahora"); la consulta automática corre en cola al cargar.
+     */
+    public function verificarSat(Factura $factura, VerificacionSatService $sat): RedirectResponse
+    {
+        $this->authorize('manage', Factura::class);
+
+        $estado = $sat->verificar($factura);
+
+        return redirect()->route('insumos.facturas.show', $factura)->with('status', __('Consulta al SAT: :estado.', ['estado' => $estado]));
     }
 
     public function destroy(Factura $factura): RedirectResponse

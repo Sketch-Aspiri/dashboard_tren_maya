@@ -37,7 +37,16 @@
                 <span>{{ __('Fecha') }}: {{ $factura->fecha->format('d/m/Y') }}</span>
                 <span>{{ __('Emisor') }}: {{ $factura->emisor_rfc }}</span>
                 <span>{{ __('Receptor') }}: {{ $factura->receptor_rfc }}</span>
-                <span>SAT: {{ $factura->verificacion_sat }}</span>
+                @php($estilosSat = ['VIGENTE' => 'bg-green-100 text-green-800', 'CANCELADO' => 'bg-red-100 text-red-800', 'NO_ENCONTRADO' => 'bg-blue-100 text-blue-800', 'ERROR' => 'bg-amber-100 text-amber-800'])
+                <span class="inline-flex items-center gap-2">
+                    {{ __('SAT') }}:
+                    <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium {{ $estilosSat[$factura->verificacion_sat] ?? 'bg-gray-100 text-gray-700' }}">{{ $factura->verificacion_sat }}</span>
+                    @if ($factura->sat_consultado_at)<span class="text-xs text-gray-500">{{ $factura->sat_consultado_at->format('d/m/Y H:i') }}</span>@endif
+                </span>
+                <form method="POST" action="{{ route('insumos.facturas.verificar-sat', $factura) }}" class="inline">
+                    @csrf
+                    <button type="submit" class="text-brand-teal hover:underline">{{ __('Verificar ahora') }}</button>
+                </form>
                 <a href="{{ route('insumos.facturas.archivo', [$factura, 'xml']) }}" class="text-brand-teal hover:underline">XML</a>
                 @if ($factura->pdf_ruta)<a href="{{ route('insumos.facturas.archivo', [$factura, 'pdf']) }}" target="_blank" rel="noopener" class="text-brand-teal hover:underline">PDF</a>@endif
                 <form method="POST" action="{{ route('insumos.facturas.destroy', $factura) }}" class="inline"

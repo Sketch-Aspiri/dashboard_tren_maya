@@ -24,3 +24,6 @@ Schedule::command('secciones:sincronizar-nube')
     ->cron('*/'.max(1, min(59, (int) config('secciones.nube.minutos'))).' * * * *')
     ->withoutOverlapping()
     ->onOneServer();
+
+// Facturas del fondo rotatorio: cada noche se vuelve a preguntar al SAT por las vigentes (detecta cancelaciones) y por las que no se pudieron consultar.
+Schedule::command('facturas:verificar-sat')->dailyAt('03:30')->withoutOverlapping()->onOneServer();

@@ -41,7 +41,7 @@ class Factura extends Model
         'subtotal', 'descuento', 'iva', 'isr_retenido', 'otros_retenidos', 'total',
         'referencia_cot', 'cotizacion_id', 'vinculo_cotizacion', 'estacion_id',
         'xml_ruta', 'xml_nombre', 'pdf_ruta', 'pdf_nombre',
-        'estado', 'verificacion_sat', 'creada_por',
+        'estado', 'verificacion_sat', 'sat_es_cancelable', 'sat_estatus_cancelacion', 'sat_detalle', 'sat_consultado_at', 'creada_por',
     ];
 
     /**
@@ -54,6 +54,7 @@ class Factura extends Model
             'mes' => 'integer',
             'fecha' => 'datetime',
             'fecha_timbrado' => 'datetime',
+            'sat_consultado_at' => 'datetime',
             'subtotal' => 'decimal:2',
             'descuento' => 'decimal:2',
             'iva' => 'decimal:2',

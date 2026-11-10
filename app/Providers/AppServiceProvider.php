@@ -11,6 +11,8 @@ use App\Services\Asistente\ModeloLenguaje;
 use App\Services\Documentos\ConvertidorPdf;
 use App\Services\Documentos\ConvertidorPdfLibreOffice;
 use App\Services\Documentos\UnidorPdf;
+use App\Services\Sat\ConsultorSat;
+use App\Services\Sat\ConsultorSatPhpCfdi;
 use App\Services\Documentos\UnidorPdfGhostscript;
 use App\Services\Nube\Contracts\ProveedorNube;
 use App\Services\Nube\Proveedores\EnlacePublico;
@@ -54,6 +56,8 @@ class AppServiceProvider extends ServiceProvider
         ));
 
         $this->app->singleton(UnidorPdf::class, fn () => new UnidorPdfGhostscript((string) config('insumos.comprobacion.gs_path')));
+
+        $this->app->singleton(ConsultorSat::class, fn () => new ConsultorSatPhpCfdi((int) config('insumos.sat.timeout')));
 
         $this->app->singleton(ModeloLenguaje::class, ClienteClaude::class);
 

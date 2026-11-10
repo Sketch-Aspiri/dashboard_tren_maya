@@ -198,6 +198,13 @@ final class ComprobacionService
             $h[] = $this->hallazgo('ERROR', 'TIPO_NO_SOPORTADO', 'El comprobante es de tipo '.$factura->tipo_comprobante.'; solo se comprueban facturas de ingreso (I).');
         }
 
+        match ($factura->verificacion_sat) {
+            'CANCELADO' => $h[] = $this->hallazgo('ERROR', 'CANCELADA_SAT', 'El SAT reporta esta factura como CANCELADA: no debe comprobarse ni pagarse.'),
+            'NO_ENCONTRADO' => $h[] = $this->hallazgo('REVISAR', 'NO_ENCONTRADA_SAT', 'El SAT no encontró esta factura con su UUID, RFC y total; revisa que el XML sea el original.'),
+            'ERROR' => $h[] = $this->hallazgo('ALERTA', 'SAT_NO_DISPONIBLE', 'No se pudo consultar el SAT ('.($factura->sat_detalle ?: 'sin respuesta').'); se reintentará.'),
+            default => null,
+        };
+
         if ($factura->moneda !== 'MXN') {
             $h[] = $this->hallazgo('ALERTA', 'MONEDA_DISTINTA', 'La factura está en '.$factura->moneda.', no en pesos mexicanos.');
         }
@@ -361,8 +368,27 @@ final class ComprobacionService
             'hallazgos' => collect(Factura::GRAVEDAD)->mapWithKeys(fn ($t) => [$t => (int) ($conteo[$t] ?? 0)])->all(),
             'facturas_por_estado' => collect(Factura::GRAVEDAD)->mapWithKeys(fn ($t) => [$t => $facturas->where('estado', $t)->count()])->all(),
             'no_facturado' => round((float) collect($this->noFacturado($anio, $mes))->sum('importe'), 2),
-            'sat' => 'NO_VERIFICADO',
+            'sat' => $this->resumenSat($facturas),
         ];
+    }
+
+    /**
+     * Estado del mes frente al SAT: CANCELADO si alguna lo está, luego
+     * NO_ENCONTRADO, ERROR, NO_VERIFICADO (alguna sin consultar) o VIGENTE.
+     *
+     * @param  Collection<int, Factura>  $facturas
+     */
+    private function resumenSat(Collection $facturas): string
+    {
+        $estados = $facturas->pluck('verificacion_sat');
+
+        foreach (['CANCELADO', 'NO_ENCONTRADO', 'ERROR', 'NO_VERIFICADO'] as $estado) {
+            if ($estados->contains($estado)) {
+                return $estado;
+            }
+        }
+
+        return $facturas->isEmpty() ? 'NO_VERIFICADO' : 'VIGENTE';
     }
 
     /**

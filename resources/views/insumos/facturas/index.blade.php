@@ -145,7 +145,8 @@
                                 <td class="px-3 py-2">{{ $factura->fecha->format('d/m/Y') }}</td>
                                 <td class="px-3 py-2">{{ $factura->cotizacion ? $factura->cotizacion->proveedor.' '.$factura->cotizacion->folio : '—' }}</td>
                                 <td class="px-3 py-2 text-right">{{ $dinero((float) $factura->total) }}</td>
-                                <td class="px-3 py-2"><span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium {{ $estilos[$factura->estado] ?? '' }}">{{ $factura->estado }}</span></td>
+                                <td class="px-3 py-2"><span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium {{ $estilos[$factura->estado] ?? '' }}">{{ $factura->estado }}</span>
+                                    @if ($factura->verificacion_sat === 'CANCELADO')<span class="ml-1 inline-flex rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">{{ __('Cancelada en el SAT') }}</span>@endif</td>
                                 <td class="px-3 py-2 text-right"><a href="{{ route('insumos.facturas.show', $factura) }}" class="text-brand-teal hover:underline">{{ __('Ver') }}</a></td>
                             </tr>
                         @empty

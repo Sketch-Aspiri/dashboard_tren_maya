@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\VerificarFacturaSatJob;
 use App\Models\CotizacionRenglon;
 use App\Models\Factura;
 use App\Models\FacturaConcepto;
@@ -59,6 +60,10 @@ final class FacturaService
 
                 $this->adjuntarPdf($factura, $pdf);
                 $this->comprobacion->analizar($factura);
+
+                if (config('insumos.sat.consulta_automatica')) {
+                    VerificarFacturaSatJob::dispatch($factura->id)->afterCommit();
+                }
 
                 return $factura->refresh();
             });

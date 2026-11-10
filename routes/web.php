@@ -296,6 +296,7 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
             Route::put('/facturas/{factura}', [FacturaController::class, 'update'])->whereNumber('factura')->name('facturas.update');
             Route::delete('/facturas/{factura}', [FacturaController::class, 'destroy'])->whereNumber('factura')->name('facturas.destroy');
             Route::post('/facturas/{factura}/pdf', [FacturaController::class, 'pdf'])->whereNumber('factura')->name('facturas.pdf');
+            Route::post('/facturas/{factura}/verificar-sat', [FacturaController::class, 'verificarSat'])->whereNumber('factura')->middleware('throttle:10,1')->name('facturas.verificar-sat');
             Route::put('/facturas/conceptos/{concepto}', [FacturaController::class, 'vincularConcepto'])->whereNumber('concepto')->name('facturas.concepto');
             Route::post('/cotizaciones', [CotizacionController::class, 'store'])->name('cotizaciones.store');
             Route::put('/cotizaciones/{cotizacion}', [CotizacionController::class, 'update'])->whereNumber('cotizacion')->name('cotizaciones.update');

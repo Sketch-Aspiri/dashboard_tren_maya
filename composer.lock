@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0d9873ae95771b0d0661dea145e76fcb",
+    "content-hash": "7456afc9fff87a13f594ad3ebb2643bb",
     "packages": [
         {
             "name": "anthropic-ai/sdk",
@@ -687,6 +687,55 @@
                 }
             ],
             "time": "2026-10-19T17:53:57+00:00"
+        },
+        {
+            "name": "eclipxe/enum",
+            "version": "v0.2.8",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/eclipxe13/enum.git",
+                "reference": "30b260d85e358b70b58794a0134c760789296a55"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/eclipxe13/enum/zipball/30b260d85e358b70b58794a0134c760789296a55",
+                "reference": "30b260d85e358b70b58794a0134c760789296a55",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.2"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^8.5"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Eclipxe\\Enum\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Carlos C Soto",
+                    "email": "eclipxe13@gmail.com",
+                    "homepage": "https://eclipxe.com.mx/"
+                }
+            ],
+            "description": "Enum based on the Brent Roose enum idea https://stitcher.io/blog/php-enums",
+            "homepage": "https://github.com/eclipxe13/enum",
+            "keywords": [
+                "enum",
+                "reflection"
+            ],
+            "support": {
+                "issues": "https://github.com/eclipxe13/enum/issues",
+                "source": "https://github.com/eclipxe13/enum"
+            },
+            "time": "2026-03-16T20:17:29+00:00"
         },
         {
             "name": "egulias/email-validator",
@@ -3110,6 +3159,171 @@
                 "source": "https://github.com/php-http/discovery/tree/1.20.0"
             },
             "time": "2024-10-02T11:20:13+00:00"
+        },
+        {
+            "name": "phpcfdi/cfdi-expresiones",
+            "version": "v3.3.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/phpcfdi/cfdi-expresiones.git",
+                "reference": "db116bcff94ba16c03a805e1a5c5ca3d3c867534"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/phpcfdi/cfdi-expresiones/zipball/db116bcff94ba16c03a805e1a5c5ca3d3c867534",
+                "reference": "db116bcff94ba16c03a805e1a5c5ca3d3c867534",
+                "shasum": ""
+            },
+            "require": {
+                "ext-dom": "*",
+                "ext-mbstring": "*",
+                "php": ">=8.1"
+            },
+            "require-dev": {
+                "ext-json": "*",
+                "phpunit/phpunit": "^10.5.45"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PhpCfdi\\CfdiExpresiones\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Carlos C Soto",
+                    "email": "eclipxe13@gmail.com",
+                    "homepage": "https://eclipxe.com.mx/"
+                }
+            ],
+            "description": "Genera expresiones de CFDI 4.0, CFDI 3.3, CFDI 3.2, RET 1.0 y RET 2.0",
+            "homepage": "https://github.com/phpcfdi/cfdi-expresiones",
+            "keywords": [
+                "cfdi",
+                "phpcfdi",
+                "sat"
+            ],
+            "support": {
+                "issues": "https://github.com/phpcfdi/cfdi-expresiones/issues",
+                "source": "https://github.com/phpcfdi/cfdi-expresiones"
+            },
+            "time": "2025-04-14T05:00:52+00:00"
+        },
+        {
+            "name": "phpcfdi/sat-estado-cfdi",
+            "version": "v1.0.3",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/phpcfdi/sat-estado-cfdi.git",
+                "reference": "a836ddd0578b2c042840a232c4a37417798cf0a2"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/phpcfdi/sat-estado-cfdi/zipball/a836ddd0578b2c042840a232c4a37417798cf0a2",
+                "reference": "a836ddd0578b2c042840a232c4a37417798cf0a2",
+                "shasum": ""
+            },
+            "require": {
+                "eclipxe/enum": "^0.2",
+                "php": ">=7.3"
+            },
+            "require-dev": {
+                "phpcfdi/cfdi-expresiones": "^3.0",
+                "phpunit/phpunit": "^9.5"
+            },
+            "suggest": {
+                "phpcfdi/cfdi-expresiones": "Genera expresiones de CFDI 3.3, CFDI 3.2 y RET 1.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PhpCfdi\\SatEstadoCfdi\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Carlos C Soto",
+                    "email": "eclipxe13@gmail.com"
+                }
+            ],
+            "description": "Consulta el estado de un cfdi en el webservice del SAT",
+            "homepage": "https://github.com/phpcfdi/sat-estado-cfdi",
+            "keywords": [
+                "ConsultaCFDIService.svc",
+                "cfdi",
+                "phpcfdi",
+                "sat"
+            ],
+            "support": {
+                "issues": "https://github.com/phpcfdi/sat-estado-cfdi/issues",
+                "source": "https://github.com/phpcfdi/sat-estado-cfdi"
+            },
+            "time": "2022-02-23T04:35:50+00:00"
+        },
+        {
+            "name": "phpcfdi/sat-estado-cfdi-soap",
+            "version": "v1.0.3",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/phpcfdi/sat-estado-cfdi-soap.git",
+                "reference": "67309e1b58cdeb1504ed96194f55abc4db3e8af1"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/phpcfdi/sat-estado-cfdi-soap/zipball/67309e1b58cdeb1504ed96194f55abc4db3e8af1",
+                "reference": "67309e1b58cdeb1504ed96194f55abc4db3e8af1",
+                "shasum": ""
+            },
+            "require": {
+                "ext-soap": "*",
+                "php": ">=7.3",
+                "phpcfdi/sat-estado-cfdi": "^1.0.2"
+            },
+            "require-dev": {
+                "phpcfdi/cfdi-expresiones": "^3.0",
+                "phpunit/phpunit": "^9.5"
+            },
+            "suggest": {
+                "phpcfdi/cfdi-expresiones": "Genera expresiones de CFDI 3.3, CFDI 3.2 y RET 1.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PhpCfdi\\SatEstadoCfdi\\Soap\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Carlos C Soto",
+                    "email": "eclipxe13@gmail.com"
+                }
+            ],
+            "description": "Consulta el estado de un CFDI en el webservice del SAT usando SOAP (sin WSDL)",
+            "homepage": "https://github.com/phpcfdi/sat-estado-cfdi-soap",
+            "keywords": [
+                "ConsultaCFDIService.svc",
+                "cfdi",
+                "phpcfdi",
+                "sat"
+            ],
+            "support": {
+                "issues": "https://github.com/phpcfdi/sat-estado-cfdi-soap/issues",
+                "source": "https://github.com/phpcfdi/sat-estado-cfdi-soap"
+            },
+            "abandoned": "phpcfdi/sat-estado-cfdi",
+            "time": "2022-02-23T08:10:19+00:00"
         },
         {
             "name": "phpoffice/math",

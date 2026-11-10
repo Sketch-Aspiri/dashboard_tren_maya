@@ -78,13 +78,13 @@ final class FacturasLibro
         }
 
         $this->tabla($libro->createSheet(), 'Hallazgos', ['Estación', 'Factura', 'Cotización', 'Renglón', 'Tipo', 'Detalle', 'Valor cotizado', 'Valor facturado', 'Diferencia'], $filas, [24, 16, 24, 9, 10, 80, 14, 14, 14], ['G', 'H', 'I']);
-        $this->tabla($libro->createSheet(), 'Por factura', ['UUID', 'Emisor', 'RFC', 'Factura', 'Cotización', 'Cómo se vinculó', 'Subtotal', 'IVA', 'ISR retenido', 'Total', 'OK', 'ALERTA', 'ERROR', 'REVISAR', 'Estado'],
+        $this->tabla($libro->createSheet(), 'Por factura', ['UUID', 'Emisor', 'RFC', 'Factura', 'Cotización', 'Cómo se vinculó', 'Subtotal', 'IVA', 'ISR retenido', 'Total', 'OK', 'ALERTA', 'ERROR', 'REVISAR', 'Estado', 'SAT'],
             $facturas->map(function (Factura $f) use ($hallazgos) {
                 $conteo = collect($hallazgos->get($f->id, []))->countBy('tipo');
 
                 return [$f->uuid, $f->emisor_nombre, $f->emisor_rfc, $f->referencia(), $f->cotizacion ? $f->cotizacion->proveedor.' '.$f->cotizacion->folio : null, $f->vinculo_cotizacion,
-                    (float) $f->subtotal, (float) $f->iva, (float) $f->isr_retenido, (float) $f->total, (int) $conteo->get('OK', 0), (int) $conteo->get('ALERTA', 0), (int) $conteo->get('ERROR', 0), (int) $conteo->get('REVISAR', 0), $f->estado];
-            })->all(), [38, 30, 15, 14, 24, 14, 13, 13, 13, 13, 6, 8, 8, 9, 10], ['G', 'H', 'I', 'J']);
+                    (float) $f->subtotal, (float) $f->iva, (float) $f->isr_retenido, (float) $f->total, (int) $conteo->get('OK', 0), (int) $conteo->get('ALERTA', 0), (int) $conteo->get('ERROR', 0), (int) $conteo->get('REVISAR', 0), $f->estado, $f->verificacion_sat];
+            })->all(), [38, 30, 15, 14, 24, 14, 13, 13, 13, 13, 6, 8, 8, 9, 10, 16], ['G', 'H', 'I', 'J']);
 
         $this->tabla($libro->createSheet(), 'Por estación', ['Estación', 'Facturas', 'Total facturado', 'OK', 'ALERTA', 'ERROR', 'REVISAR', 'Importe no facturado'],
             $this->porEstacion($facturas, $hallazgos, $noFacturado), [26, 10, 16, 6, 8, 8, 9, 18], ['C', 'H']);

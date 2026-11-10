@@ -117,6 +117,11 @@ final class ComprobacionPdfService
             throw new InvalidArgumentException('Falta el PDF de la factura '.$faltantes->map(fn (Factura $f) => $f->referencia() ?: $f->uuid)->implode(', ').'. Súbelo en su ficha.');
         }
 
+        $canceladas = $facturas->filter(fn (Factura $f) => $f->verificacion_sat === 'CANCELADO');
+        if ($canceladas->isNotEmpty()) {
+            throw new InvalidArgumentException('El SAT reporta como CANCELADA la factura '.$canceladas->map(fn (Factura $f) => $f->referencia() ?: $f->uuid)->implode(', ').': no se puede generar su comprobación.');
+        }
+
         $trabajo = DirectorioTemporal::ruta().DIRECTORY_SEPARATOR.'cmp_'.Str::uuid()->toString();
         File::ensureDirectoryExists($trabajo, 0700, true);
 
