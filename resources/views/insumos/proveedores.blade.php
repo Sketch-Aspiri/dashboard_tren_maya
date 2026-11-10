@@ -70,6 +70,9 @@
                     <thead class="bg-brand-mist text-left text-xs font-semibold uppercase tracking-wide text-brand-green">
                         <tr>
                             <th class="px-4 py-3">{{ __('Proveedor') }}</th>
+                            <th class="px-4 py-3">{{ __('RFC') }}</th>
+                            <th class="px-4 py-3">{{ __('Giro') }}</th>
+                            <th class="px-4 py-3">{{ __('Ubicación') }}</th>
                             <th class="px-4 py-3">{{ __('IVA') }}</th>
                             <th class="px-4 py-3">{{ __('Retiene ISR') }}</th>
                             <th class="px-4 py-3"></th>
@@ -80,6 +83,9 @@
                             @php $formId = 'proveedor-'.$proveedor->id; @endphp
                             <tr class="align-middle">
                                 <td class="px-4 py-2 font-medium text-gray-900">{{ $proveedor->nombre }}</td>
+                                <td class="px-4 py-2 font-mono text-xs text-gray-600">{{ $proveedor->rfc ?: '—' }}</td>
+                                <td class="px-4 py-2 text-gray-600">{{ $proveedor->giro ?: '—' }}</td>
+                                <td class="px-4 py-2 text-gray-600">{{ $proveedor->ubicacion ?: '—' }}</td>
                                 <td class="px-4 py-2">
                                     <select form="{{ $formId }}" name="iva" class="{{ $campo }} w-36 {{ $proveedor->iva === null ? 'border-amber-400' : '' }}">
                                         <option value="">{{ __('Sin definir') }}</option>
@@ -107,7 +113,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="px-4 py-8 text-center text-gray-500">{{ __('Aún no hay proveedores. Agrega uno o carga el catálogo.') }}</td>
+                                <td colspan="7" class="px-4 py-8 text-center text-gray-500">{{ __('Aún no hay proveedores. Agrega uno o carga el catálogo.') }}</td>
                             </tr>
                         @endforelse
                     </tbody>

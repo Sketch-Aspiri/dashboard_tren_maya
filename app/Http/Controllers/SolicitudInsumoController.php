@@ -10,6 +10,7 @@ use App\Models\Estacion;
 use App\Models\Proveedor;
 use App\Models\SolicitudInsumo;
 use App\Services\ConsolidadoInsumosService;
+use App\Services\InventarioEstacionService;
 use App\Services\ProveedorService;
 use App\Services\SolicitudInsumoService;
 use Illuminate\Contracts\View\View;
@@ -29,6 +30,7 @@ class SolicitudInsumoController extends Controller
         private readonly SolicitudInsumoService $service,
         private readonly ConsolidadoInsumosService $consolidado,
         private readonly ProveedorService $proveedores,
+        private readonly InventarioEstacionService $inventario,
     ) {}
 
     /**
@@ -88,6 +90,8 @@ class SolicitudInsumoController extends Controller
             'puedeEditar' => $request->user()->can('update', $solicitud),
             'puedeRevisar' => $request->user()->can('review', $solicitud),
             'limite' => (float) config('insumos.limite_estacion'),
+            // Lo que la estación ya tiene (resguardos) frente a lo que pide.
+            'avisosPorDescripcion' => $this->inventario->avisosDe($solicitud->estacion, $solicitud->partidas->mapWithKeys(fn ($p) => [trim($p->descripcion) => $p->descripcion])),
             // Precio e IVA estimados de cada insumo del catálogo, para calcular al
             // vuelo cuánto presupuesto le queda a la estación mientras captura.
             'catalogo' => CatalogoInsumo::query()->where('activo', true)->orderBy('descripcion')

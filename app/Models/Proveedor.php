@@ -23,6 +23,8 @@ class Proveedor extends Model
     protected $fillable = [
         'nombre',
         'rfc',
+        'giro',
+        'ubicacion',
         'iva',
         'retiene_isr',
     ];

@@ -16,6 +16,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\FacturaComprobacionController;
 use App\Http\Controllers\FacturaController;
+use App\Http\Controllers\InventarioEstacionController;
 use App\Http\Controllers\FacturaReporteController;
 use App\Http\Controllers\FormatoSolicitudInsumoController;
 use App\Http\Controllers\Nube\NubeCredencialController;
@@ -262,6 +263,9 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
         Route::get('/catalogo/buscar', [SolicitudInsumoController::class, 'catalogo'])
             ->middleware('throttle:60,1')->name('catalogo.buscar');
         Route::get('/catalogo', [CatalogoInsumoController::class, 'index'])->name('catalogo.index');
+        Route::get('/inventario', [InventarioEstacionController::class, 'index'])->name('inventario.index');
+        Route::get('/inventario/verificar', [InventarioEstacionController::class, 'verificar'])
+            ->middleware('throttle:120,1')->name('inventario.verificar');
         Route::get('/proveedores', [ProveedorController::class, 'index'])->name('proveedores.index');
         Route::get('/coordinacion', [CoordinacionInsumosController::class, 'index'])->name('coordinacion.index');
         Route::get('/facturas', [FacturaController::class, 'index'])->name('facturas.index');

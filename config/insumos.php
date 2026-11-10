@@ -21,12 +21,17 @@ return [
     'tolerancia_redondeo' => 0.05,
     'tolerancia_importe' => 0.10,
     'tolerancia_precio_alerta' => 0.05,
-    // Hoja de validación de la comprobación (PDF por factura): texto fijo y dirección.
+    // Inventario de las estaciones (resguardos): meses hacia atrás en que una entrega de consumibles
+    // todavía cuenta como "se le entregó hace poco" al avisar de un pedido repetido.
+    'inventario' => [
+        'meses_consumibles' => (int) env('INSUMOS_INVENTARIO_MESES_CONSUMIBLES', 3),
+    ],
     // Consulta del estado de cada factura en el servicio público del SAT.
     'sat' => [
         'consulta_automatica' => (bool) env('INSUMOS_SAT_AUTOMATICO', true),
         'timeout' => 12,
     ],
+    // Hoja de validación de la comprobación (PDF por factura): texto fijo y dirección.
     'comprobacion' => [
         'maximo_estaciones_en_texto' => 4,
         // Quienes firman por defecto la hoja de validación; en pantalla se pueden cambiar.
