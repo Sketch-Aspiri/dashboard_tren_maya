@@ -51,8 +51,8 @@ final class ConsultorSatPhpCfdi implements ConsultorSat
 
         return new ResultadoSat(
             $codigo,
-            (string) $estado->cancellable()->value(),
-            (string) $estado->cancellation()->value(),
+            ResultadoSat::textoCancelable((string) $estado->cancellable()->value()),
+            ResultadoSat::textoCancelacion((string) $estado->cancellation()->value()),
             mb_substr($expresion, 0, 255),
         );
     }

@@ -42,6 +42,7 @@
                     {{ __('SAT') }}:
                     <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium {{ $estilosSat[$factura->verificacion_sat] ?? 'bg-gray-100 text-gray-700' }}">{{ $factura->verificacion_sat }}</span>
                     @if ($factura->sat_consultado_at)<span class="text-xs text-gray-500">{{ $factura->sat_consultado_at->format('d/m/Y H:i') }}</span>@endif
+                    @if ($factura->sat_es_cancelable)<span class="text-xs text-gray-500">· {{ $factura->sat_es_cancelable }}@if ($factura->sat_estatus_cancelacion && $factura->sat_estatus_cancelacion !== 'Sin cancelación en proceso') · {{ $factura->sat_estatus_cancelacion }}@endif</span>@endif
                 </span>
                 <form method="POST" action="{{ route('insumos.facturas.verificar-sat', $factura) }}" class="inline">
                     @csrf

@@ -106,6 +106,17 @@ class VerificacionSatTest extends TestCase
         $this->assertNotContains('ERROR:CANCELADA_SAT', $this->hallazgos($factura));
     }
 
+    public function test_los_estados_de_cancelacion_del_sat_se_traducen_al_espanol(): void
+    {
+        $this->assertSame('Cancelable con aceptación', ResultadoSat::textoCancelable('cancellableByApproval'));
+        $this->assertSame('Cancelable sin aceptación', ResultadoSat::textoCancelable('cancellableByDirectCall'));
+        $this->assertSame('No cancelable', ResultadoSat::textoCancelable('notCancellable'));
+        $this->assertSame('Sin cancelación en proceso', ResultadoSat::textoCancelacion('undefined'));
+        $this->assertSame('Cancelado por plazo vencido', ResultadoSat::textoCancelacion('cancelledByExpiration'));
+        $this->assertSame('Algo nuevo', ResultadoSat::textoCancelable('Algo nuevo'));
+        $this->assertNull(ResultadoSat::textoCancelable(''));
+    }
+
     public function test_cancelada_marca_error_y_bloquea_la_comprobacion_en_pdf(): void
     {
         $this->actingAsTwoFactorVerified($this->jefe());
