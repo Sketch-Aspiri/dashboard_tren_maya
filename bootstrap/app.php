@@ -12,6 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Detras del tunel de Cloudflare (HTTPS) las URLs de assets deben salir como https.
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'two-factor.verified' => EnsureTwoFactorIsVerified::class,
         ]);
