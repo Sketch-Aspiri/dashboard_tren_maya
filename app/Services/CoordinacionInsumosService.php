@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Estacion;
 use App\Models\SolicitudInsumo;
 use App\Models\SolicitudInsumoPartida;
 use App\Models\User;
@@ -20,6 +21,9 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 final class CoordinacionInsumosService
 {
     private const MAX_FILAS = 3000;
+
+    /** @var array<string, string>|null Código de estación por nombre (solo letras), cargado al primer uso. */
+    private ?array $estacionesPorNombre = null;
 
     public function __construct(private readonly CatalogoInsumoService $anexos) {}
 
@@ -87,7 +91,7 @@ final class CoordinacionInsumosService
                 $solicitud = $solicitudes->get((string) $codigo);
 
                 if ($solicitud === null) {
-                    $resumen['sin_solicitud'][] = $bloque['titulo'];
+                    $resumen['sin_solicitud'][] = $bloque['titulo'].(str_starts_with((string) $codigo, 'sin_reconocer_') ? ' (no se reconoció la estación)' : '');
 
                     continue;
                 }
@@ -194,27 +198,74 @@ final class CoordinacionInsumosService
     private function leerBloques(Worksheet $hoja): array
     {
         $bloques = [];
-        $codigo = null;
+        $actual = null;
+        $sinReconocer = 0;
         $limite = min($hoja->getHighestRow(), self::MAX_FILAS);
 
         for ($i = 1; $i <= $limite; $i++) {
             $titulo = trim((string) $hoja->getCell('B'.$i)->getValue());
 
-            if (preg_match('/^(\d{2})_(.+)$/u', $titulo, $m) === 1) {
-                $codigo = $m[1];
-                $bloques[$codigo] = ['titulo' => $titulo, 'renglones' => []];
+            if ($this->esTituloDeBloque($hoja, $i, $titulo)) {
+                // Un título que no se reconoce abre su propio bloque: sus renglones
+                // nunca se pegan a la estación anterior.
+                $actual = $this->codigoDeTitulo($titulo) ?? 'sin_reconocer_'.(++$sinReconocer);
+                $bloques[$actual] ??= ['titulo' => $titulo, 'renglones' => []];
 
                 continue;
             }
 
-            $renglon = $codigo === null ? null : $this->leerRenglon($hoja, $i);
+            $renglon = $actual === null ? null : $this->leerRenglon($hoja, $i);
 
             if ($renglon !== null) {
-                $bloques[$codigo]['renglones'][] = $renglon;
+                $bloques[$actual]['renglones'][] = $renglon;
             }
         }
 
         return $bloques;
+    }
+
+    /**
+     * Un bloque empieza en una fila de texto en la columna B seguida, una o dos
+     * filas abajo, del encabezado de la tabla ("N°"), sin importar cómo esté
+     * escrito el nombre de la estación.
+     */
+    private function esTituloDeBloque(Worksheet $hoja, int $fila, string $titulo): bool
+    {
+        if ($titulo === '' || is_numeric($titulo) || $titulo === 'N°') {
+            return false;
+        }
+
+        // Estación reconocible por código o nombre; si no, el patrón título / gerente / encabezado.
+        return $this->codigoDeTitulo($titulo) !== null
+            || trim((string) $hoja->getCell('B'.($fila + 2))->getValue()) === 'N°';
+    }
+
+    /**
+     * Código de estación de un título: los dos dígitos del principio ("23_",
+     * "26 _  Tulum", "29 BACALAR") o, si no trae, el nombre de una estación
+     * ("Playa del Carmen"). null si no se reconoce.
+     */
+    private function codigoDeTitulo(string $titulo): ?string
+    {
+        if (preg_match('/^\s*(\d{2})(?!\d)/u', $titulo, $m) === 1) {
+            return $m[1];
+        }
+
+        $buscado = $this->soloLetras($titulo);
+
+        if ($buscado === '') {
+            return null;
+        }
+
+        $this->estacionesPorNombre ??= Estacion::query()->whereNotNull('codigo')->get(['nombre', 'codigo'])
+            ->mapWithKeys(fn (Estacion $e) => [$this->soloLetras($e->nombre) => (string) $e->codigo])->all();
+
+        return $this->estacionesPorNombre[$buscado] ?? null;
+    }
+
+    private function soloLetras(string $texto): string
+    {
+        return (string) preg_replace('/[^a-z]/', '', Str::ascii(mb_strtolower($texto)));
     }
 
     /**

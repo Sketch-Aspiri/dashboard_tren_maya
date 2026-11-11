@@ -1,0 +1,786 @@
+[
+{
+"id": 17,
+"descripcion": "Escuadra de 2 pulgadas",
+"partida": "29101",
+"confianza": "MEDIA",
+"motivo": "Herramientas menores"
+},
+{
+"id": 47,
+"descripcion": "Cabezal de Regadera 3.5\" Redonda de Acero Inoxidable Nápoles, Cromado ― Incluye Brazo",
+"partida": "29801",
+"confianza": "ALTA",
+"motivo": "Refacciones y accesorios menores de maquinaria"
+},
+{
+"id": 48,
+"descripcion": "Juego de accesorios para wc de 2\"",
+"partida": "24701",
+"confianza": "MEDIA",
+"motivo": "Articulos metalicos / plomeria para construccion"
+},
+{
+"id": 49,
+"descripcion": "Aceite de dos tiempos",
+"partida": "26105",
+"confianza": "ALTA",
+"motivo": "Lubricantes y aditivos para maquinaria"
+},
+{
+"id": 50,
+"descripcion": "Adhesivo de montaje Adiós clavos, 140 g, TRUPER. Codigo:102281",
+"partida": "24701",
+"confianza": "MEDIA",
+"motivo": "Articulos metalicos / plomeria para construccion"
+},
+{
+"id": 51,
+"descripcion": "Cinta doble cara de 19 mm x 5 m, PRETUL",
+"partida": "26105",
+"confianza": "ALTA",
+"motivo": "Igual al catalogo #113 (Cinta doble cara de 19 mm x 10 m, TRUPER)"
+},
+{
+"id": 52,
+"descripcion": "Pintura aerosol blanco brillante, bote esbelto 400 ml,TRUPER",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas y selladores"
+},
+{
+"id": 53,
+"descripcion": "Pasta fina uniblock 20 kg. SKU 143364",
+"partida": "24201",
+"confianza": "MEDIA",
+"motivo": "Cemento y productos de concreto (el equipo ha usado 24301)"
+},
+{
+"id": 54,
+"descripcion": "Blíster de 50 tornillos para madera 8 x 2 pulgadas plata",
+"partida": "24401",
+"confianza": "ALTA",
+"motivo": "Madera y productos de madera"
+},
+{
+"id": 55,
+"descripcion": "Apagador sencillo 10 amp 127 v. SKU 158555",
+"partida": "24601",
+"confianza": "ALTA",
+"motivo": "Material electrico y electronico"
+},
+{
+"id": 56,
+"descripcion": "Probador de voltaje sin contacto de triple rango, TRUPER",
+"partida": "29101",
+"confianza": "MEDIA",
+"motivo": "Instrumentos de mano: herramientas menores"
+},
+{
+"id": 57,
+"descripcion": "Aceite dos tiempo",
+"partida": "26105",
+"confianza": "ALTA",
+"motivo": "Lubricantes y aditivos para maquinaria"
+},
+{
+"id": 58,
+"descripcion": "Pintura de aceite Negro Brillante C62BJ02 (38 lts)",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas y selladores"
+},
+{
+"id": 59,
+"descripcion": "Pintura esmalte color gris Dovetail SW 7018",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas y selladores"
+},
+{
+"id": 62,
+"descripcion": "Lampara tipo spot 24 watts marca Tecno lite- Luz blanca de 295 mm de diámetro de 127-240 v.",
+"partida": "24601",
+"confianza": "ALTA",
+"motivo": "Material electrico y electronico"
+},
+{
+"id": 63,
+"descripcion": "Asientos alargados con tapa para sanitario",
+"partida": "24701",
+"confianza": "MEDIA",
+"motivo": "Articulos metalicos / plomeria para construccion"
+},
+{
+"id": 64,
+"descripcion": "Pintura verde maya marca berel código 3505",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas y selladores"
+},
+{
+"id": 65,
+"descripcion": "Pintura blanco ostión marca berel código 660054",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas y selladores"
+},
+{
+"id": 66,
+"descripcion": "Pintura blanco pastel marca berel código 3523",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas y selladores"
+},
+{
+"id": 67,
+"descripcion": "Pintura blanca marca berel",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas y selladores"
+},
+{
+"id": 68,
+"descripcion": "Pintura crema maya marca berel código 350002",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas y selladores"
+},
+{
+"id": 69,
+"descripcion": "Manguera Flexible para WC Coflex.",
+"partida": "24701",
+"confianza": "MEDIA",
+"motivo": "Articulos metalicos / plomeria para construccion"
+},
+{
+"id": 70,
+"descripcion": "cuello flexible coflex p/tubería de 4”",
+"partida": "24701",
+"confianza": "MEDIA",
+"motivo": "Articulos metalicos / plomeria para construccion"
+},
+{
+"id": 71,
+"descripcion": "Émbolo Para Fluxómetro De Wc marca Helvex.",
+"partida": "24701",
+"confianza": "MEDIA",
+"motivo": "Articulos metalicos / plomeria para construccion"
+},
+{
+"id": 72,
+"descripcion": "Machetes, para las labores de mantenimiento en las áreas verdes.",
+"partida": "29101",
+"confianza": "MEDIA",
+"motivo": "Herramientas menores"
+},
+{
+"id": 73,
+"descripcion": "Lima triangular para afilar machete",
+"partida": "29101",
+"confianza": "MEDIA",
+"motivo": "Herramientas menores"
+},
+{
+"id": 74,
+"descripcion": "Brochas de 2\"",
+"partida": "29101",
+"confianza": "ALTA",
+"motivo": "Igual al catalogo #104 (Brocha #4\")"
+},
+{
+"id": 75,
+"descripcion": "Lampara de plafon de 300 mm redonda de 30 w 6500k-720 lumenes",
+"partida": "24601",
+"confianza": "ALTA",
+"motivo": "Material electrico y electronico"
+},
+{
+"id": 76,
+"descripcion": "Hilo redondo para desbrozadora, diámetro de 3.3 mm Truper HLB-155,",
+"partida": "29801",
+"confianza": "ALTA",
+"motivo": "Refacciones y accesorios menores de maquinaria"
+},
+{
+"id": 77,
+"descripcion": "Convertidor De Óxido En Primario Acuario Convertor 4 Litros Color Blanco",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas y selladores"
+},
+{
+"id": 78,
+"descripcion": "Silicon DURETAN color Blanco",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas, adhesivos, selladores y abrasivos"
+},
+{
+"id": 79,
+"descripcion": "Cinta adhesiva doble caralavable a prueba de agua 5mx3cm",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas, adhesivos, selladores y abrasivos"
+},
+{
+"id": 80,
+"descripcion": "Machete",
+"partida": "29101",
+"confianza": "MEDIA",
+"motivo": "Herramientas menores"
+},
+{
+"id": 81,
+"descripcion": "Luminarios LED empotrados redondos, ultradelgados EMP-202L, 18W, 1600 lm",
+"partida": "24601",
+"confianza": "ALTA",
+"motivo": "Material electrico y electronico"
+},
+{
+"id": 82,
+"descripcion": "Pintura AcrÍlica base agua color azul",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas y selladores"
+},
+{
+"id": 83,
+"descripcion": "Valvula de nariz uso rudo 1/2 pulgada",
+"partida": "24701",
+"confianza": "MEDIA",
+"motivo": "Articulos metalicos / plomeria para construccion"
+},
+{
+"id": 84,
+"descripcion": "Silicon no mas clavos",
+"partida": "24701",
+"confianza": "MEDIA",
+"motivo": "Articulos metalicos / plomeria para construccion"
+},
+{
+"id": 85,
+"descripcion": "Gas refrigerante r410a",
+"partida": "26105",
+"confianza": "BAJA",
+"motivo": "Gas refrigerante: aditivo/consumible de equipo; revisar"
+},
+{
+"id": 86,
+"descripcion": "Rodillo para pintar",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas, adhesivos, selladores y abrasivos"
+},
+{
+"id": 87,
+"descripcion": "Brochas de 2 pulgadas",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas, adhesivos, selladores y abrasivos"
+},
+{
+"id": 88,
+"descripcion": "Brochas de 4 pulgadas",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas, adhesivos, selladores y abrasivos"
+},
+{
+"id": 89,
+"descripcion": "Redimix 6 kg",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas y selladores"
+},
+{
+"id": 90,
+"descripcion": "Sellador vinilico",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas y selladores"
+},
+{
+"id": 91,
+"descripcion": "Tubo de grasa de base litio",
+"partida": "26105",
+"confianza": "ALTA",
+"motivo": "Lubricantes y aditivos para maquinaria"
+},
+{
+"id": 93,
+"descripcion": "Aspersor de riego emergente de 360°.",
+"partida": "29801",
+"confianza": "ALTA",
+"motivo": "Refacciones y accesorios menores de maquinaria"
+},
+{
+"id": 94,
+"descripcion": "Tubo pvc hidr ced 40 1/2 x 3 mts",
+"partida": "24701",
+"confianza": "MEDIA",
+"motivo": "Articulos metalicos / plomeria para construccion"
+},
+{
+"id": 95,
+"descripcion": "Codos PVC de 1/2\"",
+"partida": "24701",
+"confianza": "MEDIA",
+"motivo": "Articulos metalicos / plomeria para construccion"
+},
+{
+"id": 96,
+"descripcion": "Coples pvc 1/2\"",
+"partida": "24701",
+"confianza": "MEDIA",
+"motivo": "Articulos metalicos / plomeria para construccion"
+},
+{
+"id": 97,
+"descripcion": "Adaptador PVC macho 1/2\"",
+"partida": "24701",
+"confianza": "MEDIA",
+"motivo": "Articulos metalicos / plomeria para construccion"
+},
+{
+"id": 98,
+"descripcion": "Lija para plomero",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas, adhesivos, selladores y abrasivos"
+},
+{
+"id": 99,
+"descripcion": "Pegamento Tangit 240 ML P/PVC",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas, adhesivos, selladores y abrasivos"
+},
+{
+"id": 100,
+"descripcion": "Tubo silicón trasnparente 280 ml",
+"partida": "24701",
+"confianza": "MEDIA",
+"motivo": "Articulos metalicos / plomeria para construccion"
+},
+{
+"id": 101,
+"descripcion": "Pintura azul para piso PCD, (AZUL S.M.A. RGB: 50, 71,157)",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas y selladores"
+},
+{
+"id": 102,
+"descripcion": "Luminaria led empotrado Tecnolite luz blanca de 28 mm de diámetro de 127-240 18YDLED430MV65B",
+"partida": "24601",
+"confianza": "ALTA",
+"motivo": "Material electrico y electronico"
+},
+{
+"id": 103,
+"descripcion": "Brocha #2-1/2\"",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas, adhesivos, selladores y abrasivos"
+},
+{
+"id": 105,
+"descripcion": "Pijas para taquetes de 1/4 de 11/2\" de largo",
+"partida": "24701",
+"confianza": "MEDIA",
+"motivo": "Articulos metalicos / plomeria para construccion"
+},
+{
+"id": 106,
+"descripcion": "Filo de segueta",
+"partida": "29101",
+"confianza": "MEDIA",
+"motivo": "Herramientas menores"
+},
+{
+"id": 107,
+"descripcion": "Niple para tuberia galvanizada de 11/4\"",
+"partida": "24701",
+"confianza": "MEDIA",
+"motivo": "Articulos metalicos / plomeria para construccion"
+},
+{
+"id": 108,
+"descripcion": "Cinta para ductos gris 48mm x 30m PRETUL",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas, adhesivos, selladores y abrasivos"
+},
+{
+"id": 109,
+"descripcion": "hoja de neopreno para hacer de 40x40 de 4mm de espesor",
+"partida": "24801",
+"confianza": "MEDIA",
+"motivo": "Materiales complementarios / senalizacion"
+},
+{
+"id": 110,
+"descripcion": "Carrete con 12 m de cable primario rojo calibre 18, TRUPER",
+"partida": "29801",
+"confianza": "ALTA",
+"motivo": "Refacciones de desbrozadora"
+},
+{
+"id": 111,
+"descripcion": "Interruptor de sobreponer para timbre, VOLTECK",
+"partida": "24601",
+"confianza": "ALTA",
+"motivo": "Material electrico y electronico"
+},
+{
+"id": 115,
+"descripcion": "Guantes de nylon recubiertos de nitrilo arenoso, G, TRUPER",
+"partida": "27201",
+"confianza": "ALTA",
+"motivo": "Prendas de proteccion personal"
+},
+{
+"id": 116,
+"descripcion": "Resorte De Compresion .025x.312x1.437 (100 pza)",
+"partida": "29801",
+"confianza": "ALTA",
+"motivo": "Refacciones y accesorios menores de maquinaria"
+},
+{
+"id": 117,
+"descripcion": "pijabroca 8x1-5/8",
+"partida": "24701",
+"confianza": "MEDIA",
+"motivo": "Articulos metalicos / plomeria para construccion"
+},
+{
+"id": 118,
+"descripcion": "Rastrillo de jardinero",
+"partida": "29101",
+"confianza": "MEDIA",
+"motivo": "Herramientas menores"
+},
+{
+"id": 119,
+"descripcion": "pastilla de cloro al 90%",
+"partida": "21601",
+"confianza": "ALTA",
+"motivo": "Material de limpieza / quimicos de limpieza e higiene"
+},
+{
+"id": 120,
+"descripcion": "multimetro con pinza amperimetrica",
+"partida": "29101",
+"confianza": "MEDIA",
+"motivo": "Instrumentos de mano: herramientas menores"
+},
+{
+"id": 121,
+"descripcion": "llave inglesa",
+"partida": "29101",
+"confianza": "MEDIA",
+"motivo": "Herramientas menores"
+},
+{
+"id": 122,
+"descripcion": "Manómetro de presión de neumáticos",
+"partida": "29101",
+"confianza": "MEDIA",
+"motivo": "Instrumentos de mano: herramientas menores"
+},
+{
+"id": 123,
+"descripcion": "aire comprimido",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas, adhesivos, selladores y abrasivos"
+},
+{
+"id": 124,
+"descripcion": "desbrozadora a gasolina",
+"partida": "26105",
+"confianza": "ALTA",
+"motivo": "Lubricantes y aditivos para maquinaria"
+},
+{
+"id": 125,
+"descripcion": "aire comprimido.",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas, adhesivos, selladores y abrasivos"
+},
+{
+"id": 126,
+"descripcion": "Sopladora manual de aire para la limpieza de tableros eléctricos.",
+"partida": "29101",
+"confianza": "MEDIA",
+"motivo": "Herramientas menores"
+},
+{
+"id": 127,
+"descripcion": "Tijera para cortar ramas Truper TF-122",
+"partida": "29101",
+"confianza": "MEDIA",
+"motivo": "Herramientas menores"
+},
+{
+"id": 128,
+"descripcion": "Detector de humo marca Notifier modelo FSP-951T.",
+"partida": "24601",
+"confianza": "ALTA",
+"motivo": "Material electrico y electronico"
+},
+{
+"id": 129,
+"descripcion": "Brochas # 2",
+"partida": "29101",
+"confianza": "ALTA",
+"motivo": "Igual al catalogo #104 (Brocha #4\")"
+},
+{
+"id": 130,
+"descripcion": "Lampara de plafon de 300 mm redonda de 30 w 6500k-720",
+"partida": "24601",
+"confianza": "ALTA",
+"motivo": "Material electrico y electronico"
+},
+{
+"id": 131,
+"descripcion": "Contactor Bifasico con Bobina 220v",
+"partida": "24601",
+"confianza": "ALTA",
+"motivo": "Material electrico y electronico"
+},
+{
+"id": 132,
+"descripcion": "Cuerda de driza para masti de bandera de 15 metros",
+"partida": "24901",
+"confianza": "BAJA",
+"motivo": "Consumible de uso general; revisar"
+},
+{
+"id": 133,
+"descripcion": "Pintura de aceite en color Blanco, chocolate y amarillo trafico",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas y selladores"
+},
+{
+"id": 134,
+"descripcion": "convertidor de oxido de 1l",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas y selladores"
+},
+{
+"id": 135,
+"descripcion": "rodillo",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas, adhesivos, selladores y abrasivos"
+},
+{
+"id": 136,
+"descripcion": "Luminario spot de sobreponer para piso, sin foco, Spot dirigible, Tensión: 127 V, Compatible con focos LED y Halógenos de maximo 50 W, con base GU5.3 (GX5.3), Código 47394, clave SOB-701S.",
+"partida": "24601",
+"confianza": "ALTA",
+"motivo": "Material electrico y electronico"
+},
+{
+"id": 137,
+"descripcion": "Foco LED MR16 GU5.3 6W (40W) 6500 K luz blanca fría, VOLTECK, 127 V / 60 Hz, 450 lm.",
+"partida": "24601",
+"confianza": "ALTA",
+"motivo": "Material electrico y electronico"
+},
+{
+"id": 138,
+"descripcion": "Litro de Pintura AcrÍlica base agua color azul",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas y selladores"
+},
+{
+"id": 139,
+"descripcion": "Litro de Pintura AcrÍlica base agua color verde",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas y selladores"
+},
+{
+"id": 140,
+"descripcion": "Litro de Pintura AcrÍlica base agua color blanca",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas y selladores"
+},
+{
+"id": 141,
+"descripcion": "Litro de Pintura AcrÍlica base agua color amarilla",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas y selladores"
+},
+{
+"id": 142,
+"descripcion": "Truper Rollo de 18m de cinta antiderrapante negra 50mm con abrasivo, clave CIA-218N",
+"partida": "24801",
+"confianza": "MEDIA",
+"motivo": "Materiales complementarios / senalizacion"
+},
+{
+"id": 143,
+"descripcion": "Juego de 2 tapas blancas de PVC para coladera 5\", FOSET",
+"partida": "24701",
+"confianza": "MEDIA",
+"motivo": "Articulos metalicos / plomeria para construccion"
+},
+{
+"id": 144,
+"descripcion": "Lubricante multiusos en aerosol, 550ml (19oz), TRUPER WT-550",
+"partida": "26105",
+"confianza": "ALTA",
+"motivo": "Lubricantes y aditivos para maquinaria"
+},
+{
+"id": 145,
+"descripcion": "Conector Móvil para Tubo de 12.7mm de acero inoxidable 304 de carandal con acabado satinado.",
+"partida": "24601",
+"confianza": "ALTA",
+"motivo": "Material electrico y electronico"
+},
+{
+"id": 146,
+"descripcion": "Alambre recocido calibre 16",
+"partida": "24701",
+"confianza": "MEDIA",
+"motivo": "Articulos metalicos / plomeria para construccion"
+},
+{
+"id": 147,
+"descripcion": "Esmalte XTRONG SAYER LACK Gris mate 1 Litro",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas y selladores"
+},
+{
+"id": 148,
+"descripcion": "Anticorrosivo Primario SAYER LACK Gris 1 LT",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas y selladores"
+},
+{
+"id": 149,
+"descripcion": "Rollo de 200m de hilo para desbrozadora",
+"partida": "29801",
+"confianza": "ALTA",
+"motivo": "Igual al catalogo #34 (Hilo para desbrozadora.)"
+},
+{
+"id": 150,
+"descripcion": "Aceite para desbrozadora",
+"partida": "29801",
+"confianza": "ALTA",
+"motivo": "Igual al catalogo #34 (Hilo para desbrozadora.)"
+},
+{
+"id": 151,
+"descripcion": "Cabezal para desbrozadora ASKI modelo DSMLZ-52CC-AK",
+"partida": "29801",
+"confianza": "ALTA",
+"motivo": "Igual al catalogo #22 (Cabezal de hilo para desbrozadora truper)"
+},
+{
+"id": 152,
+"descripcion": "Cabezal para desbrozadora TRUPER DES-330",
+"partida": "29801",
+"confianza": "ALTA",
+"motivo": "Igual al catalogo #22 (Cabezal de hilo para desbrozadora truper)"
+},
+{
+"id": 153,
+"descripcion": "Lima de dos caras para afilar machete",
+"partida": "29101",
+"confianza": "MEDIA",
+"motivo": "Herramientas menores"
+},
+{
+"id": 154,
+"descripcion": "Cespol para mingitorio seco",
+"partida": "29101",
+"confianza": "ALTA",
+"motivo": "Igual al catalogo #92 (Cespol para mingitorio humedo)"
+},
+{
+"id": 155,
+"descripcion": "Bomba destapacaños",
+"partida": "29101",
+"confianza": "MEDIA",
+"motivo": "Herramientas menores"
+},
+{
+"id": 156,
+"descripcion": "tuerca unión de 3/4 cpvc",
+"partida": "24701",
+"confianza": "MEDIA",
+"motivo": "Articulos metalicos / plomeria para construccion"
+},
+{
+"id": 157,
+"descripcion": "Pintura verde obscuro",
+"partida": "24901",
+"confianza": "ALTA",
+"motivo": "Pinturas y selladores"
+},
+{
+"id": 158,
+"descripcion": "Soporte para tanque Gasolina Des-63",
+"partida": "29801",
+"confianza": "ALTA",
+"motivo": "Refacciones de desbrozadora"
+},
+{
+"id": 159,
+"descripcion": "Tanque Gasolina Des-63",
+"partida": "29801",
+"confianza": "ALTA",
+"motivo": "Refacciones de desbrozadora"
+},
+{
+"id": 160,
+"descripcion": "Contactor Hartland Controls HCC-3XU06CJ 60A 208/240V",
+"partida": "24601",
+"confianza": "ALTA",
+"motivo": "Material electrico y electronico"
+},
+{
+"id": 161,
+"descripcion": "CLORALEX",
+"partida": "21601",
+"confianza": "ALTA",
+"motivo": "Material de limpieza / quimicos de limpieza e higiene"
+},
+{
+"id": 162,
+"descripcion": "Fotocelda 220v",
+"partida": "24601",
+"confianza": "ALTA",
+"motivo": "Material electrico y electronico"
+},
+{
+"id": 163,
+"descripcion": "VALVULA DE GLOBO EXTIN FLAM 2'' H NPT-1.5'' M IPT BRONCE",
+"partida": "24701",
+"confianza": "MEDIA",
+"motivo": "Articulos metalicos / plomeria para construccion"
+},
+{
+"id": 164,
+"descripcion": "MANGUERA KFH ECO-FLAM SJ 1.5'' X 15 M IPT BRONCE CAPA SENCILLA",
+"partida": "29101",
+"confianza": "MEDIA",
+"motivo": "Herramientas menores"
+}
+]

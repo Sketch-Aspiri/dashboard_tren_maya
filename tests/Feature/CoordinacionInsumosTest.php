@@ -231,6 +231,46 @@ class CoordinacionInsumosTest extends TestCase
         }
     }
 
+    /**
+     * Caso real (septiembre 2026): los títulos de bloque vienen escritos de
+     * muchas formas y un título que no se reconoce nunca debe pegar sus
+     * renglones a la estación anterior.
+     */
+    public function test_irregular_block_titles_are_recognised_and_never_merged_into_the_previous_station(): void
+    {
+        $this->solicitud($this->pmo, SolicitudInsumo::ENVIADA_COORDINACION, [['Cable primario', 2, 100]]);
+        $this->solicitud($this->pca, SolicitudInsumo::ENVIADA_COORDINACION, [['Pintura', 1, 200]]);
+        $this->solicitud($this->eze, SolicitudInsumo::ENVIADA_COORDINACION, [['Valvula', 1, 500]]);
+        $this->actingAsTwoFactorVerified($this->userWithRole('Jefe de Zona'));
+
+        $libro = new Spreadsheet;
+        $hoja = $libro->getActiveSheet()->setTitle('ZO_Cotización');
+        // Título con código y espacios, sin código (por nombre), con nombre distinto y uno que nadie reconoce.
+        $bloques = [
+            [7, '23 PUERTO MORELOS', 'Cable primario', 24901],
+            [17, 'Playa del Carmen', 'Pintura', 26105],
+            [27, 'Bloque que nadie reconoce', 'Renglon ajeno que no debe pegarse a Playa', 29101],
+            [37, '00 _  Edificio Zonal Este', 'Valvula', 24801],
+        ];
+        foreach ($bloques as [$fila, $titulo, $descripcion, $partida]) {
+            $hoja->setCellValue('B'.$fila, $titulo)->setCellValue('B'.($fila + 1), 'Lic. Prueba, Gerencia')->setCellValue('B'.($fila + 2), 'N°');
+            $hoja->setCellValue('B'.($fila + 3), 1)->setCellValue('C'.($fila + 3), 1)->setCellValue('D'.($fila + 3), 'Pieza')->setCellValue('E'.($fila + 3), $descripcion)->setCellValue('F'.($fila + 3), 10)->setCellValue('I'.($fila + 3), $partida);
+            $hoja->setCellValue('E'.($fila + 4), 'Subtotal');
+        }
+        $ruta = tempnam(sys_get_temp_dir(), 'irreg').'.xlsx';
+        (new Xlsx($libro))->save($ruta);
+
+        $this->post(route('insumos.coordinacion.respuesta'), ['anio' => 2026, 'mes' => 12, 'archivo' => new UploadedFile($ruta, 'irregular.xlsx', null, null, true)]);
+        $resumen = session('resumen_coordinacion');
+
+        $this->assertSame(3, $resumen['solicitudes']);                                   // las tres estaciones reconocidas
+        $this->assertSame(['Bloque que nadie reconoce (no se reconoció la estación)'], $resumen['sin_solicitud']);
+        $this->assertSame([], $resumen['agregadas']);                                    // nada se agregó a otra estación
+        $this->assertSame(1, SolicitudInsumo::query()->where('estacion_id', $this->pca->id)->firstOrFail()->partidas()->count());
+        $this->assertSame('26105', SolicitudInsumo::query()->where('estacion_id', $this->pca->id)->firstOrFail()->partidas()->first()->partida_final);
+        $this->assertSame('24801', SolicitudInsumo::query()->where('estacion_id', $this->eze->id)->firstOrFail()->partidas()->first()->partida_final);
+    }
+
     public function test_loading_the_same_file_twice_does_not_duplicate_lines(): void
     {
         $pmo = $this->escenario();

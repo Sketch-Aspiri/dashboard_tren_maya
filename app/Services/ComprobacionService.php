@@ -150,9 +150,10 @@ final class ComprobacionService
 
             $partidaId = $renglon?->solicitud_insumo_partida_id;
 
-            if ($renglon === null && ($partida = $this->mejorPartida($concepto->descripcion, $partidas)) !== null) {
+            // Sin partida (no hubo cotización, o su renglón quedó "fuera del documento"): se busca por parecido.
+            if ($partidaId === null && ($partida = $this->mejorPartida($concepto->descripcion, $partidas)) !== null) {
                 $partidaId = $partida->id;
-                $vinculo = 'documento';
+                $vinculo ??= 'documento';
             }
 
             $concepto->update(['cotizacion_renglon_id' => $renglon?->id, 'solicitud_insumo_partida_id' => $partidaId, 'vinculo' => $vinculo]);
