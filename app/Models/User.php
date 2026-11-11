@@ -69,7 +69,21 @@ class User extends Authenticatable
             // Encrypted at rest as defense-in-depth: a leaked DB dump alone
             // must not be enough to derive a user's TOTP codes.
             'google2fa_secret' => 'encrypted',
+            'sso_vinculado_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Si cambia el correo, se rompe el vínculo con Tickets (el inicio de sesión
+     * único se basa en el correo): hay que volver a vincular con contraseña.
+     */
+    protected static function booted(): void
+    {
+        static::updating(function (User $user): void {
+            if ($user->isDirty('email')) {
+                $user->sso_vinculado_at = null;
+            }
+        });
     }
 
     /**

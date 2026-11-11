@@ -48,3 +48,20 @@ Ver el plan aprobado:
 - **Fase 5:** avisos push por la PWA de Tickets.
 
 Todas usan un "puente" interno firmado con HMAC entre los dos servidores.
+
+## Inicio de sesión único (fase 2)
+- **Clases:** Dashboard `App\Services\Ecosistema\{FirmaEcosistema,InicioUnicoService}` + `EcosistemaSesionController`; Tickets `App\Services\Ecosystem\{EcosystemSignature,SingleSignOnService}` + `Auth\EcosystemSessionController` (decisión 88).
+- **Rutas iguales en ambos:**
+  - `GET /ecosistema/sso?para=&estado=`: el otro sistema pregunta si aquí hay sesión.
+  - `GET /ecosistema/entrar?codigo=|sin_sesion=1`: llega la respuesta.
+  - `GET /ecosistema/salir?codigo=`: cierre único.
+- **Código firmado:**
+  - HMAC-SHA256 con `ECOSISTEMA_SSO_SECRET`, el mismo valor en los dos `.env`.
+  - Carga `{v, iss, aud, act, email, mfa, state, nonce, exp}`.
+  - Dura 60 s, es de un solo uso y va ligado a destino, acción y navegador (`state`).
+- **Vinculación:** el correo solo no basta.
+  - La primera vez que alguien llega de un sistema al otro, inicia sesión ahí una sola vez con su contraseña y su cuenta queda vinculada: `sso_vinculado_at` en el Dashboard, `sso_linked_at` en Tickets.
+  - Es una vez por sentido y por cuenta, no por dispositivo.
+  - Cambiar el correo rompe el vínculo.
+- **2FA:** si el origen ya lo verificó y la cuenta destino lo tiene configurado, no se vuelve a pedir.
+- **Si el otro sistema está caído o no hay secreto,** cada uno muestra su login normal (`?local=1` también lo fuerza).

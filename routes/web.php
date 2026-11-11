@@ -13,12 +13,13 @@ use App\Http\Controllers\CotizacionController;
 use App\Http\Controllers\CotizacionIaController;
 use App\Http\Controllers\CotizacionReporteController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EcosistemaSesionController;
 use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\FacturaComprobacionController;
 use App\Http\Controllers\FacturaController;
-use App\Http\Controllers\InventarioEstacionController;
 use App\Http\Controllers\FacturaReporteController;
 use App\Http\Controllers\FormatoSolicitudInsumoController;
+use App\Http\Controllers\InventarioEstacionController;
 use App\Http\Controllers\Nube\NubeCredencialController;
 use App\Http\Controllers\Nube\NubeCuentaController;
 use App\Http\Controllers\Nube\NubeEstadoController;
@@ -349,3 +350,11 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
 });
 
 require __DIR__.'/auth.php';
+
+// Inicio y cierre de sesión únicos con Tickets (ecosistema Zona Oriente). Sin `auth`:
+// llegan por redirección del navegador y todo se decide con códigos firmados.
+Route::middleware('throttle:30,1')->prefix('ecosistema')->name('ecosistema.')->group(function () {
+    Route::get('/sso', [EcosistemaSesionController::class, 'preguntar'])->name('sso');
+    Route::get('/entrar', [EcosistemaSesionController::class, 'entrar'])->name('entrar');
+    Route::get('/salir', [EcosistemaSesionController::class, 'salir'])->name('salir');
+});
