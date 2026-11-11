@@ -47,7 +47,7 @@ class EcosistemaPuenteTest extends TestCase
 
     private function usuario(string $rol = 'Jefe de Zona', string $correo = 'jefe@ejemplo.test', array $atributos = []): User
     {
-        $user = User::factory()->create(['email' => $correo] + $atributos);
+        $user = User::factory()->create(array_merge(['email' => $correo, 'sso_vinculado_at' => now()], $atributos));
         $user->assignRole($rol);
 
         return $user;
@@ -255,7 +255,49 @@ class EcosistemaPuenteTest extends TestCase
         $this->get(route('dashboard'))->assertOk()->assertSee('Tickets no está disponible por el momento');
         Cache::flush();
 
-        $this->get(route('dashboard'))->assertOk()->assertSee('entra una vez a Tickets');
+        $this->get(route('dashboard'))->assertOk()->assertSee('unir tus cuentas');
+    }
+
+    public function test_an_unlinked_dashboard_account_never_asks_tickets_for_its_email(): void
+    {
+        // El correo del Dashboard se puede editar sin verificar: sin vínculo no se pregunta por él.
+        Http::fake([self::PENDIENTES => Http::response($this->resumen())]);
+        $this->actingAsTwoFactorVerified($this->usuario(atributos: ['sso_vinculado_at' => null]));
+
+        $this->get(route('dashboard'))->assertOk()->assertSee('unir tus cuentas')->assertDontSee('TM-2026-0007');
+        Http::assertNothingSent();
+    }
+
+    public function test_changing_the_email_unlinks_so_the_card_stops_asking(): void
+    {
+        Http::fake([self::PENDIENTES => Http::response($this->resumen())]);
+        $user = $this->usuario();
+        $this->actingAsTwoFactorVerified($user);
+        $this->get(route('dashboard'))->assertSee('TM-2026-0007');
+
+        $user->update(['email' => 'victima@ejemplo.test']);
+
+        $this->get(route('dashboard'))->assertOk()->assertSee('unir tus cuentas')->assertDontSee('TM-2026-0007');
+        Http::assertSentCount(1);
+    }
+
+    public function test_the_bridge_client_does_not_follow_redirects(): void
+    {
+        Http::fake([self::PENDIENTES => Http::response('', 302, ['Location' => 'https://malo.test/robar'])]);
+        $this->actingAsTwoFactorVerified($this->usuario());
+
+        $this->get(route('dashboard'))->assertOk()->assertSee('Tickets no está disponible');
+        Http::assertSentCount(1);
+    }
+
+    public function test_paths_with_a_line_break_are_not_accepted(): void
+    {
+        // (Un salto al final lo recorta el middleware TrimStrings; uno en medio no debe pasar.)
+        $this->actingAsTwoFactorVerified($this->usuario());
+        $id = $this->get(route('ecosistema.reportar', ['desde' => "/insu\nmos"]))->assertRedirect()->headers->get('Location');
+        $id = substr((string) $id, -40);
+
+        $this->assertSame('Falla en el Dashboard: /', $this->pedirContexto($id, 'jefe@ejemplo.test')->json('titulo'));
     }
 
     public function test_without_bridge_there_is_no_card_and_no_call(): void

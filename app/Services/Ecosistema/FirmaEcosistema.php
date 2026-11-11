@@ -14,6 +14,9 @@ use Illuminate\Support\Str;
  *
  * `state` ata el código de entrada al navegador que lo pidió (evita que un
  * código ajeno, enviado como enlace, abra la sesión de otra persona).
+ * `lnk` dice si la cuenta de ORIGEN está vinculada (el correo del Dashboard se
+ * puede editar sin verificar): el destino solo abre sesión sin contraseña si
+ * ambas cuentas lo están. Sin `lnk`, vale false.
  *
  * El secreto (ECOSISTEMA_SSO_SECRET) es el mismo en ambos .env y nunca sale
  * del servidor. Un código vale para un solo destino, una sola acción, 60 s y
@@ -30,7 +33,7 @@ final class FirmaEcosistema
         return strlen((string) config('ecosistema.sso.secreto')) >= 32;
     }
 
-    public function firmar(string $destino, string $accion, string $email, bool $mfa, ?string $estado = null): string
+    public function firmar(string $destino, string $accion, string $email, bool $mfa, ?string $estado = null, bool $vinculada = false): string
     {
         $carga = $this->b64(json_encode([
             'v' => 1,
@@ -40,6 +43,7 @@ final class FirmaEcosistema
             'email' => mb_strtolower($email),
             'mfa' => $mfa,
             'state' => $estado,
+            'lnk' => $vinculada,
             'nonce' => Str::random(32),
             'exp' => now()->addSeconds((int) config('ecosistema.sso.vigencia', 60))->getTimestamp(),
         ], JSON_THROW_ON_ERROR));
@@ -51,7 +55,7 @@ final class FirmaEcosistema
      * Devuelve la carga si el código es auténtico, va dirigido a este sistema,
      * es de la acción esperada, no venció y no se usó antes; si no, null.
      *
-     * @return array{iss: string, email: string, mfa: bool, state: ?string}|null
+     * @return array{iss: string, email: string, mfa: bool, state: ?string, lnk: bool}|null
      */
     public function verificar(?string $codigo, string $accion): ?array
     {
@@ -91,6 +95,7 @@ final class FirmaEcosistema
             'email' => $datos['email'],
             'mfa' => (bool) ($datos['mfa'] ?? false),
             'state' => is_string($datos['state'] ?? null) ? $datos['state'] : null,
+            'lnk' => ($datos['lnk'] ?? false) === true,
         ];
     }
 

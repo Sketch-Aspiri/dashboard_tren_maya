@@ -78,8 +78,8 @@ final class FirmaPuente
 
         if ($sistema === config('ecosistema.sistema')
             || ! array_key_exists($sistema, (array) config('ecosistema.urls'))
-            || preg_match('/^\d{1,12}$/', $fecha) !== 1
-            || preg_match('/^[A-Za-z0-9]{20,64}$/', $nonce) !== 1
+            || preg_match('/^\d{1,12}$/D', $fecha) !== 1
+            || preg_match('/^[A-Za-z0-9]{20,64}$/D', $nonce) !== 1
             || abs(now()->getTimestamp() - (int) $fecha) > (int) config('ecosistema.puente.ventana', 300)) {
             return null;
         }

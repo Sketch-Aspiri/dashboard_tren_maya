@@ -29,6 +29,6 @@ class ReportarFallaRequest extends FormRequest
     {
         $desde = $this->query('desde');
 
-        return is_string($desde) && preg_match('#^/(?!/)[A-Za-z0-9/_.-]{0,300}$#', $desde) === 1 ? $desde : '/';
+        return is_string($desde) && preg_match('#^/(?!/)[A-Za-z0-9/_.-]{0,300}$#D', $desde) === 1 ? $desde : '/';
     }
 }

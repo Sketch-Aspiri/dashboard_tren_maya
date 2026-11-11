@@ -29,7 +29,12 @@ final class TicketsPendientes
             return null;
         }
 
-        return Cache::remember('ecosistema:pendientes:'.$user->getKey(), (int) config('ecosistema.puente.cache_pendientes', 60), function () use ($user): array {
+        // El correo del Dashboard se puede editar sin verificar: sin vínculo no se pregunta por él.
+        if ($user->sso_vinculado_at === null) {
+            return ['disponible' => true, 'vinculada' => false, 'url' => config('ecosistema.urls.tickets').'/tickets/pending'];
+        }
+
+        return Cache::remember('ecosistema:pendientes:'.$user->getKey().':'.hash('sha256', mb_strtolower($user->email)), (int) config('ecosistema.puente.cache_pendientes', 60), function () use ($user): array {
             $datos = $this->puente->get('/interno/pendientes', ['correo' => mb_strtolower($user->email)]);
 
             return $datos === null ? ['disponible' => false] : $this->normalizar($datos);
@@ -83,6 +88,6 @@ final class TicketsPendientes
      */
     private function rutaRelativa(mixed $ruta, string $omision = '/tickets/pending'): string
     {
-        return is_string($ruta) && preg_match('#^/[A-Za-z0-9/_-]{0,200}$#', $ruta) === 1 ? $ruta : $omision;
+        return is_string($ruta) && preg_match('#^/[A-Za-z0-9/_-]{0,200}$#D', $ruta) === 1 ? $ruta : $omision;
     }
 }

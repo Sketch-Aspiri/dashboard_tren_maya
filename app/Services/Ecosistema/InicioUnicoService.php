@@ -127,12 +127,25 @@ final class InicioUnicoService
 
     public function completarVinculo(Request $request, User $user): void
     {
-        $pendiente = $request->session()->pull(self::SESION_VINCULO);
+        $pendiente = $request->session()->get(self::SESION_VINCULO);
 
         if (! is_array($pendiente)
             || ($pendiente['exp'] ?? 0) < now()->getTimestamp()
-            || ($pendiente['email'] ?? null) !== mb_strtolower($user->email)
-            || $this->vinculada($user)) {
+            || ($pendiente['email'] ?? null) !== mb_strtolower($user->email)) {
+            $request->session()->forget(self::SESION_VINCULO);
+
+            return;
+        }
+
+        // La contraseña sola no prueba que sea la dueña de la cuenta: si tiene 2FA, el vínculo se
+        // completa al pasar el reto (se vuelve a intentar desde el reto y la configuración del 2FA).
+        if (! $this->segundoFactorResuelto($request, $user)) {
+            return;
+        }
+
+        $request->session()->forget(self::SESION_VINCULO);
+
+        if ($this->vinculada($user)) {
             return;
         }
 
@@ -141,6 +154,15 @@ final class InicioUnicoService
         activity('ecosistema')->causedBy($user)->performedOn($user)->event('sso_vinculo')
             ->withProperties(['origen' => $pendiente['origen'] ?? null, 'ip' => $request->ip()])
             ->log('Cuenta vinculada para el inicio de sesión único.');
+    }
+
+    private function segundoFactorResuelto(Request $request, User $user): bool
+    {
+        if (! config('auth.two_factor.enabled')) {
+            return true;
+        }
+
+        return $user->hasTwoFactorEnabled() && (bool) $request->session()->get(EnsureTwoFactorIsVerified::SESSION_KEY);
     }
 
     /**

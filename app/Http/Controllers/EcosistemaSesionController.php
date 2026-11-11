@@ -33,7 +33,8 @@ class EcosistemaSesionController extends Controller
             return redirect()->away($this->sso->url($destino, '/ecosistema/entrar?sin_sesion=1'));
         }
 
-        $codigo = $this->firma->firmar($destino, FirmaEcosistema::ENTRAR, $user->email, $mfa, $request->validated('estado'));
+        // `vinculada`: el destino solo abre sesión sin contraseña si esta cuenta también lo está.
+        $codigo = $this->firma->firmar($destino, FirmaEcosistema::ENTRAR, $user->email, $mfa, $request->validated('estado'), $this->sso->vinculada($user));
 
         return redirect()->away($this->sso->url($destino, '/ecosistema/entrar?codigo='.urlencode($codigo)));
     }
@@ -62,7 +63,9 @@ class EcosistemaSesionController extends Controller
             return redirect()->route('login')->with('status', __('Entraste a Tickets con :correo, pero esa cuenta no existe en el Dashboard. Inicia sesión con tu cuenta del Dashboard o pide acceso al administrador.', ['correo' => $datos['email']]));
         }
 
-        if (! $this->sso->vinculada($user)) {
+        // Sin contraseña solo si las DOS cuentas están vinculadas: el correo del origen puede haberse
+        // editado sin verificar y el de aquí puede ser de otra persona.
+        if (! $this->sso->vinculada($user) || ! $datos['lnk']) {
             $this->sso->pedirVinculo($request, $datos['email'], $datos['iss']);
 
             return redirect()->route('login')->with('status', __('Para unir tu cuenta del Dashboard con Tickets, inicia sesión aquí una sola vez. Después ya no te lo pediremos en ningún dispositivo.'));

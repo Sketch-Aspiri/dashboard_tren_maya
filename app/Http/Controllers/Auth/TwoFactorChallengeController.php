@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\EnsureTwoFactorIsVerified;
 use App\Http\Requests\Auth\TwoFactorCodeRequest;
+use App\Services\Ecosistema\InicioUnicoService;
 use App\Services\TwoFactorAuthenticationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,7 +17,10 @@ use Illuminate\View\View;
  */
 class TwoFactorChallengeController extends Controller
 {
-    public function __construct(private readonly TwoFactorAuthenticationService $service) {}
+    public function __construct(
+        private readonly TwoFactorAuthenticationService $service,
+        private readonly InicioUnicoService $sso,
+    ) {}
 
     public function show(Request $request): View|RedirectResponse
     {
@@ -44,6 +48,9 @@ class TwoFactorChallengeController extends Controller
         // The real trust boundary in this app is "2FA-verified", not just
         // "password-authenticated" — regenerate the session id here too.
         $request->session()->regenerate();
+
+        // Si llegó del otro sistema, ahora sí se completa el vínculo de cuentas.
+        $this->sso->completarVinculo($request, $user);
 
         activity()
             ->causedBy($user)

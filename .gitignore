@@ -26,3 +26,6 @@ yarn-error.log
 /.zed
 
 *.stackdump
+
+# Datos de personas físicas (RFC) para insumos:cargar-datos: el repo es público, nunca se versionan.
+/database/data/proveedores_fondo.json

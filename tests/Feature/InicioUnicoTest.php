@@ -9,6 +9,7 @@ use App\Services\Ecosistema\InicioUnicoService;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use PragmaRX\Google2FA\Google2FA;
 use Tests\Concerns\InteractsWithTwoFactor;
 use Tests\TestCase;
 
@@ -56,10 +57,10 @@ class InicioUnicoTest extends TestCase
     /**
      * Código como lo firmaría Tickets (mismo formato y secreto).
      */
-    private function codigoDeTickets(string $email, bool $mfa = true, string $accion = FirmaEcosistema::ENTRAR, string $aud = 'dashboard', int $exp = 60, ?string $estado = self::ESTADO): string
+    private function codigoDeTickets(string $email, bool $mfa = true, string $accion = FirmaEcosistema::ENTRAR, string $aud = 'dashboard', int $exp = 60, ?string $estado = self::ESTADO, bool $vinculada = true): string
     {
         $b64 = fn (string $bytes) => rtrim(strtr(base64_encode($bytes), '+/', '-_'), '=');
-        $carga = $b64(json_encode(['v' => 1, 'iss' => 'tickets', 'aud' => $aud, 'act' => $accion, 'email' => $email, 'mfa' => $mfa, 'state' => $estado, 'nonce' => bin2hex(random_bytes(16)), 'exp' => now()->addSeconds($exp)->getTimestamp()]));
+        $carga = $b64(json_encode(['v' => 1, 'iss' => 'tickets', 'aud' => $aud, 'act' => $accion, 'email' => $email, 'mfa' => $mfa, 'state' => $estado, 'lnk' => $vinculada, 'nonce' => bin2hex(random_bytes(16)), 'exp' => now()->addSeconds($exp)->getTimestamp()]));
 
         return $carga.'.'.$b64(hash_hmac('sha256', $carga, self::SECRETO, true));
     }
@@ -149,24 +150,92 @@ class InicioUnicoTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_la_primera_vez_se_vincula_con_la_contrasena_de_aqui_y_despues_ya_no(): void
+    /**
+     * Cuenta con un 2FA real (se puede generar su código).
+     *
+     * @return array{0: User, 1: string}
+     */
+    private function jefeConDosPasos(bool $vinculado = false): array
     {
-        $jefe = $this->jefe(vinculado: false);
+        $jefe = $this->jefe(vinculado: $vinculado);
+        $secreto = (new Google2FA)->generateSecretKey();
+        $jefe->forceFill(['google2fa_secret' => $secreto, 'google2fa_enabled_at' => now()])->save();
+
+        return [$jefe, $secreto];
+    }
+
+    public function test_la_primera_vez_se_vincula_con_la_contrasena_y_el_2fa_de_aqui_y_despues_ya_no(): void
+    {
+        [$jefe, $secreto] = $this->jefeConDosPasos();
 
         $this->entrarCon($this->codigoDeTickets($jefe->email))
             ->assertRedirect(route('login'))
             ->assertSessionHas('status');
         $this->assertGuest();
 
-        // Inicia sesión con su contraseña: la cuenta queda vinculada.
+        // Con la contraseña sola NO se vincula: quien la robó no tiene el 2FA de la persona.
         $this->post(route('login'), ['email' => $jefe->email, 'password' => 'password']);
         $this->assertAuthenticatedAs($jefe);
+        $this->assertNull($jefe->fresh()->sso_vinculado_at);
+
+        $this->post(route('two-factor.verify.store'), ['one_time_password' => '000000']);
+        $this->assertNull($jefe->fresh()->sso_vinculado_at);
+
+        // Al pasar el reto 2FA, la cuenta queda vinculada.
+        $this->post(route('two-factor.verify.store'), ['one_time_password' => (new Google2FA)->getCurrentOtp($secreto)])->assertSessionHasNoErrors()->assertRedirect();
         $this->assertNotNull($jefe->fresh()->sso_vinculado_at);
         $this->assertDatabaseHas('activity_log', ['log_name' => 'ecosistema', 'event' => 'sso_vinculo', 'causer_id' => $jefe->id]);
 
         auth()->logout();
         $this->entrarCon($this->codigoDeTickets($jefe->email));
         $this->assertAuthenticatedAs($jefe);
+    }
+
+    public function test_la_unica_via_a_vincular_sin_el_2fa_es_que_la_cuenta_no_lo_exija(): void
+    {
+        config(['auth.two_factor.enabled' => false]);
+        $jefe = $this->jefe(vinculado: false);
+
+        $this->entrarCon($this->codigoDeTickets($jefe->email));
+        $this->post(route('login'), ['email' => $jefe->email, 'password' => 'password']);
+
+        $this->assertNotNull($jefe->fresh()->sso_vinculado_at);
+    }
+
+    public function test_un_origen_sin_vinculo_no_abre_sesion_sin_contrasena_aunque_esta_cuenta_este_vinculada(): void
+    {
+        $jefe = $this->jefe();
+
+        // En Tickets el correo se pudo editar o registrar sin verificar: ese código no basta.
+        $this->entrarCon($this->codigoDeTickets($jefe->email, vinculada: false))
+            ->assertRedirect(route('login'))
+            ->assertSessionHas('status');
+        $this->assertGuest();
+    }
+
+    public function test_aqui_se_firma_con_el_estado_de_vinculo_de_esta_cuenta(): void
+    {
+        $firmar = function (User $user): array {
+            $this->actingAsTwoFactorVerified($user);
+            $destino = (string) $this->get(route('ecosistema.sso', ['para' => 'tickets', 'estado' => self::ESTADO]))->assertRedirect()->headers->get('Location');
+            parse_str((string) parse_url($destino, PHP_URL_QUERY), $query);
+            [$carga] = explode('.', $query['codigo']);
+
+            return json_decode(base64_decode(strtr($carga, '-_', '+/')), true);
+        };
+
+        $this->assertFalse($firmar($this->jefe(vinculado: false))['lnk']);
+        $this->assertTrue($firmar($this->jefe('otro@ejemplo.test'))['lnk']);
+    }
+
+    public function test_un_codigo_sin_el_claim_de_vinculo_se_trata_como_no_vinculado(): void
+    {
+        $jefe = $this->jefe();
+        $b64 = fn (string $bytes) => rtrim(strtr(base64_encode($bytes), '+/', '-_'), '=');
+        $carga = $b64(json_encode(['v' => 1, 'iss' => 'tickets', 'aud' => 'dashboard', 'act' => 'entrar', 'email' => $jefe->email, 'mfa' => true, 'state' => self::ESTADO, 'nonce' => bin2hex(random_bytes(16)), 'exp' => now()->addSeconds(60)->getTimestamp()]));
+
+        $this->entrarCon($carga.'.'.$b64(hash_hmac('sha256', $carga, self::SECRETO, true)))->assertRedirect(route('login'));
+        $this->assertGuest();
     }
 
     public function test_iniciar_sesion_con_otra_cuenta_no_vincula_la_que_llego_firmada(): void
@@ -223,7 +292,7 @@ class InicioUnicoTest extends TestCase
         parse_str((string) parse_url($destino, PHP_URL_QUERY), $query);
         [$carga] = explode('.', $query['codigo']);
         $datos = json_decode(base64_decode(strtr($carga, '-_', '+/')), true);
-        $this->assertSame(['tickets', 'entrar', 'jefe@ejemplo.test', true, self::ESTADO], [$datos['aud'], $datos['act'], $datos['email'], $datos['mfa'], $datos['state']]);
+        $this->assertSame(['tickets', 'entrar', 'jefe@ejemplo.test', true, self::ESTADO, true], [$datos['aud'], $datos['act'], $datos['email'], $datos['mfa'], $datos['state'], $datos['lnk']]);
     }
 
     public function test_solo_se_responde_a_sistemas_conocidos(): void

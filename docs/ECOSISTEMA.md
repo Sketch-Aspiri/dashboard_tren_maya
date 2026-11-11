@@ -83,3 +83,18 @@ Todas usan un "puente" interno firmado con HMAC entre los dos servidores.
   - El Dashboard guarda 15 min el contexto (página, rol, estación, fecha y navegador; sin montos ni datos personales) bajo un id aleatorio y manda a `{tickets}/tickets/create?prefill=<id>`.
   - Tickets lo pide por `GET /interno/contextos/{id}?correo=` del Dashboard: se entrega una sola vez y solo al mismo correo. Prellena título y descripción como texto plano y preselecciona Soporte del sistema; la persona revisa y envía por el flujo normal.
   - Sin puente, el enlace abre el formulario de Soporte vacío, como antes.
+
+## Endurecimiento tras la auditoría de seguridad (decisión 90)
+- **El vínculo espera al 2FA.** Antes la cuenta se vinculaba al validar la contraseña, y desde ahí el 2FA del otro sistema se heredaba: quien tuviera la contraseña de la víctima (sin su código) podía vincularla. Ahora, si la cuenta tiene 2FA (o su rol lo exige), el vínculo queda pendiente en la sesión y se completa al pasar el reto o al configurar el 2FA (`completarVinculo` / `completeLink` también se llaman desde esos dos controladores).
+- **Las dos cuentas deben estar vinculadas.** El código firmado lleva `lnk` (¿la cuenta de ORIGEN está vinculada?). El destino solo abre sesión sin contraseña si su cuenta Y `lnk` lo están; si no, pide la contraseña (como la primera vez). Sin `lnk`, vale `false`. Motivo: el correo del Dashboard se puede editar sin verificar, así que no basta con que la cuenta de destino esté vinculada.
+  - Consecuencia: la primera vez hacen falta dos pasadas, una en cada sentido, escribiendo la contraseña de cada sistema una sola vez.
+- **Dashboard:** cambiar el correo del perfil exige la contraseña actual (y rompe el vínculo); la tarjeta de pendientes no pregunta por una cuenta sin vincular.
+- **Puente:** el cliente no sigue redirecciones (no reenvía las cabeceras de firma) y los patrones de validación usan `D`/`\z` para no aceptar un salto de línea final.
+- **Datos:** `database/data/proveedores_fondo.json` (RFC de personas físicas) está en `.gitignore`: los repos son públicos.
+
+### Lista previa al despliegue
+- `CACHE_STORE=database` o `redis` en ambos (nunca `file` ni `array`: el nonce y el contexto de un solo uso dependen de `Cache::add`/`pull`), `SESSION_SECURE_COOKIE=true`, `SESSION_DOMAIN=null`.
+- Tres secretos de 32+ caracteres, distintos entre sí y fuera de git: `ECOSISTEMA_SSO_SECRET`, `ECOSISTEMA_PUENTE_SECRETO_DASHBOARD` y `ECOSISTEMA_PUENTE_SECRETO_TICKETS`.
+- Dashboard: `trustProxies` con las IPs del túnel o de Cloudflare, no `'*'` (con `'*'` la IP del cliente se puede falsear: el límite de intentos y `ECOSISTEMA_PUENTE_IPS` no protegen). Tickets: `TRUSTED_PROXIES` y `TRUSTED_HOSTS`.
+- `ECOSISTEMA_PUENTE_IPS` y las URLs internas `ECOSISTEMA_PUENTE_*_URL` (localhost o vhost) para que el puente no salga a internet.
+- `composer audit` en ambos repos.

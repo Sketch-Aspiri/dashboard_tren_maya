@@ -39,6 +39,7 @@ final class PuenteCliente
             $respuesta = Http::acceptJson()
                 ->timeout($segundos)
                 ->connectTimeout($segundos)
+                ->withoutRedirecting()
                 ->retry(2, 200, throw: false)
                 ->withHeaders($this->firma->encabezados('GET', $ruta, $consulta))
                 ->get($url);

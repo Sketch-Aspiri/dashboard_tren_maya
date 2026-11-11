@@ -16,7 +16,7 @@
         @if (! $pendientes['disponible'])
             <p class="mt-4 rounded-lg bg-brand-mist px-3 py-2 text-sm text-gray-600" role="status">{{ __('Tickets no está disponible por el momento. Vuelve a intentarlo en unos minutos.') }}</p>
         @elseif (! $pendientes['vinculada'])
-            <p class="mt-4 text-sm text-gray-600">{{ __('Para ver aquí tus pendientes, entra una vez a Tickets desde el selector «Dashboard | Tickets»: te pedirá tu contraseña de Tickets una sola vez y tus cuentas quedarán unidas.') }}</p>
+            <p class="mt-4 text-sm text-gray-600">{{ __('Para ver aquí tus pendientes hay que unir tus cuentas: cierra sesión en los dos sistemas y vuelve a entrar. En cada uno te pedirá tu contraseña una sola vez.') }}</p>
             <a href="{{ $pendientes['url'] }}" class="mt-4 inline-flex min-h-[44px] items-center font-semibold text-brand-teal hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">{{ __('Ir a Tickets') }} <span aria-hidden="true">&nbsp;→</span></a>
         @else
             @php

@@ -26,6 +26,14 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+            // El correo es la identidad del inicio de sesión único con Tickets y no se verifica:
+            // cambiarlo exige la contraseña actual (y rompe el vínculo, ver User::booted).
+            'current_password' => [
+                Rule::requiredIf(fn () => mb_strtolower((string) $this->input('email')) !== mb_strtolower((string) $this->user()->email)),
+                'nullable',
+                'string',
+                'current_password',
+            ],
         ];
     }
 }
