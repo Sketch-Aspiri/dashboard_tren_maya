@@ -98,3 +98,17 @@ Todas usan un "puente" interno firmado con HMAC entre los dos servidores.
 - Dashboard: `trustProxies` con las IPs del túnel o de Cloudflare, no `'*'` (con `'*'` la IP del cliente se puede falsear: el límite de intentos y `ECOSISTEMA_PUENTE_IPS` no protegen). Tickets: `TRUSTED_PROXIES` y `TRUSTED_HOSTS`.
 - `ECOSISTEMA_PUENTE_IPS` y las URLs internas `ECOSISTEMA_PUENTE_*_URL` (localhost o vhost) para que el puente no salga a internet.
 - `composer audit` en ambos repos.
+
+## Fase 5: avisos al celular (PWA de Tickets)
+- **Flujo:** un evento del Dashboard encola `EnviarAvisoTickets` (cola `default`, 4 intentos, espera 30 s / 2 min / 10 min). El trabajo hace `POST /interno/avisos` a Tickets por el puente; Tickets guarda el aviso en «Notificaciones» y lo manda por Web Push a los celulares de la persona. Si Tickets está caído el aviso se reintenta y la acción original nunca se frena (encolar va en `try/catch`).
+- **Puente (POST):** la firma cubre el hash del cuerpo exacto. Dashboard `PuenteCliente::post` (sin reintentos propios y sin seguir redirecciones); Tickets `EcosystemNoticeController` + `EcosystemNoticeRequest` (solo acepta al Dashboard). Cada aviso lleva un `ref` (uuid): Tickets no avisa dos veces el mismo `ref` en 24 h aunque el Dashboard reintente.
+- **Límites en Tickets:** hasta 50 correos, título ≤ 60, cuerpo ≤ 120 (sin saltos de línea: se ven en la pantalla bloqueada) y una URL del ecosistema (ruta de Tickets o URL de los sistemas de `config('ecosistema.urls')`, mismo origen exacto, sin usuario, fragmento ni `//`; se reconstruye y se vuelve a validar al abrir el aviso: `App\Support\EcosystemUrl`).
+- **Destinatarios:** solo cuentas activas, con rol y **vinculadas** en ambos sistemas (el Dashboard elige entre sus cuentas vinculadas y Tickets vuelve a exigirlo). Tickets no revela cuáles correos existen: responde solo el conteo.
+- **Eventos del Dashboard** (`App\Services\Ecosistema\AvisosEcosistema`; textos con estación, mes y acción, sin comentarios ni montos):
+  - Solicitud de insumos **enviada** → Jefes de Zona.
+  - Solicitud **observada** (devuelta) o **aprobada** → personas de esa estación (URL `insumos/estaciones/{id}`).
+  - **Cotización por revisar** (cuando PASA a REVISAR, no en cada guardado) → Jefes de Zona, menos quien la capturó.
+  - **Asistencia pendiente** → personas de cada estación sin asistencia capturada. Comando `asistencia:recordar-pendientes`, lunes a viernes a las 10:00 (America/Cancun; `ECOSISTEMA_AVISO_ASISTENCIA_HORA`), una vez por estación y día.
+- **Service worker (Tickets, `VERSION` v2):** `notificationclick` abre URLs de este sitio y también `https://*.zonaorientetm.tech`. Una URL del Dashboard pasa por su pantalla de acceso: el inicio de sesión único (fase 2) entra sin contraseña si las cuentas están vinculadas y vuelve a la ruta pedida.
+- **Activar el aviso:** la persona instala Tickets en su celular y pulsa «Activar notificaciones» (`/notifications`); en el Dashboard, «Mi perfil» trae un enlace a esa pantalla. Requiere las claves VAPID de Tickets y el worker de cola del Dashboard (`deploy/vps/supervisor-dashboard.conf` ya procesa la cola `default`).
+- **Sin el puente configurado** no se encola nada y el comando de asistencia no hace nada.

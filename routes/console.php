@@ -27,3 +27,12 @@ Schedule::command('secciones:sincronizar-nube')
 
 // Facturas del fondo rotatorio: cada noche se vuelve a preguntar al SAT por las vigentes (detecta cancelaciones) y por las que no se pudieron consultar.
 Schedule::command('facturas:verificar-sat')->dailyAt('03:30')->withoutOverlapping()->onOneServer();
+
+// Recordatorio al celular (PWA de Tickets) de las estaciones que aún no capturan la asistencia del día.
+// Una vez por estación y día; sin el puente configurado no hace nada.
+Schedule::command('asistencia:recordar-pendientes')
+    ->weekdays()
+    ->dailyAt((string) config('ecosistema.avisos.asistencia_hora', '10:00'))
+    ->timezone('America/Cancun')
+    ->withoutOverlapping()
+    ->onOneServer();

@@ -57,4 +57,44 @@ final class PuenteCliente
 
         return $respuesta->json();
     }
+
+    /**
+     * POST JSON firmado (la firma cubre el hash del cuerpo exacto que se envía). Sin reintentos propios: quien lo
+     * llama (un trabajo en cola) reintenta con una firma y un nonce nuevos.
+     *
+     * @param  array<string, mixed>  $cuerpo
+     * @return array<string, mixed>|null
+     */
+    public function post(string $ruta, array $cuerpo): ?array
+    {
+        if (! $this->activo()) {
+            return null;
+        }
+
+        $ruta = '/'.ltrim($ruta, '/');
+        $json = json_encode($cuerpo, JSON_THROW_ON_ERROR);
+        $segundos = (int) config('ecosistema.puente.timeout', 3);
+
+        try {
+            $respuesta = Http::acceptJson()
+                ->timeout($segundos)
+                ->connectTimeout($segundos)
+                ->withoutRedirecting()
+                ->withHeaders($this->firma->encabezados('POST', $ruta, [], $json))
+                ->withBody($json, 'application/json')
+                ->post(config('ecosistema.puente.url').$ruta);
+        } catch (Throwable $e) {
+            Log::warning('Puente con Tickets no disponible.', ['ruta' => $ruta, 'error' => $e::class]);
+
+            return null;
+        }
+
+        if (! $respuesta->successful() || ! is_array($respuesta->json())) {
+            Log::warning('Puente con Tickets: respuesta inesperada.', ['ruta' => $ruta, 'estado' => $respuesta->status()]);
+
+            return null;
+        }
+
+        return $respuesta->json();
+    }
 }

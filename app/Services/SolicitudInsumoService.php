@@ -7,6 +7,7 @@ use App\Models\Estacion;
 use App\Models\SolicitudInsumo;
 use App\Models\SolicitudInsumoPartida;
 use App\Models\User;
+use App\Services\Ecosistema\AvisosEcosistema;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -25,7 +26,10 @@ final class SolicitudInsumoService
 
     public const MESES_HISTORIAL = 3;
 
-    public function __construct(private readonly ProveedorService $proveedores) {}
+    public function __construct(
+        private readonly ProveedorService $proveedores,
+        private readonly AvisosEcosistema $avisos,
+    ) {}
 
     /**
      * Mes que se está solicitando: desde el día 15 se pide el mes siguiente
@@ -130,6 +134,9 @@ final class SolicitudInsumoService
 
         activity('solicitud_insumo')->performedOn($solicitud)->causedBy($user)->log('enviada');
 
+        // Aviso al celular del Jefe de Zona (por la PWA de Tickets); nunca rompe el envío.
+        $this->avisos->solicitudEnviada($solicitud);
+
         return $solicitud;
     }
 
@@ -141,7 +148,7 @@ final class SolicitudInsumoService
      */
     public function revisar(SolicitudInsumo $solicitud, array $datos, User $user): SolicitudInsumo
     {
-        return DB::transaction(function () use ($solicitud, $datos, $user) {
+        $revisada = DB::transaction(function () use ($solicitud, $datos, $user) {
             foreach (($datos['partidas'] ?? []) as $id => $fila) {
                 $partida = $solicitud->partidas()->whereKey($id)->first();
 
@@ -178,6 +185,13 @@ final class SolicitudInsumoService
 
             return $solicitud->refresh();
         });
+
+        // Aviso al celular de la estación cuando se devuelve o se aprueba (guardar no avisa).
+        if (in_array($datos['accion'], ['devolver', 'aprobar'], true)) {
+            $this->avisos->solicitudRevisada($revisada, $datos['accion']);
+        }
+
+        return $revisada;
     }
 
     /**

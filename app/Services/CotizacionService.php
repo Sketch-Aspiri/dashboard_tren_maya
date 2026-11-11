@@ -8,6 +8,7 @@ use App\Models\Proveedor;
 use App\Models\SolicitudInsumo;
 use App\Models\SolicitudInsumoPartida;
 use App\Models\User;
+use App\Services\Ecosistema\AvisosEcosistema;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +39,7 @@ final class CotizacionService
     public function __construct(
         private readonly ProveedorService $proveedores,
         private readonly ConsolidadoInsumosService $consolidado,
+        private readonly AvisosEcosistema $avisos,
     ) {}
 
     /**
@@ -64,7 +66,9 @@ final class CotizacionService
      */
     public function guardar(?Cotizacion $cotizacion, array $datos, ?UploadedFile $archivo, User $usuario, bool $leidaConIa = false): Cotizacion
     {
-        return DB::transaction(function () use ($cotizacion, $datos, $archivo, $usuario, $leidaConIa) {
+        $validacionAnterior = $cotizacion?->validacion;
+
+        $guardada = DB::transaction(function () use ($cotizacion, $datos, $archivo, $usuario, $leidaConIa) {
             if ($cotizacion !== null) {
                 $this->revertirTodos($cotizacion);
             }
@@ -114,6 +118,13 @@ final class CotizacionService
 
             return $cotizacion->load('renglones.partida');
         });
+
+        // Aviso al Jefe de Zona solo cuando la cotización PASA a quedar por revisar (no en cada guardado).
+        if ($guardada->validacion === Cotizacion::REVISAR && $validacionAnterior !== Cotizacion::REVISAR) {
+            $this->avisos->cotizacionPorRevisar($guardada, $usuario);
+        }
+
+        return $guardada;
     }
 
     /**

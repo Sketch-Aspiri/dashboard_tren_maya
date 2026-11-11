@@ -46,4 +46,10 @@ return [
         'cache_pendientes' => 60,
     ],
 
+    // Avisos al celular por la PWA de Tickets (App\Services\Ecosistema\AvisosEcosistema). Necesitan el puente.
+    'avisos' => [
+        // Hora (America/Cancun, lunes a viernes) del recordatorio a las estaciones sin asistencia capturada.
+        'asistencia_hora' => env('ECOSISTEMA_AVISO_ASISTENCIA_HORA', '10:00'),
+    ],
+
 ];
