@@ -45,3 +45,6 @@ Schedule::command('asistencia:recordar-pendientes')
     ->timezone('America/Cancun')
     ->withoutOverlapping()
     ->onOneServer();
+
+// Limpia los trabajos fallidos con más de 7 días: los de avisos y actividades al ecosistema guardan correos y textos.
+Schedule::command('queue:prune-failed --hours=168')->daily()->onOneServer();

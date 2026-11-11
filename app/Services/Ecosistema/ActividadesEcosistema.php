@@ -140,10 +140,11 @@ final class ActividadesEcosistema
     }
 
     /**
-     * Texto plano en una sola línea y recortado: sin caracteres de control.
+     * Texto plano en una sola línea y recortado: sin caracteres de control ni de formato Unicode (dirección del
+     * texto, ancho cero, separadores de línea), que sirven para falsear lo que se lee. Tickets también los rechaza.
      */
     private function limpio(string $texto, int $max): string
     {
-        return Str::limit(trim((string) preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $texto)), $max, '');
+        return Str::limit(trim((string) preg_replace('/[\p{C}\p{Zl}\p{Zp}]+/u', ' ', $texto)), $max, '');
     }
 }

@@ -129,3 +129,27 @@ Todas usan un "puente" interno firmado con HMAC entre los dos servidores.
 - **Quién la recibe:** la actividad se asigna como responsable al **coordinador del equipo** (si el equipo no tiene un coordinador activo: 422 `sin_responsable`, no se crea), que decide quién la atiende; le llega el aviso de asignación (campana y Web Push). Plazo y prioridad por evento en la misma configuración.
 - **Creador:** el usuario de sistema «Dashboard (automático)» (`dashboard-automatico@sistema.invalid`), que Tickets crea la primera vez: inactivo, sin rol y con una contraseña aleatoria que nadie conoce, así que no puede iniciar sesión.
 - **Datos no confiables:** Tickets limita títulos (120) y descripciones (1000), rechaza caracteres de control, valida la URL de origen (`EcosystemUrl`) y lo muestra siempre escapado. El Dashboard solo guarda el folio y la ruta `/activities/{id}` de Tickets si tienen el formato esperado; nunca otro dominio.
+
+## Endurecimiento tras la auditoría de las fases 4 y 5 (decisión 93)
+- **Cuenta de sistema «Dashboard (automático)»:**
+  - El registro público rechaza cualquier correo `.invalid` (dominio reservado) y, por tanto, el de la cuenta de sistema; antes de la primera actividad nadie puede reservarla.
+  - Tickets solo usa esa cuenta si es inactiva, sin rol y sin equipos; si no, no crea nada (422 `usuario_sistema_invalido`) y deja un `Log::alert`. Si ya había alguien registrado con ese correo, hay que rechazar esa cuenta en «Usuarios».
+  - La cuenta no se lista ni se gestiona desde la interfaz: `User::scopeManageableBy` la excluye (404 en ver, aprobar, activar y editar) y `UserService` lo rechaza también por si otro camino llegara ahí.
+- **Service worker (`VERSION` v3):** el aviso solo abre este sitio o un host de la lista exacta `ECOSYSTEM_HOSTS` (`tickets.` y `dashboard.zonaorientetm.tech`), por `https` y sin puerto; ya no vale cualquier `*.zonaorientetm.tech`. Si cambian los dominios hay que cambiar la lista (y `VERSION`) junto con `config('ecosistema.urls')`.
+- **URL de un aviso o actividad:** además del origen, solo rutas de consulta (`tickets`, `activities`, `notifications`, `chat`, `tracking`, `dashboard`, `profile`, `insumos`, `asistencia`, `secciones`, `agenda` o la raíz). Nunca `/ecosistema/...`, `/logout`, `/interno`, `/storage`, `..` ni rutas con `export`, `descargar`, `download`, `reporte`, `salir` o `preview`: un simple GET no puede cerrar la sesión ni descargar un archivo.
+- **Textos:** títulos, cuerpos y descripciones rechazan caracteres de formato Unicode (dirección del texto, ancho cero, separadores de línea); el Dashboard los quita antes de enviar.
+- **Actividades:**
+  - `activities.external_ref` guarda `evento:ref` (el mismo `ref` con otro evento es otro hecho).
+  - Si el `ref` ya tuvo una actividad que se eliminó, Tickets responde `{creada: false, eliminada: true}` sin folio y el Dashboard no guarda ningún vínculo.
+  - Tope de actividades NUEVAS por evento y hora (`ECOSISTEMA_ACT_LIMITE_HORA`, 60): pasado el tope, 429 y el Dashboard reintenta más tarde; lo ya creado se sigue devolviendo.
+- **Avisos:** si el envío falla después de reservar el `ref`, el `ref` se libera para que el reintento del Dashboard sí avise.
+- **Dashboard:** `json_encode` ya no puede lanzar una excepción sin controlar desde un trabajo; «Seguimiento en Tickets» solo imprime como enlace una actividad de Tickets (si no, solo el folio); `queue:prune-failed` limpia cada día los trabajos fallidos de más de 7 días.
+- **Decisión pendiente (no es código):** el comentario de Zona (hasta 400 caracteres) y la serie y folio de la factura llegan al coordinador del equipo destino. Confirma con el jefe de zona que ese equipo es parte legítima del proceso.
+- **Diferido a propósito:** `Cache::add` por estación y día en los comandos de asistencia (si encolar falla, ese día no se repite; «a lo más una vez»), `Relation::enforceMorphMap` en el Dashboard (rompería filas existentes) y `composer audit` (no hay `composer` en la PC de desarrollo; correrlo en el VPS o en CI).
+
+### Lista previa al despliegue (fases 4 y 5)
+- Migrar AMBOS sistemas (`activities.external_ref`, `ecosistema_vinculos`) y comprobar el índice único en MySQL.
+- Dashboard: worker de cola bajo Supervisor (`deploy/vps/supervisor-dashboard.conf` procesa `default`) y `schedule:run` activo (asistencia 10:00 y 12:00, America/Cancun). Tickets: worker de cola y claves VAPID.
+- Tickets: `ECOSISTEMA_ACT_EQUIPO_*` y `ECOSISTEMA_ACT_ESTACIONES` (con `php artisan ecosystem:teams`); cada equipo con un coordinador activo.
+- `ECOSISTEMA_PUENTE_IPS` con la IP del otro servidor; tras cambiar secretos o `.env`, `php artisan config:cache`.
+- Probar un aviso de extremo a extremo en un celular real y comprobar que el service worker nuevo se actualiza.

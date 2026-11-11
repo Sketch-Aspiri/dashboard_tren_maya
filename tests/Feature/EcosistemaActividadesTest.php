@@ -344,7 +344,59 @@ class EcosistemaActividadesTest extends TestCase
         $this->assertSame('America/Cancun', (string) $evento->timezone);
     }
 
+    public function test_invisible_and_direction_characters_are_stripped_from_what_is_sent(): void
+    {
+        Queue::fake();
+        $estacion = Estacion::factory()->create(['nombre' => "Tu\u{202E}lum\u{200B}", 'codigo' => '26']);
+
+        app(SolicitudInsumoService::class)->revisar($this->solicitud($estacion), ['accion' => 'devolver', 'comentario_zona' => "Falta\u{2028}justificar\u{FEFF}"], $this->usuario('Jefe de Zona'));
+
+        $job = Queue::pushed(EnviarActividadTickets::class)->first();
+        $this->assertDoesNotMatchRegularExpression('/[\p{C}\p{Zl}\p{Zp}]/u', $job->titulo.$job->descripcion);
+        $this->assertStringContainsString('Tu lum', $job->titulo);
+    }
+
+    public function test_text_that_cannot_be_encoded_never_raises_an_uncontrolled_exception_and_sends_nothing(): void
+    {
+        Http::fake();
+
+        try {
+            $this->trabajo(['titulo' => "Solicitud \xB1\x31 inválida"])->handle(app(PuenteCliente::class));
+            $this->fail('Debió reintentarse.');
+        } catch (RuntimeException $e) {
+            $this->assertNotInstanceOf(\JsonException::class, $e);
+        }
+
+        Http::assertNothingSent();
+    }
+
+    public function test_old_failed_jobs_are_pruned_daily(): void
+    {
+        $evento = collect(app(Schedule::class)->events())->first(fn ($e) => str_contains((string) $e->command, 'queue:prune-failed'));
+
+        $this->assertNotNull($evento);
+        $this->assertStringContainsString('--hours=168', (string) $evento->command);
+    }
+
     // --- Seguimiento en pantalla ----------------------------------------------------------------------------------------------------
+
+    public function test_a_stored_link_that_is_not_a_tickets_activity_is_never_printed_as_href(): void
+    {
+        $this->actingAsTwoFactorVerified($this->usuario('Jefe de Zona'));
+        $solicitud = $this->solicitud(Estacion::factory()->create());
+
+        foreach (['javascript:alert(1)', 'https://malo.test/activities/1', 'https://tickets.ejemplo.test/activities/1/../x', 'https://tickets.ejemplo.test.malo.test/activities/1', 'data:text/html,x'] as $i => $url) {
+            $vinculo = new EcosistemaVinculo(['evento' => 'x', 'ref' => 'h-'.$i, 'folio' => 'ACT-2026-009'.$i, 'url' => $url]);
+            $vinculo->vinculable()->associate($solicitud);
+            $vinculo->save();
+        }
+
+        $respuesta = $this->get(route('insumos.show', $solicitud))->assertOk()->assertSee('ACT-2026-0090');
+        // Esas direcciones no se imprimen ni como href ni como texto: solo el folio.
+        foreach (['javascript:alert', 'malo.test', 'data:text/html', '/activities/1/../x'] as $peligro) {
+            $respuesta->assertDontSee($peligro, false);
+        }
+    }
 
     public function test_the_solicitud_and_factura_pages_show_the_tickets_follow_up_escaped(): void
     {

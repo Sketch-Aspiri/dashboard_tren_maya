@@ -86,10 +86,13 @@ final class PuenteCliente
         }
 
         $ruta = '/'.ltrim($ruta, '/');
-        $json = json_encode($cuerpo, JSON_THROW_ON_ERROR);
         $segundos = (int) config('ecosistema.puente.timeout', 3);
 
         try {
+            // Dentro del try: un texto que no se pueda codificar (UTF-8 inválido) no debe lanzar una excepción sin
+            // controlar desde un trabajo en cola; se trata como «no se pudo enviar».
+            $json = json_encode($cuerpo, JSON_THROW_ON_ERROR);
+
             $respuesta = Http::acceptJson()
                 ->timeout($segundos)
                 ->connectTimeout($segundos)
