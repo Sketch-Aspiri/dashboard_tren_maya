@@ -75,7 +75,7 @@ class AuthenticatedSessionController extends Controller
         // Cierre único: también se cierra la sesión de la misma persona en Tickets, que
         // después regresa al login de aquí (sin volver a preguntarle por la sesión).
         if ($user && $this->sso->activo()) {
-            $this->sso->marcarIntento($request);
+            $this->sso->omitirSiguiente($request);
             $otro = (string) $this->sso->otroSistema();
             $codigo = $this->firma->firmar($otro, FirmaEcosistema::SALIR, $user->email, false);
 

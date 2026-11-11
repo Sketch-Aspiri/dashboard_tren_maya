@@ -38,6 +38,8 @@ final class InicioUnicoService
 {
     public const SESION_INTENTO = 'ecosistema.sso_intentado';
 
+    public const SESION_OMITIR = 'ecosistema.sso_omitir';
+
     public const SESION_ESTADO = 'ecosistema.sso_estado';
 
     public const SESION_VINCULO = 'ecosistema.sso_vinculo';
@@ -71,10 +73,16 @@ final class InicioUnicoService
      */
     public function debePreguntar(Request $request): bool
     {
-        if (! $this->activo() || $request->boolean('local')) {
+        // Solo la visita al login que sigue INMEDIATAMENTE a un cierre de sesión o a una respuesta del otro sistema se
+        // salta la pregunta (evita ir y venir); la siguiente vuelve a preguntar.
+        $omitir = (bool) $request->session()->pull(self::SESION_OMITIR, false);
+
+        if (! $this->activo() || $request->boolean('local') || $omitir) {
             return false;
         }
 
+        // Si la pregunta anterior NO se completó (el otro sistema falló), no se insiste en los próximos minutos: el
+        // login normal siempre queda disponible.
         $ultimo = (int) $request->session()->get(self::SESION_INTENTO, 0);
 
         if ($ultimo > now()->subMinutes((int) config('ecosistema.sso.reintento_minutos', 5))->getTimestamp()) {
@@ -87,6 +95,25 @@ final class InicioUnicoService
     public function marcarIntento(Request $request): void
     {
         $request->session()->put(self::SESION_INTENTO, now()->getTimestamp());
+    }
+
+    /**
+     * El otro sistema contestó (con un código o con «sin sesión»): el viaje de ida y vuelta terminó. Se borra la
+     * marca de intento (la próxima visita al login vuelve a preguntar) y solo la visita inmediata siguiente se
+     * salta la pregunta, para no ir y venir.
+     */
+    public function viajeCompletado(Request $request): void
+    {
+        $request->session()->forget(self::SESION_INTENTO);
+        $this->omitirSiguiente($request);
+    }
+
+    /**
+     * La próxima visita al login no pregunta (p. ej. justo después de cerrar sesión aquí).
+     */
+    public function omitirSiguiente(Request $request): void
+    {
+        $request->session()->put(self::SESION_OMITIR, true);
     }
 
     /**

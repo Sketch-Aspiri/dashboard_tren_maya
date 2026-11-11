@@ -164,6 +164,49 @@ class InicioUnicoTest extends TestCase
         return [$jefe, $secreto];
     }
 
+    public function test_tras_una_respuesta_completa_el_siguiente_login_vuelve_a_preguntar_sin_esperar_minutos(): void
+    {
+        $this->get(route('login'))->assertRedirect();
+
+        // Vuelve la respuesta del otro sistema (aquí «sin sesión»): la visita inmediata no pregunta de nuevo...
+        $this->get(route('ecosistema.entrar', ['sin_sesion' => 1]))->assertRedirect(route('login'));
+        $this->get(route('login'))->assertOk()->assertSee('name="password"', false);
+
+        // ...pero la siguiente SÍ (antes quedaba bloqueada 5 minutos y quien ya tenía sesión en Tickets escribía su contraseña).
+        $this->get(route('login'))->assertRedirect();
+    }
+
+    public function test_si_el_otro_sistema_no_responde_el_login_normal_sigue_disponible(): void
+    {
+        // La pregunta no se completa (el otro sistema falla): no se insiste en los siguientes minutos.
+        $this->get(route('login'))->assertRedirect();
+
+        $this->get(route('login'))->assertOk()->assertSee('name="password"', false);
+        $this->get(route('login'))->assertOk();
+    }
+
+    public function test_tras_cerrar_sesion_aqui_solo_la_visita_inmediata_al_login_omite_la_pregunta(): void
+    {
+        $this->actingAsTwoFactorVerified($this->jefe());
+
+        $this->post(route('logout'))->assertRedirect();
+
+        $this->get(route('login'))->assertOk();      // la que sigue al cierre
+        $this->get(route('login'))->assertRedirect(); // después vuelve a preguntar a Tickets
+    }
+
+    public function test_un_cierre_desde_tickets_no_impide_preguntar_despues(): void
+    {
+        $jefe = $this->jefe();
+        $this->actingAsTwoFactorVerified($jefe);
+
+        $this->get(route('ecosistema.salir', ['codigo' => $this->codigoDeTickets($jefe->email, accion: FirmaEcosistema::SALIR, estado: null)]))->assertRedirect();
+        $this->assertGuest();
+
+        // Antes este cierre dejaba el login sin preguntar durante 5 minutos aunque ya hubiera sesión en Tickets.
+        $this->get(route('login'))->assertRedirect();
+    }
+
     public function test_la_primera_vez_se_vincula_con_la_contrasena_y_el_2fa_de_aqui_y_despues_ya_no(): void
     {
         [$jefe, $secreto] = $this->jefeConDosPasos();
