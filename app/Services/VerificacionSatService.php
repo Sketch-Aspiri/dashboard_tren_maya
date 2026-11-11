@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Factura;
+use App\Services\Ecosistema\ActividadesEcosistema;
 use App\Services\Sat\ConsultaSatException;
 use App\Services\Sat\ConsultorSat;
 use App\Services\Sat\ResultadoSat;
@@ -24,6 +25,7 @@ final class VerificacionSatService
     public function __construct(
         private readonly ConsultorSat $consultor,
         private readonly ComprobacionService $comprobacion,
+        private readonly ActividadesEcosistema $actividades,
     ) {}
 
     /**
@@ -31,6 +33,8 @@ final class VerificacionSatService
      */
     public function verificar(Factura $factura): string
     {
+        $anterior = $factura->verificacion_sat;
+
         try {
             $disco = Storage::disk('local');
             $xml = $factura->xml_ruta !== null && $disco->exists($factura->xml_ruta) ? (string) $disco->get($factura->xml_ruta) : null;
@@ -60,6 +64,11 @@ final class VerificacionSatService
         activity('factura')->performedOn($factura)->withProperties(['sat' => $factura->verificacion_sat])->log('verificada en el SAT');
 
         $this->comprobacion->analizar($factura);
+
+        // Solo cuando PASA a cancelada (no en cada consulta): una actividad para Recursos materiales en Tickets.
+        if ($factura->verificacion_sat === ResultadoSat::CANCELADO && $anterior !== ResultadoSat::CANCELADO) {
+            $this->actividades->facturaCancelada($factura);
+        }
 
         return $factura->verificacion_sat;
     }

@@ -67,8 +67,22 @@ final class PuenteCliente
      */
     public function post(string $ruta, array $cuerpo): ?array
     {
+        $respuesta = $this->postConEstado($ruta, $cuerpo);
+
+        return $respuesta['estado'] >= 200 && $respuesta['estado'] < 300 ? $respuesta['datos'] : null;
+    }
+
+    /**
+     * Igual que post(), pero devuelve también el código HTTP (0 si no hubo respuesta: puente apagado, red caída o
+     * tiempo agotado) y el JSON de la respuesta aunque sea un rechazo, para decidir si conviene reintentar.
+     *
+     * @param  array<string, mixed>  $cuerpo
+     * @return array{estado: int, datos: array<string, mixed>|null}
+     */
+    public function postConEstado(string $ruta, array $cuerpo): array
+    {
         if (! $this->activo()) {
-            return null;
+            return ['estado' => 0, 'datos' => null];
         }
 
         $ruta = '/'.ltrim($ruta, '/');
@@ -86,15 +100,13 @@ final class PuenteCliente
         } catch (Throwable $e) {
             Log::warning('Puente con Tickets no disponible.', ['ruta' => $ruta, 'error' => $e::class]);
 
-            return null;
+            return ['estado' => 0, 'datos' => null];
         }
 
         if (! $respuesta->successful() || ! is_array($respuesta->json())) {
             Log::warning('Puente con Tickets: respuesta inesperada.', ['ruta' => $ruta, 'estado' => $respuesta->status()]);
-
-            return null;
         }
 
-        return $respuesta->json();
+        return ['estado' => $respuesta->status(), 'datos' => is_array($respuesta->json()) ? $respuesta->json() : null];
     }
 }

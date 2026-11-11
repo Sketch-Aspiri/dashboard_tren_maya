@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\EnviarActividadTickets;
 use App\Models\Estacion;
 use App\Models\Proveedor;
 use App\Models\SolicitudInsumo;
@@ -11,6 +12,7 @@ use App\Services\SolicitudInsumoService;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Testing\TestResponse;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -215,6 +217,34 @@ class CoordinacionInsumosTest extends TestCase
         $this->assertCount(2, $resumen['cambios']);
         $this->assertSame(['Playa del Carmen'], $resumen['sin_renglones']);
         $this->assertSame(['Edificio Zonal Este'], $resumen['sin_bloque']);
+    }
+
+    public function test_returning_from_coordinacion_asks_tickets_for_one_activity_per_returned_station(): void
+    {
+        Queue::fake();
+        config([
+            'ecosistema.puente.secreto_salida' => 'secreto-dashboard-a-tickets-de-prueba-0123456789',
+            'ecosistema.puente.url' => 'https://tickets.ejemplo.test',
+            'ecosistema.urls.dashboard' => 'https://dashboard.ejemplo.test',
+            'ecosistema.actividades.eventos' => ['insumos_devuelta'],
+        ]);
+        $pmo = $this->escenario();
+        $this->actingAsTwoFactorVerified($this->userWithRole('Jefe de Zona'));
+
+        $this->post(route('insumos.coordinacion.respuesta'), ['anio' => 2026, 'mes' => 12, 'archivo' => $this->respuesta()])->assertRedirect();
+
+        // Solo la estación 23 recibió cambios (24 sin renglones y 00 sin bloque no se tocan).
+        Queue::assertPushed(EnviarActividadTickets::class, 1);
+        $job = Queue::pushed(EnviarActividadTickets::class)->first();
+        $pmo->refresh();
+        $this->assertSame('insumos_devuelta', $job->evento);
+        $this->assertSame('dashboard:solicitud:'.$pmo->id.':devuelta:'.$pmo->devuelta_at->getTimestamp(), $job->ref);
+        $this->assertSame('23', $job->estacion);
+        $this->assertSame('Solicitud de insumos devuelta por Coordinación: Puerto Morelos', $job->titulo);
+        $this->assertSame('https://dashboard.ejemplo.test/insumos/estaciones/'.$this->pmo->id, $job->url);
+        // Sin montos ni descripciones de partidas en la petición.
+        $this->assertStringNotContainsString('Cable', $job->descripcion);
+        $this->assertStringNotContainsString('$', $job->descripcion);
     }
 
     public function test_stations_without_lines_or_without_block_are_not_touched(): void

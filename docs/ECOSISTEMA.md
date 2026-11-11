@@ -112,3 +112,20 @@ Todas usan un "puente" interno firmado con HMAC entre los dos servidores.
 - **Service worker (Tickets, `VERSION` v2):** `notificationclick` abre URLs de este sitio y también `https://*.zonaorientetm.tech`. Una URL del Dashboard pasa por su pantalla de acceso: el inicio de sesión único (fase 2) entra sin contraseña si las cuentas están vinculadas y vuelve a la ruta pedida.
 - **Activar el aviso:** la persona instala Tickets en su celular y pulsa «Activar notificaciones» (`/notifications`); en el Dashboard, «Mi perfil» trae un enlace a esa pantalla. Requiere las claves VAPID de Tickets y el worker de cola del Dashboard (`deploy/vps/supervisor-dashboard.conf` ya procesa la cola `default`).
 - **Sin el puente configurado** no se encola nada y el comando de asistencia no hace nada.
+
+## Fase 4: eventos del Dashboard que se vuelven actividades en Tickets
+- **Flujo:** un evento del Dashboard encola `EnviarActividadTickets` (cola `default`, 4 intentos, espera 30 s / 2 min / 10 min). El trabajo hace `POST /interno/actividades` a Tickets; Tickets crea la actividad y responde `{folio, url, creada}`; el Dashboard guarda el vínculo en `ecosistema_vinculos` (modelo, id, folio, enlace) y lo muestra como «Seguimiento en Tickets: ACT-2026-0012» en la solicitud y en la factura de origen. Encolar va en `try/catch`: la acción original nunca se frena.
+- **Eventos** (`App\Services\Ecosistema\ActividadesEcosistema`; solo estación, mes, folio, acción y enlace: nunca montos, RFC ni datos personales):
+  - `insumos_observada`: la Zona devuelve la solicitud con observaciones → actividad para la estación (lleva el comentario de Zona recortado a 400 caracteres).
+  - `insumos_devuelta`: Coordinación devuelve la solicitud con ajustes → actividad para la estación (una por estación devuelta).
+  - `factura_cancelada`: una factura PASA a cancelada en el SAT (no en cada consulta) → actividad para Recursos materiales.
+  - `asistencia_pendiente`: a la hora límite (`asistencia:abrir-actividades`, lunes a viernes 12:00 Cancún, `ECOSISTEMA_ACT_ASISTENCIA_HORA`) la estación sigue sin capturar → actividad para la estación; una vez por estación y día.
+  - Cada hecho lleva un `ref` único (p. ej. `dashboard:solicitud:12:observada:1790000000`): Tickets lo guarda en `activities.external_ref` (único), así que reenviar el evento devuelve la misma actividad (`creada: false`).
+- **Equipo destino: lo decide Tickets, no el Dashboard** (`config/ecosistema.php` de Tickets > `actividades`). **Sin equipo configurado para un evento no se crea nada** (Tickets responde 422 `sin_equipo` y el Dashboard no reintenta):
+  - `ECOSISTEMA_ACT_EQUIPO_INSUMOS_OBSERVADA`, `..._INSUMOS_DEVUELTA`, `..._FACTURA_CANCELADA`, `..._ASISTENCIA`: id o nombre EXACTO del equipo (un nombre repetido en varias coordinaciones no se adivina).
+  - `ECOSISTEMA_ACT_ESTACIONES`: JSON `{"codigo de estación del Dashboard": equipo}` para que los eventos «de estación» vayan al equipo de cada una; si una estación no está, usan el equipo general del evento.
+  - `php artisan ecosystem:teams` (Tickets) lista los equipos con su id, coordinación y coordinador, y qué eventos siguen sin configurar.
+  - En el Dashboard, `ECOSISTEMA_ACT_EVENTOS` elige qué eventos se mandan (por omisión los cuatro).
+- **Quién la recibe:** la actividad se asigna como responsable al **coordinador del equipo** (si el equipo no tiene un coordinador activo: 422 `sin_responsable`, no se crea), que decide quién la atiende; le llega el aviso de asignación (campana y Web Push). Plazo y prioridad por evento en la misma configuración.
+- **Creador:** el usuario de sistema «Dashboard (automático)» (`dashboard-automatico@sistema.invalid`), que Tickets crea la primera vez: inactivo, sin rol y con una contraseña aleatoria que nadie conoce, así que no puede iniciar sesión.
+- **Datos no confiables:** Tickets limita títulos (120) y descripciones (1000), rechaza caracteres de control, valida la URL de origen (`EcosystemUrl`) y lo muestra siempre escapado. El Dashboard solo guarda el folio y la ruta `/activities/{id}` de Tickets si tienen el formato esperado; nunca otro dominio.

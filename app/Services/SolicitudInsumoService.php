@@ -7,6 +7,7 @@ use App\Models\Estacion;
 use App\Models\SolicitudInsumo;
 use App\Models\SolicitudInsumoPartida;
 use App\Models\User;
+use App\Services\Ecosistema\ActividadesEcosistema;
 use App\Services\Ecosistema\AvisosEcosistema;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -29,6 +30,7 @@ final class SolicitudInsumoService
     public function __construct(
         private readonly ProveedorService $proveedores,
         private readonly AvisosEcosistema $avisos,
+        private readonly ActividadesEcosistema $actividades,
     ) {}
 
     /**
@@ -189,6 +191,11 @@ final class SolicitudInsumoService
         // Aviso al celular de la estación cuando se devuelve o se aprueba (guardar no avisa).
         if (in_array($datos['accion'], ['devolver', 'aprobar'], true)) {
             $this->avisos->solicitudRevisada($revisada, $datos['accion']);
+
+            // Al devolverla con observaciones, además, una actividad para la estación en Tickets.
+            if ($datos['accion'] === 'devolver') {
+                $this->actividades->solicitudObservada($revisada);
+            }
         }
 
         return $revisada;

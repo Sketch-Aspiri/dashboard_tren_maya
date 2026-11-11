@@ -24,6 +24,8 @@
 
             <x-insumos.avisos />
 
+            <x-seguimiento-tickets :modelo="$factura" />
+
             @if ($factura->verificacion_sat === 'CANCELADO')
                 <div class="ins-aviso-error" role="alert">
                     <span aria-hidden="true" class="mt-0.5 font-bold">!</span>

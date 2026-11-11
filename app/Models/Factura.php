@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -119,5 +120,15 @@ class Factura extends Model
     public function creador(): BelongsTo
     {
         return $this->belongsTo(User::class, 'creada_por');
+    }
+
+    /**
+     * Actividades de Tickets creadas por eventos de este registro (ver ActividadesEcosistema).
+     *
+     * @return MorphMany<EcosistemaVinculo, $this>
+     */
+    public function vinculosTickets(): MorphMany
+    {
+        return $this->morphMany(EcosistemaVinculo::class, 'vinculable')->orderBy('id');
     }
 }

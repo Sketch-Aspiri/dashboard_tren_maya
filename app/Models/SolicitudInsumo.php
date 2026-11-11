@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -129,5 +130,15 @@ class SolicitudInsumo extends Model
     public function partidas(): HasMany
     {
         return $this->hasMany(SolicitudInsumoPartida::class)->orderBy('numero');
+    }
+
+    /**
+     * Actividades de Tickets creadas por eventos de este registro (ver ActividadesEcosistema).
+     *
+     * @return MorphMany<EcosistemaVinculo, $this>
+     */
+    public function vinculosTickets(): MorphMany
+    {
+        return $this->morphMany(EcosistemaVinculo::class, 'vinculable')->orderBy('id');
     }
 }

@@ -6,6 +6,7 @@ use App\Models\Estacion;
 use App\Models\SolicitudInsumo;
 use App\Models\SolicitudInsumoPartida;
 use App\Models\User;
+use App\Services\Ecosistema\ActividadesEcosistema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -25,7 +26,10 @@ final class CoordinacionInsumosService
     /** @var array<string, string>|null Código de estación por nombre (solo letras), cargado al primer uso. */
     private ?array $estacionesPorNombre = null;
 
-    public function __construct(private readonly CatalogoInsumoService $anexos) {}
+    public function __construct(
+        private readonly CatalogoInsumoService $anexos,
+        private readonly ActividadesEcosistema $actividades,
+    ) {}
 
     /**
      * Las solicitudes APROBADAS del mes pasan a "enviada a Coordinación" con
@@ -86,7 +90,10 @@ final class CoordinacionInsumosService
 
         $resumen = ['solicitudes' => 0, 'actualizadas' => 0, 'quitadas' => [], 'agregadas' => [], 'cambios' => [], 'sin_bloque' => [], 'sin_solicitud' => [], 'sin_renglones' => []];
 
-        DB::transaction(function () use ($bloques, $solicitudes, &$resumen) {
+        /** @var list<SolicitudInsumo> $devueltas */
+        $devueltas = [];
+
+        DB::transaction(function () use ($bloques, $solicitudes, &$resumen, &$devueltas) {
             foreach ($bloques as $codigo => $bloque) {
                 $solicitud = $solicitudes->get((string) $codigo);
 
@@ -104,6 +111,7 @@ final class CoordinacionInsumosService
 
                 $this->aplicarBloque($solicitud, $bloque['renglones'], $resumen);
                 $solicitud->update(['estado' => SolicitudInsumo::DEVUELTA, 'devuelta_at' => now()]);
+                $devueltas[] = $solicitud;
                 $resumen['solicitudes']++;
             }
 
@@ -113,6 +121,11 @@ final class CoordinacionInsumosService
                 }
             }
         });
+
+        // Una actividad en Tickets por cada estación a la que Coordinación devolvió su solicitud (tras el commit).
+        foreach ($devueltas as $solicitud) {
+            $this->actividades->solicitudDevuelta($solicitud);
+        }
 
         activity('solicitud_insumo')->causedBy($user)
             ->withProperties(['anio' => $anio, 'mes' => $mes] + array_map(fn ($v) => is_array($v) ? count($v) : $v, $resumen))

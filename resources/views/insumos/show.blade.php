@@ -44,6 +44,8 @@
 
             <x-insumos.avisos />
 
+            <x-seguimiento-tickets :modelo="$solicitud" />
+
             <x-insumos.pasos :estado="$solicitud->estado" />
 
             @if ($solicitud->estado === 'observada' && $solicitud->comentario_zona)

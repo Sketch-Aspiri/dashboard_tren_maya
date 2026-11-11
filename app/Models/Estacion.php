@@ -6,6 +6,7 @@ use Database\Factories\EstacionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
  * Fixed catalog of Zona Oriente stations (9 operational + "Edificio Zonal
@@ -82,5 +83,15 @@ class Estacion extends Model
     public function comisionadosFuera(): HasMany
     {
         return $this->hasMany(ComisionadoFuera::class);
+    }
+
+    /**
+     * Actividades de Tickets creadas por eventos de este registro (ver ActividadesEcosistema).
+     *
+     * @return MorphMany<EcosistemaVinculo, $this>
+     */
+    public function vinculosTickets(): MorphMany
+    {
+        return $this->morphMany(EcosistemaVinculo::class, 'vinculable')->orderBy('id');
     }
 }
