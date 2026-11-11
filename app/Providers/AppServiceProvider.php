@@ -11,14 +11,15 @@ use App\Services\Asistente\ModeloLenguaje;
 use App\Services\Documentos\ConvertidorPdf;
 use App\Services\Documentos\ConvertidorPdfLibreOffice;
 use App\Services\Documentos\UnidorPdf;
-use App\Services\Sat\ConsultorSat;
-use App\Services\Sat\ConsultorSatPhpCfdi;
 use App\Services\Documentos\UnidorPdfGhostscript;
 use App\Services\Nube\Contracts\ProveedorNube;
 use App\Services\Nube\Proveedores\EnlacePublico;
+use App\Services\Sat\ConsultorSat;
+use App\Services\Sat\ConsultorSatPhpCfdi;
 use App\Services\Secciones\ExtractorDocumentos;
 use App\Services\Secciones\PermisosPorNombreService;
 use App\Services\Secciones\VisibilidadSecciones;
+use App\Support\ProxyTrust;
 use App\Support\Roles;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -75,6 +76,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // IP y esquema del cliente: solo se confía en los proxies de TRUSTED_PROXIES (vacío = ninguno).
+        ProxyTrust::configure(config('proxies.trusted'));
+
         // Subsecciones y hojas que nombran a una estación le dan Editar solas (una sola pasada por petición/proceso).
         $pendiente = false;
         $programar = function () use (&$pendiente): void {

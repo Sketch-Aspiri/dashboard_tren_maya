@@ -21,8 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Detras del tunel de Cloudflare (HTTPS) las URLs de assets deben salir como https.
-        $middleware->trustProxies(at: '*');
+        // Los proxies de confianza se fijan en AppServiceProvider desde TRUSTED_PROXIES (config/proxies.php): con `*`
+        // cualquiera podria falsear su IP con X-Forwarded-For y esquivar los limites de intentos.
 
         $middleware->alias([
             'two-factor.verified' => EnsureTwoFactorIsVerified::class,
