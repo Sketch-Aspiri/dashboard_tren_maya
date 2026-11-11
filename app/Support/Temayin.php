@@ -44,7 +44,8 @@ final class Temayin
      */
     public function urlSoporte(): string
     {
-        return (string) config('services.tickets.soporte_url');
+        // Pasa por el Dashboard para llevar el contexto de la página actual (solo la ruta, sin consulta).
+        return route('ecosistema.reportar', ['desde' => '/'.ltrim(request()->path(), '/')]);
     }
 
     /**
@@ -227,7 +228,9 @@ final class Temayin
             'soporte' => [
                 'publico' => 'todos',
                 'q' => __('Algo no funciona, ¿a quién le aviso?'),
-                'a' => __('Crea un ticket a Soporte del sistema en el sistema de Tickets, con lo que estabas haciendo y, si puedes, una captura de pantalla.'),
+                'a' => __('Crea un ticket a Soporte del sistema en Tickets. Con «Reportar falla» el formulario ya llega con la página donde estabas; solo describe qué pasó y, si puedes, adjunta una captura de pantalla.'),
+                'externo' => $this->urlSoporte(),
+                'enlace' => __('Reportar falla'),
             ],
         ];
     }

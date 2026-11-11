@@ -65,3 +65,21 @@ Todas usan un "puente" interno firmado con HMAC entre los dos servidores.
   - Cambiar el correo rompe el vínculo.
 - **2FA:** si el origen ya lo verificó y la cuenta destino lo tiene configurado, no se vuelve a pedir.
 - **Si el otro sistema está caído o no hay secreto,** cada uno muestra su login normal (`?local=1` también lo fuerza).
+
+## Puente interno y fase 3 (pendientes y reporte de fallas)
+- **Puente:** llamadas de servidor a servidor bajo `/interno/*`, fuera del grupo `web` (sin sesión, cookies ni CSRF). El navegador nunca las usa.
+  - **Clases:** Dashboard `App\Services\Ecosistema\{FirmaPuente,PuenteCliente}` + middleware `VerificarPuente`; Tickets `App\Services\Ecosystem\{BridgeSignature,BridgeClient}` + middleware `VerifyBridge` (decisión 89). Mismo formato en ambos: no cambiar una sin la otra.
+  - **Firma:** `hex(hmac_sha256(secreto, MÉTODO \n /ruta \n consulta \n sistema \n fecha \n nonce \n sha256(cuerpo)))`. La consulta va ordenada por nombre y codificada RFC 3986.
+  - **Encabezados:** `X-Puente-Sistema`, `X-Puente-Fecha` (unix, ±5 min), `X-Puente-Nonce` (un solo uso, en caché) y `X-Puente-Firma`.
+  - **Un secreto por dirección, el mismo valor en los dos `.env`:** `ECOSISTEMA_PUENTE_SECRETO_DASHBOARD` (lo que el Dashboard pide a Tickets) y `ECOSISTEMA_PUENTE_SECRETO_TICKETS` (lo que Tickets pide al Dashboard). Sin secretos, `/interno/*` responde 404 y todo sigue como antes.
+  - **Opcionales:** `ECOSISTEMA_PUENTE_IPS` (IPs permitidas, coma) y `ECOSISTEMA_PUENTE_TICKETS_URL` / `ECOSISTEMA_PUENTE_DASHBOARD_URL` (dirección interna del otro sistema).
+  - **Cliente:** timeout de 3 s y 2 reintentos; si el otro sistema falla, devuelve nada y la pantalla sigue.
+- **Mis pendientes en Tickets (en el Dashboard):**
+  - Tickets: `GET /interno/pendientes?correo=`. Usa las mismas consultas de «Mis pendientes» (`pendingQuery`, alcance propio) y solo responde por cuentas activas, con rol y **vinculadas** (`sso_linked_at`); si no, `{linked: false}`.
+  - Devuelve conteos (tickets, actividades, vencidos, en revisión), los 5 más urgentes (folio, título, estado, prioridad, vencimiento, URL relativa) y la URL de «Mis pendientes».
+  - Dashboard: `TicketsPendientes` lo guarda 60 s por persona (también la falla) y la tarjeta `x-tickets-pendientes` se muestra en el dashboard principal y en el inicio de estación. Títulos siempre escapados; solo se aceptan rutas relativas de Tickets.
+- **Reportar una falla con contexto:**
+  - El enlace de Soporte de Temayin va a `GET /ecosistema/reportar?desde=<ruta>` del Dashboard (solo la ruta, sin consulta).
+  - El Dashboard guarda 15 min el contexto (página, rol, estación, fecha y navegador; sin montos ni datos personales) bajo un id aleatorio y manda a `{tickets}/tickets/create?prefill=<id>`.
+  - Tickets lo pide por `GET /interno/contextos/{id}?correo=` del Dashboard: se entrega una sola vez y solo al mismo correo. Prellena título y descripción como texto plano y preselecciona Soporte del sistema; la persona revisa y envía por el flujo normal.
+  - Sin puente, el enlace abre el formulario de Soporte vacío, como antes.

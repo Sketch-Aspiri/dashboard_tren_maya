@@ -33,6 +33,9 @@
                 </a>
             @endif
 
+            {{-- Mis pendientes en Tickets (ecosistema) --}}
+            <x-tickets-pendientes :pendientes="$pendientesTickets ?? null" />
+
             <div>
                 <h3 class="mb-3 font-heading text-sm font-semibold uppercase tracking-wide text-gray-600">{{ __('Secciones para tu estación') }}</h3>
 

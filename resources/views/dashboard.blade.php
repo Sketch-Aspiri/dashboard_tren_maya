@@ -160,6 +160,9 @@
                 </div>
 
                 <aside class="space-y-6">
+                    {{-- Mis pendientes en Tickets (ecosistema) --}}
+                    <x-tickets-pendientes :pendientes="$pendientesTickets ?? null" />
+
                     {{-- Insumos del mes --}}
                     @if ($insumos)
                         <section class="rounded-xl border border-brand-green/10 bg-white p-5 shadow-sm shadow-brand-green/5 sm:p-6" aria-labelledby="titulo-insumos-mes">

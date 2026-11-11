@@ -13,6 +13,7 @@ use App\Http\Controllers\CotizacionController;
 use App\Http\Controllers\CotizacionIaController;
 use App\Http\Controllers\CotizacionReporteController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EcosistemaReporteController;
 use App\Http\Controllers\EcosistemaSesionController;
 use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\FacturaComprobacionController;
@@ -63,6 +64,11 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
     Route::post('/dashboard/asistente', AsistenteController::class)
         ->middleware('throttle:ia')
         ->name('dashboard.asistente');
+
+    // Reportar una falla a Soporte en Tickets con el contexto de la página.
+    Route::get('/ecosistema/reportar', EcosistemaReporteController::class)
+        ->middleware('throttle:20,1')
+        ->name('ecosistema.reportar');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

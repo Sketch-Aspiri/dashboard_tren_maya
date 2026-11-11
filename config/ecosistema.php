@@ -27,4 +27,23 @@ return [
         'reintento_minutos' => 5,
     ],
 
+    // Puente interno entre los dos servidores (App\Services\Ecosistema\FirmaPuente): llamadas firmadas con
+    // HMAC, nunca desde el navegador. Un secreto por dirección, el MISMO valor en los dos .env (32+ caracteres):
+    //   ECOSISTEMA_PUENTE_SECRETO_DASHBOARD firma lo que el Dashboard le pide a Tickets;
+    //   ECOSISTEMA_PUENTE_SECRETO_TICKETS firma lo que Tickets le pide al Dashboard.
+    // Sin secretos el puente queda apagado (las rutas /interno responden 404) y nada cambia.
+    'puente' => [
+        'secreto_entrada' => env('ECOSISTEMA_PUENTE_SECRETO_TICKETS'),
+        'secreto_salida' => env('ECOSISTEMA_PUENTE_SECRETO_DASHBOARD'),
+        // Dirección con la que este servidor llama a Tickets (por omisión, la pública).
+        'url' => rtrim((string) (env('ECOSISTEMA_PUENTE_TICKETS_URL') ?: env('ECOSISTEMA_TICKETS_URL', 'https://tickets.zonaorientetm.tech')), '/'),
+        // IPs desde las que se aceptan llamadas (separadas por coma; vacío = cualquiera, solo vale la firma).
+        'ips' => array_values(array_filter(array_map('trim', explode(',', (string) env('ECOSISTEMA_PUENTE_IPS', ''))))),
+        // Diferencia máxima de reloj aceptada, en segundos.
+        'ventana' => 300,
+        'timeout' => 3,
+        // Segundos que se guardan los pendientes de Tickets de cada persona.
+        'cache_pendientes' => 60,
+    ],
+
 ];

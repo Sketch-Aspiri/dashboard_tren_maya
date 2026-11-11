@@ -40,7 +40,8 @@ class TemayinTest extends TestCase
             ->assertSee(asset('temayin-soporte.jpg'), false)
             ->assertSee('¿Cómo genero la comprobación en PDF?')
             ->assertSee('¿Cómo sé si una factura está vigente en el SAT?')
-            ->assertSee(config('services.tickets.soporte_url'), false);
+            // La burbuja de Soporte pasa por «Reportar falla» para llevar la página actual (fase 3 del ecosistema).
+            ->assertSee(e(route('ecosistema.reportar', ['desde' => '/dashboard'])), false);
 
         $this->get(route('insumos.facturas.index'))->assertOk()->assertSee('x-data="temayin"', false);
     }
@@ -83,8 +84,9 @@ class TemayinTest extends TestCase
             $this->actingAsTwoFactorVerified($usuario);
 
             foreach (app(Temayin::class)->preguntas($usuario) as $clave => $faq) {
-                // Los enlaces a Tickets (otro sistema del ecosistema) se prueban en EcosistemaTest.
-                if ($faq['url'] !== null && str_starts_with($faq['url'], config('app.url'))) {
+                // Los enlaces a Tickets (otro sistema del ecosistema) se prueban en EcosistemaTest, y
+                // «Reportar falla» (redirige a Tickets) en EcosistemaPuenteTest.
+                if ($faq['url'] !== null && str_starts_with($faq['url'], config('app.url')) && ! str_contains($faq['url'], '/ecosistema/')) {
                     $this->assertSame(200, $this->get($faq['url'])->status(), "{$rol}: {$clave} ({$faq['url']})");
                     $this->assertNotEmpty($faq['enlace'], "{$rol}: {$clave}");
                 }
