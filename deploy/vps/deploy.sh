@@ -20,6 +20,11 @@ cd "$(dirname "$0")/../.."
 [ "$(id -u)" -ne 0 ] || { echo "No ejecutes el despliegue como root."; exit 1; }
 [ -f .env ] || { echo "Falta .env (copia deploy/vps/env.produccion.example)."; exit 1; }
 
+# Un despliegue anterior hecho como root deja archivos de root: `git merge` falla a medias (el árbol queda con
+# parte del código nuevo y el sitio abierto). Se comprueba ANTES de poner el sitio en mantenimiento.
+AJENO="$(find . \( -path ./vendor -o -path ./node_modules \) -prune -o -not -user "$(id -un)" -print -quit 2>/dev/null || true)"
+[ -z "$AJENO" ] || { echo "Hay archivos que no son de $(id -un) (p. ej. $AJENO). Como root: chown -R $(id -un):$(id -gn) <ruta del sitio>"; exit 1; }
+
 env_valor() { grep -E "^$1=" .env | head -n1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//'; }
 
 [ "$(env_valor APP_ENV)" = "production" ]  || { echo "APP_ENV debe ser production."; exit 1; }
@@ -71,8 +76,14 @@ echo "==> 4/8 Dependencias PHP"
 composer install --no-dev --optimize-autoloader --no-interaction
 
 echo "==> 5/8 Assets"
-npm ci
-npm run build
+if command -v npm >/dev/null 2>&1; then
+    npm ci
+    npm run build
+else
+    # El VPS puede no tener Node: se compila en la PC (`npm run build`) y se sube public/build (está en .gitignore).
+    [ -f public/build/manifest.json ] || { echo "Sin npm y sin public/build/manifest.json: compila en la PC y sube public/build."; exit 1; }
+    echo "Sin npm: se usa el public/build ya subido ($(md5sum public/build/manifest.json | cut -c1-8))."
+fi
 
 echo "==> 6/8 Migraciones"
 MIGRACION_INICIADA=1
