@@ -46,6 +46,22 @@ return [
         'cache_pendientes' => 60,
     ],
 
+    // Herramientas para IA por el puente (App\Services\Ecosistema\IaHerramientas): el MCP de Tickets publica las consultas
+    // del asistente y la captura de asistencia. APAGADO por omisión (las rutas /interno/ia responden 404): se enciende con
+    // ECOSISTEMA_IA=true. Además de la firma del puente, cada cliente MCP necesita su permiso en Tickets.
+    'ia' => [
+        'habilitada' => (bool) env('ECOSISTEMA_IA', false),
+        // "Hoy" para la captura de asistencia: la IA solo captura el día de hoy en esta zona horaria.
+        'zona_horaria' => 'America/Cancun',
+        // Filas máximas por llamada de captura.
+        'max_registros' => 200,
+        // Cuenta de sistema que figura como quien registró (sin rol ni acceso: nadie inicia sesión con ella).
+        'cuenta' => [
+            'correo' => 'asistente-ia@sistema.invalid',
+            'nombre' => 'Asistente IA (automático)',
+        ],
+    ],
+
     // Actividades que Tickets crea por eventos del Dashboard (App\Services\Ecosistema\ActividadesEcosistema). Aquí solo se
     // eligen qué eventos se mandan; el EQUIPO que recibe cada uno se configura en Tickets (config/ecosistema.php de
     // Tickets): sin equipo allá, no se crea nada. Necesitan el puente.

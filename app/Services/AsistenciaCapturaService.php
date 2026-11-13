@@ -11,6 +11,7 @@ use App\Models\RegistroDiario;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\DB;
 
@@ -119,6 +120,54 @@ final class AsistenciaCapturaService
                 ])->save();
             }
         });
+    }
+
+    /**
+     * Crea el registro del día SOLO para quien aún no lo tiene y nunca modifica uno existente. La comprobación se hace
+     * dentro de la transacción, con la fila bloqueada: si una persona captura a ese empleado mientras tanto, su captura
+     * no se pisa (guardar() hace upsert y sí lo haría). Lo usa la captura por IA.
+     *
+     * @param  list<array{empleado_id: int, estatus: string, fecha_inicio?: ?string, fecha_fin?: ?string, notas?: ?string}>  $filas
+     * @return array{creados: list<int>, existentes: list<int>} ids de empleado
+     */
+    public function crearFaltantes(Estacion $estacion, CarbonInterface $fecha, array $filas, User $actor): array
+    {
+        $creados = [];
+        $existentes = [];
+
+        DB::transaction(function () use ($estacion, $fecha, $filas, $actor, &$creados, &$existentes) {
+            foreach ($filas as $fila) {
+                $yaExiste = RegistroDiario::query()
+                    ->where('empleado_id', $fila['empleado_id'])
+                    ->whereDate('fecha', $fecha)
+                    ->lockForUpdate()
+                    ->exists();
+
+                if ($yaExiste) {
+                    $existentes[] = (int) $fila['empleado_id'];
+
+                    continue;
+                }
+
+                try {
+                    (new RegistroDiario(['empleado_id' => $fila['empleado_id'], 'fecha' => $fecha]))->fill([
+                        'estacion_id' => $estacion->id,
+                        'estatus' => $fila['estatus'],
+                        'fecha_inicio' => $fila['fecha_inicio'] ?? null,
+                        'fecha_fin' => $fila['fecha_fin'] ?? null,
+                        'notas' => $fila['notas'] ?? null,
+                        'registrado_por' => $actor->id,
+                    ])->save();
+
+                    $creados[] = (int) $fila['empleado_id'];
+                } catch (UniqueConstraintViolationException) {
+                    // Otra captura ganó la carrera entre la comprobación y el alta: se respeta.
+                    $existentes[] = (int) $fila['empleado_id'];
+                }
+            }
+        });
+
+        return ['creados' => $creados, 'existentes' => $existentes];
     }
 
     /**
