@@ -35,7 +35,7 @@ class EcosistemaTest extends TestCase
 
         $html = $this->get(route('dashboard'))->assertOk()
             ->assertSee('https://tickets.ejemplo.test/dashboard', false)
-            ->assertSee('Ecosistema Zona Oriente')
+            ->assertSee('Sistema de Gestión Territorial Zona Oriente Tren Maya')
             ->getContent();
 
         $this->assertMatchesRegularExpression('#<a href="[^"]+/dashboard"\s+aria-current="page"#', $html);

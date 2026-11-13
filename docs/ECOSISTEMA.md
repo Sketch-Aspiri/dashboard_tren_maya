@@ -1,4 +1,4 @@
-# Ecosistema Zona Oriente (Dashboard + Tickets)
+# Sistema de Gestión Territorial Zona Oriente Tren Maya (Dashboard + Tickets)
 
 El Dashboard (`dashboard.zonaorientetm.tech`) y el sistema de Tickets
 (`tickets.zonaorientetm.tech`) son dos aplicaciones Laravel independientes en
