@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureTwoFactorIsVerified;
 use App\Http\Middleware\VerificarPuente;
+use App\Http\Middleware\VerificarPuentePortal;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -18,6 +19,12 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->prefix('interno')
                 ->name('interno.')
                 ->group(base_path('routes/interno.php'));
+
+            // Puente con el portal: cuentas aprobadas allá y catálogo de estaciones. Secreto propio.
+            Route::middleware(['throttle:240,1', VerificarPuentePortal::class])
+                ->prefix('interno/portal')
+                ->name('interno.portal.')
+                ->group(base_path('routes/interno_portal.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware) {

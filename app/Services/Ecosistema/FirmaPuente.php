@@ -105,6 +105,52 @@ final class FirmaPuente
         return Cache::add('ecosistema:puente:nonce:'.hash('sha256', $sistema.'|'.$nonce), true, $ventana * 2 + 60) ? $sistema : null;
     }
 
+    public function portalConfigurado(): bool
+    {
+        return strlen((string) config('ecosistema.puente.portal.secreto')) >= 32;
+    }
+
+    /**
+     * Petición del PORTAL: mismo formato, pero con su propio secreto y solo del sistema `portal` (que no tiene
+     * por qué estar en `ecosistema.urls`).
+     */
+    public function verificarPortal(Request $request): bool
+    {
+        if (! $this->portalConfigurado()) {
+            return false;
+        }
+
+        $fecha = (string) $request->header(self::FECHA, '');
+        $nonce = (string) $request->header(self::NONCE, '');
+        $firma = (string) $request->header(self::FIRMA, '');
+
+        if ((string) $request->header(self::SISTEMA, '') !== 'portal'
+            || preg_match('/^\d{1,12}$/D', $fecha) !== 1
+            || preg_match('/^[A-Za-z0-9]{20,64}$/D', $nonce) !== 1
+            || abs(now()->getTimestamp() - (int) $fecha) > (int) config('ecosistema.puente.ventana', 300)) {
+            return false;
+        }
+
+        $esperada = $this->calcular(
+            (string) config('ecosistema.puente.portal.secreto'),
+            $request->getMethod(),
+            '/'.ltrim($request->path(), '/'),
+            $request->query->all(),
+            'portal',
+            $fecha,
+            $nonce,
+            (string) $request->getContent(),
+        );
+
+        if (! hash_equals($esperada, $firma)) {
+            return false;
+        }
+
+        $ventana = (int) config('ecosistema.puente.ventana', 300);
+
+        return Cache::add('ecosistema:puente:portal:nonce:'.hash('sha256', $nonce), true, $ventana * 2 + 60);
+    }
+
     /**
      * @param  array<string, mixed>  $consulta
      */

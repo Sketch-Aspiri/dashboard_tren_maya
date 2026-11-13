@@ -47,6 +47,11 @@ return [
         'timeout' => 3,
         // Segundos que se guardan los pendientes de Tickets de cada persona.
         'cache_pendientes' => 60,
+        // Puente con el PORTAL (cuentas aprobadas allá, catálogo de estaciones): secreto propio, distinto del de
+        // Tickets. Sin él, /interno/portal/* responde 404.
+        'portal' => [
+            'secreto' => env('ECOSISTEMA_PUENTE_SECRETO_PORTAL'),
+        ],
     ],
 
     // Herramientas para IA por el puente (App\Services\Ecosistema\IaHerramientas): el MCP de Tickets publica las consultas
