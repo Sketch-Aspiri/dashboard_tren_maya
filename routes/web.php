@@ -45,6 +45,8 @@ use App\Http\Controllers\Secciones\SeccionImportacionController;
 use App\Http\Controllers\Secciones\SeccionMapeoController;
 use App\Http\Controllers\Secciones\SeccionOrigenController;
 use App\Http\Controllers\Secciones\SeccionTablaController;
+use App\Http\Controllers\CatalogoPapeleriaController;
+use App\Http\Controllers\SolicitudPapeleriaController;
 use App\Http\Controllers\SolicitudInsumoController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Auth;
@@ -324,6 +326,27 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
             Route::put('/{solicitud}', [SolicitudInsumoController::class, 'update'])->whereNumber('solicitud')->name('update');
             Route::post('/{solicitud}/enviar', [SolicitudInsumoController::class, 'enviar'])->whereNumber('solicitud')->name('enviar');
             Route::post('/{solicitud}/revisar', [SolicitudInsumoController::class, 'revisar'])->whereNumber('solicitud')->name('revisar');
+        });
+    });
+
+    // Módulo "Solicitud de papelería": la estación captura y envía, la Zona
+    // aprueba y descarga el Excel del formato oficial
+    // (ver app/Policies/SolicitudPapeleriaPolicy.php).
+    Route::prefix('papeleria')->name('papeleria.')->group(function () {
+        Route::get('/', [SolicitudPapeleriaController::class, 'index'])->name('index');
+        Route::get('/descargar', [SolicitudPapeleriaController::class, 'descargar'])
+            ->middleware('throttle:insumos-export')->name('descargar');
+        Route::get('/catalogo', [CatalogoPapeleriaController::class, 'index'])->name('catalogo.index');
+        Route::get('/estaciones/{estacion}', [SolicitudPapeleriaController::class, 'estacion'])->whereNumber('estacion')->name('estacion');
+        Route::get('/{solicitud}', [SolicitudPapeleriaController::class, 'show'])->whereNumber('solicitud')->name('show');
+
+        Route::middleware('throttle:insumos-write')->group(function () {
+            Route::post('/catalogo', [CatalogoPapeleriaController::class, 'store'])->name('catalogo.store');
+            Route::put('/catalogo/{catalogoPapeleria}', [CatalogoPapeleriaController::class, 'update'])->whereNumber('catalogoPapeleria')->name('catalogo.update');
+            Route::delete('/catalogo/{catalogoPapeleria}', [CatalogoPapeleriaController::class, 'destroy'])->whereNumber('catalogoPapeleria')->name('catalogo.destroy');
+            Route::put('/{solicitud}', [SolicitudPapeleriaController::class, 'update'])->whereNumber('solicitud')->name('update');
+            Route::post('/{solicitud}/enviar', [SolicitudPapeleriaController::class, 'enviar'])->whereNumber('solicitud')->name('enviar');
+            Route::post('/{solicitud}/revisar', [SolicitudPapeleriaController::class, 'revisar'])->whereNumber('solicitud')->name('revisar');
         });
     });
 

@@ -54,9 +54,10 @@ return [
         [
             'slug' => 'recursos-materiales',
             'nombre' => 'Recursos materiales',
-            'patrones' => ['insumos.*'],
+            'patrones' => ['insumos.*', 'papeleria.*'],
             'items' => [
                 ['label' => 'Solicitud de insumos', 'ruta' => 'insumos.index', 'patron' => 'insumos.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
+                ['label' => 'Solicitud de papelería', 'ruta' => 'papeleria.index', 'patron' => 'papeleria.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
             ],
             'secciones' => [
                 'Escaleras eléctricas',
