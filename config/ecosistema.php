@@ -11,10 +11,13 @@ return [
     'sistema' => 'dashboard',
 
     // Dirección pública de cada sistema (sin diagonal final).
-    'urls' => [
+    'urls' => array_filter([
         'dashboard' => rtrim((string) env('ECOSISTEMA_DASHBOARD_URL', 'https://dashboard.zonaorientetm.tech'), '/'),
         'tickets' => rtrim((string) env('ECOSISTEMA_TICKETS_URL', 'https://tickets.zonaorientetm.tech'), '/'),
-    ],
+        // Portal (zonaorientetm.tech): si se define, es el origen del inicio y cierre de sesión únicos (en lugar del
+        // otro sistema). Apagado por omisión: se activa cuando las cuentas ya están emparejadas con el portal.
+        'portal' => env('ECOSISTEMA_PORTAL_URL') ? rtrim((string) env('ECOSISTEMA_PORTAL_URL'), '/') : null,
+    ]),
 
     // Inicio de sesión único entre los dos sistemas (App\Services\Ecosistema\InicioUnicoService).
     // ECOSISTEMA_SSO_SECRET: el MISMO valor en los .env de ambos sistemas (32+ caracteres aleatorios;

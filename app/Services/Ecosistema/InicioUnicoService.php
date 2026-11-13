@@ -52,13 +52,15 @@ final class InicioUnicoService
     }
 
     /**
-     * El otro sistema del ecosistema (hoy solo hay dos).
+     * El sistema al que se le pregunta por la sesión: el portal si está configurado (es el origen de la sesión
+     * única de todos los subsistemas); si no, el otro sistema del ecosistema.
      */
     public function otroSistema(): ?string
     {
-        return collect(array_keys((array) config('ecosistema.urls')))
-            ->reject(fn (string $clave) => $clave === config('ecosistema.sistema'))
-            ->first();
+        $otros = collect(array_keys((array) config('ecosistema.urls')))
+            ->reject(fn (string $clave) => $clave === config('ecosistema.sistema'));
+
+        return $otros->contains('portal') ? 'portal' : $otros->first();
     }
 
     public function url(string $sistema, string $ruta): string
