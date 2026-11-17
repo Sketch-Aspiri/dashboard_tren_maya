@@ -8,6 +8,7 @@ use App\Services\ComprobacionPdfService;
 use App\Services\Documentos\ConversionPdfException;
 use App\Services\SolicitudInsumoService;
 use DomainException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
@@ -24,14 +25,14 @@ class FacturaComprobacionController extends Controller
 
     public function __construct(private readonly ComprobacionPdfService $pdf) {}
 
-    public function factura(GenerarComprobacionRequest $request, Factura $factura): Response|RedirectResponse
+    public function factura(GenerarComprobacionRequest $request, Factura $factura): Response|RedirectResponse|JsonResponse
     {
         $factura->load(self::CON_RELACIONES);
 
         return $this->responder($request, collect([$factura]), 'COMPROBACION_'.($factura->referencia() ?: $factura->uuid), ['factura' => $factura->id]);
     }
 
-    public function mes(GenerarComprobacionRequest $request, SolicitudInsumoService $solicitudes): Response|RedirectResponse
+    public function mes(GenerarComprobacionRequest $request, SolicitudInsumoService $solicitudes): Response|RedirectResponse|JsonResponse
     {
         $objetivo = $solicitudes->mesObjetivo();
         $anio = (int) ($request->validated('anio') ?? $objetivo['anio']);
@@ -48,7 +49,7 @@ class FacturaComprobacionController extends Controller
      * @param  Collection<int, Factura>  $facturas
      * @param  array<string, int>  $contexto
      */
-    private function responder(GenerarComprobacionRequest $request, $facturas, string $nombre, array $contexto): Response|RedirectResponse
+    private function responder(GenerarComprobacionRequest $request, $facturas, string $nombre, array $contexto): Response|RedirectResponse|JsonResponse
     {
         try {
             $contenido = $this->pdf->generar($facturas, $this->pdf->firmantes($request->validated('firmantes') ?? []));

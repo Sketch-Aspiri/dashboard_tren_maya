@@ -165,6 +165,16 @@ class ComprobacionPdfTest extends TestCase
         $this->assertSame([], $this->unidos);
     }
 
+    public function test_sin_pdf_de_la_factura_responde_422_json_para_la_vista_previa(): void
+    {
+        $factura = $this->factura(conPdf: false);
+        $this->actingAsTwoFactorVerified($this->usuario('Jefe de Zona'));
+
+        $this->getJson(route('insumos.facturas.comprobacion', ['factura' => $factura, 'ver' => 1]))
+            ->assertStatus(422)->assertJsonStructure(['message']);
+        $this->assertSame([], $this->unidos);
+    }
+
     public function test_comprobacion_del_mes_junta_todas_las_facturas(): void
     {
         $this->factura();
