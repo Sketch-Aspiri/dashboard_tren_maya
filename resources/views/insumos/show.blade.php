@@ -19,12 +19,14 @@
         'unidad' => $p->unidad,
         'descripcion' => $p->descripcion,
         'justificacion' => $p->justificacion,
+        'partida_id' => $p->id,
+        'ficha_nombre' => $p->ficha_tecnica_nombre,
         'catalogo_insumo_id' => $p->catalogo_insumo_id,
         'precio' => $p->precio_unitario === null ? null : (float) $p->precio_unitario,
         'iva' => $ivaPorPartida[$p->id] ?? null,
     ])->values()->all());
     if (empty($filasIniciales)) {
-        $filasIniciales = [['cantidad' => '', 'unidad' => 'Pieza', 'descripcion' => '', 'justificacion' => '', 'catalogo_insumo_id' => null, 'precio' => null, 'iva' => null]];
+        $filasIniciales = [['cantidad' => '', 'unidad' => 'Pieza', 'descripcion' => '', 'justificacion' => '', 'partida_id' => null, 'ficha_nombre' => null, 'catalogo_insumo_id' => null, 'precio' => null, 'iva' => null]];
     }
     $conAvisos = collect($avisosPorDescripcion)->filter()->count();
 @endphp
@@ -76,7 +78,7 @@
 
             @if ($puedeEditar)
                 {{-- Captura de la estación: cantidad, unidad, descripción y justificación. --}}
-                <form id="form-solicitud" method="POST" action="{{ route('insumos.update', $solicitud) }}"
+                <form id="form-solicitud" method="POST" action="{{ route('insumos.update', $solicitud) }}" enctype="multipart/form-data"
                       x-data="solicitudInsumos"
                       data-limite="{{ $limite }}" data-iva-defecto="{{ (int) config('insumos.iva_defecto') }}"
                       data-estacion="{{ $solicitud->estacion_id }}" data-url-verificar="{{ route('insumos.inventario.verificar') }}"
@@ -132,23 +134,19 @@
                                 <input id="solicitante_puesto" name="solicitante_puesto" type="text" autocomplete="organization-title" class="ins-campo mt-1" value="{{ old('solicitante_puesto', $solicitud->solicitante_puesto) }}">
                             </div>
                         </div>
-                        <div class="mt-4">
-                            <x-input-label for="justificacion_general" :value="__('Justificación general')" />
-                            <textarea id="justificacion_general" name="justificacion_general" rows="2" class="ins-campo mt-1">{{ old('justificacion_general', $solicitud->justificacion_general) }}</textarea>
-                        </div>
                     </section>
 
                     <section aria-labelledby="partidas-titulo" class="space-y-3">
                         <div class="flex flex-wrap items-baseline justify-between gap-2">
                             <h3 id="partidas-titulo" class="ins-titulo">{{ __('Insumos que solicitas') }} <span class="font-normal text-gray-500" x-text="'(' + filas.length + ')'"></span></h3>
-                            <p class="text-xs text-gray-500">{{ __('Empieza a escribir la descripción para elegirla del catálogo. La justificación es obligatoria.') }}</p>
+                            <p class="text-xs text-gray-500">{{ __('Empieza a escribir la descripción para elegirla del catálogo. La justificación específica detallada es obligatoria; la ficha técnica en PDF es opcional.') }}</p>
                         </div>
 
                         <datalist id="catalogo-insumos">
                             <template x-for="c in catalogo" :key="c.id"><option :value="c.descripcion"></option></template>
                         </datalist>
 
-                        <template x-for="(fila, i) in filas" :key="i">
+                        <template x-for="(fila, i) in filas" :key="fila.uid">
                             <div class="ins-card p-4" :class="avisosDe(fila).length ? '!border-amber-300' : ''">
                                 <div class="flex items-center justify-between gap-3">
                                     <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ __('Partida') }} <span x-text="i + 1"></span></p>
@@ -179,18 +177,32 @@
                                                :name="`partidas[${i}][unidad]`" x-model="fila.unidad">
                                     </div>
                                     <div class="col-span-2 lg:col-span-12">
-                                        <label :for="`p-${i}-justificacion`" class="ins-etiqueta">{{ __('Justificación') }} *</label>
-                                        <input :id="`p-${i}-justificacion`" type="text" maxlength="2000" required class="ins-campo mt-1"
+                                        <label :for="`p-${i}-justificacion`" class="ins-etiqueta">{{ __('Justificación específica detallada') }} *</label>
+                                        <textarea :id="`p-${i}-justificacion`" rows="2" maxlength="2000" required class="ins-campo mt-1"
                                                :class="avisosDe(fila).length && ! (fila.justificacion || '').trim() ? '!border-amber-400' : ''"
-                                               placeholder="{{ __('¿Para qué se necesita?') }}"
-                                               :name="`partidas[${i}][justificacion]`" x-model="fila.justificacion">
+                                               placeholder="{{ __('Detalla para qué se necesita y por qué esa cantidad') }}"
+                                               :name="`partidas[${i}][justificacion]`" x-model="fila.justificacion"></textarea>
+                                    </div>
+                                    <div class="col-span-2 lg:col-span-12">
+                                        <label :for="`p-${i}-ficha`" class="ins-etiqueta">{{ __('Adjuntar ficha técnica') }} <span class="font-normal text-gray-500">({{ __('opcional, PDF, máx. 10 MB') }})</span></label>
+                                        <input type="hidden" :name="`partidas[${i}][partida_id]`" :value="fila.partida_id ?? ''">
+                                        <input :id="`p-${i}-ficha`" type="file" accept="application/pdf,.pdf" class="ins-campo mt-1"
+                                               :name="`partidas[${i}][ficha_tecnica]`">
+                                        <template x-if="fila.partida_id && fila.ficha_nombre">
+                                            <p class="mt-1 text-sm text-gray-600">
+                                                {{ __('Ficha actual') }}:
+                                                <a :href="`{{ url('insumos/'.$solicitud->id.'/partidas') }}/${fila.partida_id}/ficha`" target="_blank" rel="noopener" class="font-semibold underline" x-text="fila.ficha_nombre"></a>
+                                                · {{ __('al subir otra se reemplaza.') }}
+                                                <label class="ml-2 inline-flex items-center gap-1"><input type="checkbox" value="1" :name="`partidas[${i}][quitar_ficha]`"> {{ __('Quitar ficha') }}</label>
+                                            </p>
+                                        </template>
                                     </div>
                                 </div>
 
                                 <template x-for="aviso in avisosDe(fila)" :key="aviso.mensaje">
                                     <p class="mt-3 flex items-start gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900" role="status">
                                         <span aria-hidden="true" class="font-bold">!</span>
-                                        <span x-text="aviso.mensaje + ' Explica en la justificación por qué lo necesitas.'"></span>
+                                        <span x-text="aviso.mensaje + ' Explica en la justificación específica detallada por qué lo necesitas.'"></span>
                                     </p>
                                 </template>
                             </div>
@@ -223,7 +235,7 @@
                         document.addEventListener('alpine:init', () => {
                             Alpine.data('solicitudInsumos', () => ({
                                 limite: 0, ivaDefecto: 0, estacionId: null, urlVerificar: '', sucio: false,
-                                filas: [], catalogo: [], avisos: {},
+                                contador: 0, filas: [], catalogo: [], avisos: {},
 
                                 init() {
                                     const d = this.$el.dataset;
@@ -232,13 +244,13 @@
                                     this.estacionId = d.estacion;
                                     this.urlVerificar = d.urlVerificar;
                                     this.sucio = d.sucio === '1';
-                                    this.filas = JSON.parse(d.filas);
+                                    this.filas = JSON.parse(d.filas).map(f => ({ ...f, uid: ++this.contador }));
                                     this.catalogo = JSON.parse(d.catalogo);
                                     const avisos = JSON.parse(d.avisos);
                                     this.avisos = Array.isArray(avisos) ? {} : avisos;
                                 },
                                 agregar() {
-                                    this.filas.push({ cantidad: '', unidad: 'Pieza', descripcion: '', justificacion: '', catalogo_insumo_id: null, precio: null, iva: null });
+                                    this.filas.push({ cantidad: '', unidad: 'Pieza', descripcion: '', justificacion: '', partida_id: null, ficha_nombre: null, uid: ++this.contador, catalogo_insumo_id: null, precio: null, iva: null });
                                     this.sucio = true;
                                     this.$nextTick(() => document.getElementById(`p-${this.filas.length - 1}-descripcion`)?.focus());
                                 },
@@ -301,16 +313,13 @@
                             <div><dt class="ins-etiqueta">{{ __('Lugar del trabajo') }}</dt><dd class="mt-0.5 text-gray-900">{{ $solicitud->lugar_trabajo ?: '—' }}</dd></div>
                             <div><dt class="ins-etiqueta">{{ __('Solicitante') }}</dt><dd class="mt-0.5 text-gray-900">{{ $solicitud->solicitante_nombre ?: '—' }}</dd></div>
                             <div><dt class="ins-etiqueta">{{ __('Puesto') }}</dt><dd class="mt-0.5 text-gray-900">{{ $solicitud->solicitante_puesto ?: '—' }}</dd></div>
-                            @if ($solicitud->justificacion_general)
-                                <div class="col-span-2 lg:col-span-4"><dt class="ins-etiqueta">{{ __('Justificación general') }}</dt><dd class="mt-0.5 whitespace-pre-line text-gray-900">{{ $solicitud->justificacion_general }}</dd></div>
-                            @endif
                         </dl>
                     </section>
 
                     @if ($conAvisos > 0)
                         <div class="ins-aviso-alerta" role="status">
                             <span aria-hidden="true" class="mt-0.5 font-bold">!</span>
-                            <p>{{ trans_choice(':n partida pide algo que la estación ya tiene o recibió hace poco, según sus resguardos. Revisa su justificación.|:n partidas piden algo que la estación ya tiene o recibió hace poco, según sus resguardos. Revisa su justificación.', $conAvisos, ['n' => $conAvisos]) }}
+                            <p>{{ trans_choice(':n partida pide algo que la estación ya tiene o recibió hace poco, según sus resguardos. Revisa su justificación específica detallada.|:n partidas piden algo que la estación ya tiene o recibió hace poco, según sus resguardos. Revisa su justificación específica detallada.', $conAvisos, ['n' => $conAvisos]) }}
                                 <a href="{{ route('insumos.inventario.index', ['estacion' => $solicitud->estacion_id]) }}" class="font-semibold underline">{{ __('Ver inventario de la estación') }}</a>
                             </p>
                         </div>
@@ -325,7 +334,7 @@
                                     <th scope="col" class="!text-right">{{ __('Cant.') }}</th>
                                     <th scope="col">{{ __('Unidad') }}</th>
                                     <th scope="col">{{ __('Descripción') }}</th>
-                                    <th scope="col">{{ __('Justificación') }}</th>
+                                    <th scope="col">{{ __('Justificación específica detallada') }}</th>
                                     <th scope="col">{{ __('Código') }}</th>
                                     <th scope="col">{{ __('P. unitario') }}</th>
                                     <th scope="col">{{ __('Partida') }}</th>
@@ -351,7 +360,12 @@
                                                 <p class="mt-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-900"><span class="font-semibold">{{ __('Inventario') }}:</span> {{ $aviso['mensaje'] }}</p>
                                             @endforeach
                                         </td>
-                                        <td class="min-w-[12rem] text-gray-600">{{ $partida->justificacion ?: '—' }}</td>
+                                        <td class="min-w-[12rem] text-gray-600">
+                                            {{ $partida->justificacion ?: '—' }}
+                                            @if ($partida->ficha_tecnica_ruta)
+                                                <p class="mt-1"><a href="{{ route('insumos.ficha', [$solicitud, $partida]) }}" target="_blank" rel="noopener" class="text-xs font-semibold underline">{{ __('Ficha técnica (PDF)') }}</a></p>
+                                            @endif
+                                        </td>
                                         @if ($puedeRevisar)
                                             <td><input type="text" maxlength="50" class="ins-campo w-28" aria-label="{{ __('Código de la partida :n', ['n' => $n]) }}" name="partidas[{{ $partida->id }}][codigo]" value="{{ old('partidas.'.$partida->id.'.codigo', $partida->codigo) }}"></td>
                                             <td><input type="number" inputmode="decimal" step="0.01" min="0" class="ins-campo w-28 text-right" aria-label="{{ __('Precio unitario de la partida :n', ['n' => $n]) }}" name="partidas[{{ $partida->id }}][precio_unitario]" value="{{ old('partidas.'.$partida->id.'.precio_unitario', $partida->precio_unitario) }}"></td>

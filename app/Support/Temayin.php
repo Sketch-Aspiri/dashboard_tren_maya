@@ -139,7 +139,7 @@ final class Temayin
             'solicitud_estacion' => [
                 'publico' => 'estacion',
                 'q' => __('¿Cómo pido insumos para mi estación?'),
-                'a' => __('En Insumos se abre tu solicitud del mes. Busca cada artículo en el catálogo o escríbelo, pon cantidad y justificación (es obligatoria) y guarda. Cuando esté completa, «Enviar a la Zona». El total por estación no puede pasar de $5,000 con IVA.'),
+                'a' => __('En Insumos se abre tu solicitud del mes. Busca cada artículo en el catálogo o escríbelo, pon cantidad y justificación específica detallada (es obligatoria; la ficha técnica en PDF es opcional) y guarda. Cuando esté completa, «Enviar a la Zona». El total por estación no puede pasar de $5,000 con IVA.'),
                 'ruta' => 'insumos.index',
                 'enlace' => __('Abrir mi solicitud'),
             ],

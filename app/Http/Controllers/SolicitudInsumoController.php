@@ -9,6 +9,7 @@ use App\Models\CatalogoInsumo;
 use App\Models\Estacion;
 use App\Models\Proveedor;
 use App\Models\SolicitudInsumo;
+use App\Models\SolicitudInsumoPartida;
 use App\Services\ConsolidadoInsumosService;
 use App\Services\InventarioEstacionService;
 use App\Services\ProveedorService;
@@ -17,6 +18,8 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * "Recursos materiales" -> Solicitud de insumos (fondo rotatorio). La
@@ -105,6 +108,26 @@ class SolicitudInsumoController extends Controller
                 ]),
             'ivaPorPartida' => $solicitud->partidas->mapWithKeys(fn ($p) => [$p->id => $this->proveedores->tasaAplicable($p->proveedor ?? $p->catalogo?->proveedor, $tasas)]),
             'proveedores' => Proveedor::query()->orderBy('nombre')->pluck('nombre'),
+        ]);
+    }
+
+    /**
+     * Ficha técnica (PDF) de un insumo, solo para quien puede ver la solicitud.
+     */
+    public function ficha(SolicitudInsumo $solicitud, SolicitudInsumoPartida $partida): StreamedResponse
+    {
+        $this->authorize('view', $solicitud);
+
+        abort_if(
+            $partida->solicitud_insumo_id !== $solicitud->id
+            || $partida->ficha_tecnica_ruta === null
+            || ! Storage::disk('local')->exists($partida->ficha_tecnica_ruta),
+            404,
+        );
+
+        return Storage::disk('local')->response($partida->ficha_tecnica_ruta, $partida->ficha_tecnica_nombre ?? 'ficha-tecnica.pdf', [
+            'Content-Type' => 'application/pdf',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 

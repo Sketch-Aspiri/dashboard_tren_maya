@@ -56,7 +56,6 @@ class SolicitudInsumo extends Model
         'mes',
         'tipo_servicio',
         'lugar_trabajo',
-        'justificacion_general',
         'estado',
         'solicitante_nombre',
         'solicitante_puesto',

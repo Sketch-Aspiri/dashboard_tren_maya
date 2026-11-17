@@ -207,7 +207,7 @@ class SimulacionMesTest extends TestCase
                 $partidas[] = ['cantidad' => $l['cantidad'], 'unidad' => $l['unidad'], 'descripcion' => mb_substr($l['descripcion'], 0, 255), 'justificacion' => $l['justificacion'] ?: 'Mantenimiento', 'catalogo_insumo_id' => $cat?->id];
             }
 
-            $this->put(route('insumos.update', $solicitud), ['tipo_servicio' => '1er escalón', 'lugar_trabajo' => $estacion->nombre, 'justificacion_general' => 'Simulación septiembre', 'solicitante_nombre' => 'Gerente de '.$estacion->nombre, 'solicitante_puesto' => 'Gerente de Estación', 'partidas' => $partidas])->assertSessionHasNoErrors();
+            $this->put(route('insumos.update', $solicitud), ['tipo_servicio' => '1er escalón', 'lugar_trabajo' => $estacion->nombre, 'solicitante_nombre' => 'Gerente de '.$estacion->nombre, 'solicitante_puesto' => 'Gerente de Estación', 'partidas' => $partidas])->assertSessionHasNoErrors();
             $respuesta = $this->post(route('insumos.enviar', $solicitud));
 
             if ($solicitud->fresh()->estado !== 'enviada') {

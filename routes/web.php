@@ -299,6 +299,7 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
             ->middleware('throttle:insumos-export')->name('consolidado');
         Route::get('/estaciones/{estacion}', [SolicitudInsumoController::class, 'estacion'])->name('estacion');
         Route::get('/{solicitud}', [SolicitudInsumoController::class, 'show'])->whereNumber('solicitud')->name('show');
+        Route::get('/{solicitud}/partidas/{partida}/ficha', [SolicitudInsumoController::class, 'ficha'])->whereNumber(['solicitud', 'partida'])->name('ficha');
         Route::get('/{solicitud}/formato', FormatoSolicitudInsumoController::class)
             ->middleware('throttle:insumos-export')->whereNumber('solicitud')->name('formato');
 

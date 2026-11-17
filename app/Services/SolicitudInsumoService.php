@@ -9,9 +9,11 @@ use App\Models\SolicitudInsumoPartida;
 use App\Models\User;
 use App\Services\Ecosistema\ActividadesEcosistema;
 use App\Services\Ecosistema\AvisosEcosistema;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -73,15 +75,37 @@ final class SolicitudInsumoService
         return DB::transaction(function () use ($solicitud, $datos, $user) {
             $previas = $solicitud->partidas()->get()->keyBy(fn (SolicitudInsumoPartida $p) => mb_strtolower(trim($p->descripcion)));
 
+            $previasPorId = $solicitud->partidas()->get()->keyBy('id');
+
             $solicitud->update(collect($datos)->only([
-                'tipo_servicio', 'lugar_trabajo', 'justificacion_general', 'solicitante_nombre', 'solicitante_puesto',
+                'tipo_servicio', 'lugar_trabajo', 'solicitante_nombre', 'solicitante_puesto',
             ])->all());
 
             $solicitud->partidas()->delete();
 
+            $fichasUsadas = [];
+
             foreach (array_values($datos['partidas']) as $indice => $fila) {
                 $anterior = $previas->get(mb_strtolower(trim($fila['descripcion'])));
                 $catalogo = isset($fila['catalogo_insumo_id']) ? CatalogoInsumo::query()->find($fila['catalogo_insumo_id']) : null;
+
+                // Ficha técnica: archivo nuevo > conservar la anterior > nada.
+                $archivo = $fila['ficha_tecnica'] ?? null;
+                $quitar = ! empty($fila['quitar_ficha']);
+                // La ficha sigue a la partida por id (aunque se edite la descripción); solo
+                // se aceptan ids de partidas de esta misma solicitud.
+                $conFicha = isset($fila['partida_id']) ? $previasPorId->get((int) $fila['partida_id']) : null;
+                $fichaRuta = $quitar ? null : $conFicha?->ficha_tecnica_ruta;
+                $fichaNombre = $quitar ? null : $conFicha?->ficha_tecnica_nombre;
+
+                if ($archivo instanceof UploadedFile) {
+                    $fichaRuta = $archivo->store('insumos/fichas', 'local');
+                    $fichaNombre = mb_substr(basename($archivo->getClientOriginalName()), 0, 255);
+                }
+
+                if ($fichaRuta !== null) {
+                    $fichasUsadas[] = $fichaRuta;
+                }
 
                 $solicitud->partidas()->create([
                     'numero' => $indice + 1,
@@ -94,7 +118,16 @@ final class SolicitudInsumoService
                     'precio_unitario' => $anterior?->precio_unitario ?? $catalogo?->ultimo_precio,
                     'partida_presupuestal' => $anterior?->partida_presupuestal ?? $catalogo?->partida_presupuestal,
                     'proveedor' => $anterior?->proveedor ?? $catalogo?->proveedor,
+                    'ficha_tecnica_ruta' => $fichaRuta,
+                    'ficha_tecnica_nombre' => $fichaNombre,
                 ]);
+            }
+
+            // Borra del disco las fichas que ya no pertenecen a ninguna partida.
+            foreach ($previas as $previa) {
+                if ($previa->ficha_tecnica_ruta !== null && ! in_array($previa->ficha_tecnica_ruta, $fichasUsadas, true)) {
+                    Storage::disk('local')->delete($previa->ficha_tecnica_ruta);
+                }
             }
 
             activity('solicitud_insumo')->performedOn($solicitud)->causedBy($user)
@@ -114,7 +147,7 @@ final class SolicitudInsumoService
 
         if ($solicitud->partidas()->where(fn ($q) => $q->whereNull('justificacion')->orWhere('justificacion', ''))->exists()) {
             throw ValidationException::withMessages([
-                'partidas' => __('Cada insumo debe llevar su justificación antes de enviar.'),
+                'partidas' => __('Cada insumo debe llevar su justificación específica detallada antes de enviar.'),
             ]);
         }
 

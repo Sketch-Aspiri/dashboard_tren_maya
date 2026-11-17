@@ -45,7 +45,6 @@ class SolicitudInsumoTest extends TestCase
         return array_merge([
             'tipo_servicio' => '1er escalón',
             'lugar_trabajo' => 'Bacalar',
-            'justificacion_general' => 'Mantenimiento mensual',
             'partidas' => [
                 ['cantidad' => '3', 'unidad' => 'Pieza', 'descripcion' => 'Foco LED 12W', 'justificacion' => 'Reposición'],
             ],

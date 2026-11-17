@@ -117,6 +117,11 @@ class FormatoSolicitudInsumoTest extends TestCase
         $this->assertSame('X', $hoja->getCell('I7')->getValue());
         $this->assertSame('Gerente de Estación', $hoja->getCell('B28')->getValue());
         $this->assertSame('Ing. Prueba', $hoja->getCell('B32')->getValue());
+
+        // La etiqueta fija de la firma dice "Gerente de Estación", ya no "Jefe de Estación".
+        $textos = collect($hoja->toArray(null, true, false))->flatten()->filter()->map(fn ($v) => (string) $v);
+        $this->assertTrue($textos->contains(fn (string $t) => str_contains($t, 'Gerente de Estación')));
+        $this->assertFalse($textos->contains(fn (string $t) => stripos($t, 'Jefe de Estaci') !== false));
     }
 
     public function test_a_lugar_different_from_the_estacion_is_appended(): void

@@ -8,7 +8,7 @@ use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * Captura de la estación: cabecera y partidas (cantidad, unidad, descripción
- * y justificación) de una SolicitudInsumo (bound from {solicitud}). Los
+ * justificación y ficha técnica opcional) de una SolicitudInsumo (bound from {solicitud}). Los
  * precios, el código y la partida presupuestal NO se aceptan aquí: los
  * completa la Zona (RevisarSolicitudInsumoRequest).
  */
@@ -27,7 +27,12 @@ class GuardarSolicitudInsumoRequest extends FormRequest
      */
     public function messages(): array
     {
-        return ['partidas.*.justificacion.required' => __('Escribe la justificación de cada insumo (renglón :position).')];
+        return [
+            'partidas.*.justificacion.required' => __('Escribe la justificación específica detallada de cada insumo (renglón :position).'),
+            'partidas.*.ficha_tecnica.mimes' => __('La ficha técnica del renglón :position debe ser un PDF.'),
+            'partidas.*.ficha_tecnica.extensions' => __('La ficha técnica del renglón :position debe ser un PDF.'),
+            'partidas.*.ficha_tecnica.max' => __('La ficha técnica del renglón :position no puede pesar más de 10 MB.'),
+        ];
     }
 
     /**
@@ -38,7 +43,6 @@ class GuardarSolicitudInsumoRequest extends FormRequest
         return [
             'tipo_servicio' => ['required', 'in:1er escalón,2do escalón'],
             'lugar_trabajo' => ['nullable', 'string', 'max:255'],
-            'justificacion_general' => ['nullable', 'string', 'max:5000'],
             'solicitante_nombre' => ['nullable', 'string', 'max:255'],
             'solicitante_puesto' => ['nullable', 'string', 'max:255'],
             'partidas' => ['required', 'array', 'min:1', 'max:60'],
@@ -46,6 +50,9 @@ class GuardarSolicitudInsumoRequest extends FormRequest
             'partidas.*.unidad' => ['required', 'string', 'max:30'],
             'partidas.*.descripcion' => ['required', 'string', 'max:255'],
             'partidas.*.justificacion' => ['required', 'string', 'max:2000'],
+            'partidas.*.ficha_tecnica' => ['nullable', 'file', 'extensions:pdf', 'mimes:pdf', 'max:10240'],
+            'partidas.*.quitar_ficha' => ['nullable', 'boolean'],
+            'partidas.*.partida_id' => ['nullable', 'integer'],
             'partidas.*.catalogo_insumo_id' => ['nullable', 'integer', 'exists:catalogo_insumos,id'],
         ];
     }

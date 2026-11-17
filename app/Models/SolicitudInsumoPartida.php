@@ -37,6 +37,8 @@ class SolicitudInsumoPartida extends Model
         'eliminada_por_coordinacion',
         'agregada_por_coordinacion',
         'proveedor',
+        'ficha_tecnica_ruta',
+        'ficha_tecnica_nombre',
     ];
 
     /**
