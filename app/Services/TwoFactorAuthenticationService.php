@@ -60,7 +60,7 @@ final class TwoFactorAuthenticationService
      */
     public function verify(string $secret, string $oneTimePassword): bool
     {
-        return (bool) $this->google2fa->verifyKey($secret, $oneTimePassword);
+        return (bool) $this->google2fa->verifyKey($secret, $oneTimePassword, (int) config('google2fa.window', 1));
     }
 
     /**
