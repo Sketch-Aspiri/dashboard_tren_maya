@@ -22,6 +22,7 @@
             <div class="hidden xl:flex xl:items-center xl:gap-2">
                 <x-ecosistema-selector />
                 <x-selector-tema />
+                <x-campana-notificaciones />
                 <x-dropdown align="right" width="w-56">
                     <x-slot name="trigger">
                         <button type="button" class="inline-flex min-h-[44px] items-center gap-2 rounded-md border border-brand-green/15 px-3 py-2 text-sm font-medium text-brand-green transition duration-150 ease-in-out hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">
@@ -75,7 +76,8 @@
             </div>
 
             <!-- Hamburger -->
-            <div class="-me-2 flex items-center xl:hidden">
+            <div class="-me-2 flex items-center gap-1 xl:hidden">
+                <x-campana-notificaciones />
                 <button type="button" @click="open = ! open"
                         :aria-expanded="open.toString()"
                         aria-label="{{ __('Abrir menú de navegación') }}"

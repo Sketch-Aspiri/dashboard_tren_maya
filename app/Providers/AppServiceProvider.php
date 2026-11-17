@@ -145,6 +145,15 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(6)->by($request->user()?->id ?: $request->ip());
         });
 
+        // Bandeja de notificaciones: el contador se consulta por sondeo desde cada pestaña abierta.
+        RateLimiter::for('notificaciones-poll', function (Request $request) {
+            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('notificaciones-write', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
         RateLimiter::for('agenda-personal-data', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });

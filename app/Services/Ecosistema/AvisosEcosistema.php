@@ -10,15 +10,17 @@ use App\Models\HorarioPeriodo;
 use App\Models\HorarioSolicitud;
 use App\Models\SolicitudInsumo;
 use App\Models\User;
+use App\Notifications\AvisoDashboard;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Throwable;
 
 /**
  * Avisos del Dashboard al celular por la PWA de Tickets. Cada evento decide a quién
- * avisa (por rol o estación, solo cuentas VINCULADAS) y encola un trabajo; nunca
+ * avisa (por rol o estación), guarda la notificación en la bandeja local y encola el push a Tickets (solo cuentas VINCULADAS); nunca
  * rompe la acción que lo origina. Los textos son cortos y sin datos sensibles
  * (estación, mes y acción): aparecen en la pantalla bloqueada. Sin el puente
  * configurado no hace nada.
@@ -32,6 +34,7 @@ final class AvisosEcosistema
     {
         $this->enviar(
             fn () => $this->jefesDeZona(),
+            'insumos',
             __('Solicitud de insumos enviada'),
             __(':estacion envió su solicitud de :mes.', ['estacion' => $this->estacion($solicitud), 'mes' => $this->mes($solicitud)]),
             route('insumos.show', $solicitud, false),
@@ -45,6 +48,7 @@ final class AvisosEcosistema
 
         $this->enviar(
             fn () => $this->deEstacion((int) $solicitud->estacion_id),
+            'insumos',
             $aprobada ? __('Solicitud de insumos aprobada') : __('Solicitud de insumos observada'),
             $aprobada
                 ? __('Tu solicitud de :mes fue aprobada.', ['mes' => $this->mes($solicitud)])
@@ -57,7 +61,8 @@ final class AvisosEcosistema
     public function cotizacionPorRevisar(Cotizacion $cotizacion, User $capturo): void
     {
         $this->enviar(
-            fn () => $this->jefesDeZona()->reject(fn (string $correo) => $correo === mb_strtolower($capturo->email))->values(),
+            fn () => $this->jefesDeZona()->reject(fn (User $u) => $u->is($capturo))->values(),
+            'insumos',
             __('Cotización por revisar'),
             __('La cotización :folio tiene diferencias por revisar.', ['folio' => $this->limpio((string) $cotizacion->folio, 30)]),
             route('insumos.cotizaciones.show', $cotizacion, false),
@@ -69,6 +74,7 @@ final class AvisosEcosistema
     {
         $this->enviar(
             fn () => $this->deEstacion((int) $estacion->id),
+            'asistencia',
             __('Asistencia pendiente'),
             __(':estacion: aún falta capturar la asistencia de hoy.', ['estacion' => $this->limpio((string) $estacion->nombre, 40)]),
             route('asistencia.captura.index', [], false),
@@ -80,6 +86,7 @@ final class AvisosEcosistema
     {
         $this->enviar(
             fn () => $this->deEstacion((int) $estacion->id),
+            'horarios',
             __('Horario publicado'),
             __('Ya está el horario de :mes para :estacion.', [
                 'mes' => Carbon::create((int) $periodo->anio, (int) $periodo->mes, 1)->locale('es')->translatedFormat('F Y'),
@@ -96,6 +103,7 @@ final class AvisosEcosistema
 
         $this->enviar(
             fn () => $this->deEdificio(),
+            'horarios',
             __('Cambio de horario por autorizar'),
             $cantidad > 1
                 ? __(':estacion pidió :n cambios de horario.', ['estacion' => $this->limpio((string) ($solicitud->estacion->nombre ?? __('Una estación')), 40), 'n' => $cantidad])
@@ -111,6 +119,7 @@ final class AvisosEcosistema
 
         $this->enviar(
             fn () => $this->deEstacion((int) $solicitud->estacion_id),
+            'horarios',
             $autorizada ? __('Cambio de horario autorizado') : __('Cambio de horario rechazado'),
             match (true) {
                 $cantidad > 1 && $autorizada => __('Se autorizaron :n cambios de horario.', ['n' => $cantidad]),
@@ -127,6 +136,7 @@ final class AvisosEcosistema
     {
         $this->enviar(
             fn () => $this->deEstacion((int) $estacion->id),
+            'horarios',
             __('Horario modificado'),
             trans_choice('Edificio modificó :n turno de tu horario.|Edificio modificó :n turnos de tu horario.', $cantidad, ['n' => $cantidad]),
             route('horarios.index', [], false),
@@ -138,38 +148,64 @@ final class AvisosEcosistema
     {
         $this->enviar(
             fn () => $this->deEdificio(),
+            'horarios',
             __('Consolidado de horarios listo'),
             __('El consolidado de la semana del :fecha ya se puede descargar.', ['fecha' => $consolidado->semana_inicio->format('d/m/Y')]),
             route('horarios.consolidados.index', [], false),
         );
     }
 
-    /**
-     * @return Collection<int, string>
-     */
+    /** @return Collection<int, User> */
     private function deEdificio(): Collection
     {
-        return User::role('Edificio')->whereNotNull('sso_vinculado_at')->pluck('email')
-            ->map(fn (string $correo) => mb_strtolower($correo))->values();
+        return User::role('Edificio')->get();
     }
 
     /**
-     * @param  \Closure(): Collection<int, string>  $destinatarios
+     * Guarda el aviso en la bandeja local de TODAS las cuentas destinatarias (estén o no unidas a Tickets)
+     * y manda el push a la PWA de Tickets solo a las vinculadas. Cada parte falla por separado y nunca
+     * rompe la acción que originó el aviso. Todo aviso nuevo debe pasar por aquí.
+     *
+     * @param  \Closure(): Collection<int, User>  $destinatarios
      */
-    private function enviar(\Closure $destinatarios, string $titulo, string $cuerpo, string $ruta): void
+    private function enviar(\Closure $destinatarios, string $modulo, string $titulo, string $cuerpo, string $ruta): void
+    {
+        $titulo = $this->limpio($titulo, 60);
+        $cuerpo = $this->limpio($cuerpo, 120);
+
+        try {
+            $usuarios = $destinatarios()->unique('id')->values();
+        } catch (Throwable $e) {
+            Log::warning('No se pudieron resolver los destinatarios del aviso.', ['error' => $e::class]);
+
+            return;
+        }
+
+        try {
+            Notification::send($usuarios, new AvisoDashboard($modulo, $titulo, $cuerpo, $ruta));
+        } catch (Throwable $e) {
+            Log::warning('No se pudo guardar el aviso en la bandeja.', ['error' => $e::class]);
+        }
+
+        $this->enviarATickets($usuarios, $titulo, $cuerpo, $ruta);
+    }
+
+    /** @param  Collection<int, User>  $usuarios */
+    private function enviarATickets(Collection $usuarios, string $titulo, string $cuerpo, string $ruta): void
     {
         if (! $this->puente->activo()) {
             return;
         }
 
         try {
-            $correos = $destinatarios()->unique()->values();
+            $correos = $usuarios->whereNotNull('sso_vinculado_at')
+                ->map(fn (User $u) => mb_strtolower($u->email))->unique()->values();
 
             foreach ($correos->chunk(50) as $lote) {
                 EnviarAvisoTickets::dispatch(
                     $lote->values()->all(),
-                    $this->limpio($titulo, 60),
-                    $this->limpio($cuerpo, 120),
+                    $titulo,
+                    $cuerpo,
                     rtrim((string) config('ecosistema.urls.dashboard'), '/').$ruta,
                     (string) Str::uuid(),
                 );
@@ -180,24 +216,16 @@ final class AvisosEcosistema
         }
     }
 
-    /**
-     * Correos (en minúsculas) de las cuentas vinculadas con ese rol.
-     *
-     * @return Collection<int, string>
-     */
+    /** @return Collection<int, User> */
     private function jefesDeZona(): Collection
     {
-        return User::role('Jefe de Zona')->whereNotNull('sso_vinculado_at')->pluck('email')
-            ->map(fn (string $correo) => mb_strtolower($correo))->values();
+        return User::role('Jefe de Zona')->get();
     }
 
-    /**
-     * @return Collection<int, string>
-     */
+    /** @return Collection<int, User> */
     private function deEstacion(int $estacionId): Collection
     {
-        return User::role('Estación')->where('estacion_id', $estacionId)->whereNotNull('sso_vinculado_at')->pluck('email')
-            ->map(fn (string $correo) => mb_strtolower($correo))->values();
+        return User::role('Estación')->where('estacion_id', $estacionId)->get();
     }
 
     private function estacion(SolicitudInsumo $solicitud): string

@@ -32,6 +32,7 @@ use App\Http\Controllers\Nube\NubeCredencialController;
 use App\Http\Controllers\Nube\NubeCuentaController;
 use App\Http\Controllers\Nube\NubeEstadoController;
 use App\Http\Controllers\Nube\NubeOAuthController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PersonalImportacionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProveedorController;
@@ -273,6 +274,17 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
     // Módulo "Horarios": Edificio sube el oficial, cada estación ve el suyo y pide
     // cambios, la Zona autoriza (ver app/Policies/Horario*Policy.php) y cada lunes
     // se genera el consolidado para Coordinación.
+    Route::prefix('notificaciones')->name('notificaciones.')->group(function () {
+        Route::get('/', [NotificationController::class, 'index'])->name('index');
+        Route::get('/resumen', [NotificationController::class, 'summary'])
+            ->middleware('throttle:notificaciones-poll')->name('summary');
+        Route::middleware('throttle:notificaciones-write')->group(function () {
+            Route::post('/leer-todas', [NotificationController::class, 'readAll'])->name('read-all');
+            Route::get('/{notification}', [NotificationController::class, 'open'])
+                ->whereUuid('notification')->name('open');
+        });
+    });
+
     Route::prefix('horarios')->name('horarios.')->group(function () {
         Route::get('/', [HorarioController::class, 'index'])->name('index');
 
