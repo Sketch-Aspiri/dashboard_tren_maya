@@ -79,7 +79,12 @@ final class InicioUnicoService
         // salta la pregunta (evita ir y venir); la siguiente vuelve a preguntar.
         $omitir = (bool) $request->session()->pull(self::SESION_OMITIR, false);
 
-        if (! $this->activo() || $request->boolean('local') || $omitir) {
+        // Tras un intento fallido de acceso (contraseña incorrecta, límite de intentos) el login se vuelve a mostrar con
+        // el error y el correo escrito guardados en la sesión como "flash": si aquí se hiciera el viaje al otro sistema,
+        // ese flash se perdería y la persona vería el formulario vacío, sin ningún mensaje.
+        $conMensaje = $request->session()->has('errors') || $request->session()->hasOldInput();
+
+        if (! $this->activo() || $request->boolean('local') || $omitir || $conMensaje) {
             return false;
         }
 
