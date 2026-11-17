@@ -90,30 +90,46 @@ final class AvisosEcosistema
     }
 
     /** La estación pidió un cambio de horario → Edificio. */
-    public function horarioSolicitudNueva(HorarioSolicitud $solicitud): void
+    public function horarioSolicitudNueva(HorarioSolicitud $solicitud, int $cantidad = 1): void
     {
         $solicitud->loadMissing('estacion:id,nombre');
 
         $this->enviar(
             fn () => $this->deEdificio(),
             __('Cambio de horario por autorizar'),
-            __(':estacion pidió un cambio de horario.', ['estacion' => $this->limpio((string) ($solicitud->estacion->nombre ?? __('Una estación')), 40)]),
+            $cantidad > 1
+                ? __(':estacion pidió :n cambios de horario.', ['estacion' => $this->limpio((string) ($solicitud->estacion->nombre ?? __('Una estación')), 40), 'n' => $cantidad])
+                : __(':estacion pidió un cambio de horario.', ['estacion' => $this->limpio((string) ($solicitud->estacion->nombre ?? __('Una estación')), 40)]),
             route('horarios.solicitudes.index', [], false),
         );
     }
 
     /** Edificio autorizó o rechazó el cambio → personas de esa estación. */
-    public function horarioSolicitudResuelta(HorarioSolicitud $solicitud): void
+    public function horarioSolicitudResuelta(HorarioSolicitud $solicitud, int $cantidad = 1): void
     {
         $autorizada = $solicitud->estado === HorarioSolicitud::AUTORIZADA;
 
         $this->enviar(
             fn () => $this->deEstacion((int) $solicitud->estacion_id),
             $autorizada ? __('Cambio de horario autorizado') : __('Cambio de horario rechazado'),
-            $autorizada
-                ? __('Se autorizó el cambio de horario del :fecha.', ['fecha' => $solicitud->fecha->format('d/m/Y')])
-                : __('No se autorizó el cambio de horario del :fecha.', ['fecha' => $solicitud->fecha->format('d/m/Y')]),
+            match (true) {
+                $cantidad > 1 && $autorizada => __('Se autorizaron :n cambios de horario.', ['n' => $cantidad]),
+                $cantidad > 1 => __('No se autorizaron :n cambios de horario.', ['n' => $cantidad]),
+                $autorizada => __('Se autorizó el cambio de horario del :fecha.', ['fecha' => $solicitud->fecha->format('d/m/Y')]),
+                default => __('No se autorizó el cambio de horario del :fecha.', ['fecha' => $solicitud->fecha->format('d/m/Y')]),
+            },
             route('horarios.solicitudes.index', [], false),
+        );
+    }
+
+    /** La Zona modificó turnos de la estación → personas de esa estación. */
+    public function horarioEditado(Estacion $estacion, int $cantidad): void
+    {
+        $this->enviar(
+            fn () => $this->deEstacion((int) $estacion->id),
+            __('Horario modificado'),
+            trans_choice('Edificio modificó :n turno de tu horario.|Edificio modificó :n turnos de tu horario.', $cantidad, ['n' => $cantidad]),
+            route('horarios.index', [], false),
         );
     }
 

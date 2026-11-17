@@ -35,6 +35,7 @@ class HorarioSolicitud extends Model
      */
     protected $fillable = [
         'periodo_id',
+        'lote',
         'estacion_id',
         'turno_id',
         'solicitante_id',

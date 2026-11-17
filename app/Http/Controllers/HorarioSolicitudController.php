@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CrearHorarioSolicitudRequest;
+use App\Http\Requests\ResolverHorarioLoteRequest;
 use App\Http\Requests\ResolverHorarioSolicitudRequest;
 use App\Models\HorarioPeriodo;
 use App\Models\HorarioSolicitud;
@@ -39,8 +40,12 @@ class HorarioSolicitudController extends Controller
             $estacionId === null ? $consulta->whereRaw('1 = 0') : $consulta->where('estacion_id', $estacionId);
         }
 
+        $solicitudes = $consulta->orderByDesc('id')->paginate(20)->withQueryString();
+        $lotes = $solicitudes->pluck('lote')->filter()->unique()->values();
+
         return view('horarios.solicitudes', [
-            'solicitudes' => $consulta->orderByDesc('id')->paginate(20)->withQueryString(),
+            'solicitudes' => $solicitudes,
+            'tamanoLote' => $lotes->isEmpty() ? [] : HorarioSolicitud::query()->whereIn('lote', $lotes)->where('estado', HorarioSolicitud::PENDIENTE)->selectRaw('lote, count(*) as total')->groupBy('lote')->pluck('total', 'lote')->map(fn ($n) => (int) $n)->all(),
             'estado' => $estado,
             'estados' => self::ESTADOS,
             'esZona' => $esZona,
@@ -77,6 +82,20 @@ class HorarioSolicitudController extends Controller
         $this->service->rechazar($solicitud, $request->user(), (string) $request->validated('comentario'));
 
         return back()->with('status', __('Solicitud rechazada.'));
+    }
+
+    public function autorizarLote(ResolverHorarioLoteRequest $request, string $lote): RedirectResponse
+    {
+        $resueltas = $this->service->autorizarLote($lote, $request->user(), $request->validated('comentario'));
+
+        return back()->with('status', trans_choice('Se autorizó :n cambio: el horario ya se modificó.|Se autorizaron :n cambios: el horario ya se modificó.', $resueltas->count(), ['n' => $resueltas->count()]));
+    }
+
+    public function rechazarLote(ResolverHorarioLoteRequest $request, string $lote): RedirectResponse
+    {
+        $resueltas = $this->service->rechazarLote($lote, $request->user(), (string) $request->validated('comentario'));
+
+        return back()->with('status', trans_choice('Se rechazó :n cambio.|Se rechazaron :n cambios.', $resueltas->count(), ['n' => $resueltas->count()]));
     }
 
     /**

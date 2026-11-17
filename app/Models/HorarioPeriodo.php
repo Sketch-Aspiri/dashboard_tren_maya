@@ -20,6 +20,12 @@ class HorarioPeriodo extends Model
 
     public const REEMPLAZADO = 'reemplazado';
 
+    public const BORRADOR = 'borrador';
+
+    public const ORIGEN_EXCEL = 'excel';
+
+    public const ORIGEN_SISTEMA = 'sistema';
+
     /**
      * @var list<string>
      */
@@ -28,6 +34,7 @@ class HorarioPeriodo extends Model
         'mes',
         'version',
         'estado',
+        'origen',
         'archivo_ruta',
         'archivo_nombre',
         'archivo_hash',

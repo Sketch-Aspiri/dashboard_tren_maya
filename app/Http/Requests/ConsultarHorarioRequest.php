@@ -28,6 +28,7 @@ class ConsultarHorarioRequest extends FormRequest
             'estacion' => ['nullable', 'integer', 'exists:estaciones,id'],
             'desde' => ['nullable', 'date_format:Y-m-d'],
             'q' => ['nullable', 'string', 'max:100'],
+            'editar' => ['nullable', 'boolean'],
         ];
     }
 }

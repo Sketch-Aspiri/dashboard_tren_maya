@@ -59,7 +59,7 @@ class HorarioImportacionController extends Controller
         $mensaje = __('Horario publicado: :turnos turnos en :estaciones estaciones, avisadas.', ['turnos' => $resultado['turnos'], 'estaciones' => $resultado['estaciones']]);
 
         if ($resultado['sin_aplicar'] > 0) {
-            $mensaje .= ' '.trans_choice('Ojo: :n cambio ya autorizado no se pudo volver a aplicar (la persona o la fecha ya no existen).|Ojo: :n cambios ya autorizados no se pudieron volver a aplicar (la persona o la fecha ya no existen).', $resultado['sin_aplicar'], ['n' => $resultado['sin_aplicar']]);
+            $mensaje .= ' '.trans_choice('Ojo: :n ajuste del horario anterior no se pudo volver a aplicar (la persona o la fecha ya no existen).|Ojo: :n ajustes del horario anterior no se pudieron volver a aplicar (la persona o la fecha ya no existen).', $resultado['sin_aplicar'], ['n' => $resultado['sin_aplicar']]);
         }
 
         return redirect()->route('horarios.index', ['anio' => $resultado['periodo']->anio, 'mes' => $resultado['periodo']->mes])->with('status', $mensaje);

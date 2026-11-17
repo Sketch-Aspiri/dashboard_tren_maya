@@ -3,7 +3,6 @@
 namespace App\Services\Horarios;
 
 use App\Models\HorarioPeriodo;
-use App\Models\HorarioSolicitud;
 use App\Models\HorarioTurno;
 use Carbon\CarbonImmutable;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -31,7 +30,7 @@ final class HorarioConsolidadoLibro
         $domingo = $lunes->addDays(6);
 
         $turnos = HorarioTurno::query()
-            ->with('estacion:id,nombre,codigo,orden')
+            ->with(['estacion:id,nombre,codigo,orden', 'editor:id,name'])
             ->whereIn('periodo_id', HorarioPeriodo::query()->where('estado', HorarioPeriodo::VIGENTE)->select('id'))
             ->whereBetween('fecha', [$lunes->toDateString(), $domingo->toDateString()])
             ->orderBy('fecha')->orderBy('nombre')
@@ -39,13 +38,7 @@ final class HorarioConsolidadoLibro
             ->sortBy(fn (HorarioTurno $t) => sprintf('%03d|%s|%s|%s', $t->estacion?->orden ?? 999, $t->estacion?->nombre ?? '', $t->nombre, $t->fecha->toDateString()))
             ->values();
 
-        $cambios = HorarioSolicitud::query()
-            ->with(['estacion:id,nombre', 'resolvio:id,name'])
-            ->where('estado', HorarioSolicitud::AUTORIZADA)->where('aplicada', true)
-            ->where(fn ($q) => $q->whereBetween('fecha', [$lunes->toDateString(), $domingo->toDateString()])
-                ->orWhereBetween('nueva_fecha', [$lunes->toDateString(), $domingo->toDateString()]))
-            ->orderBy('estacion_id')->orderBy('fecha')
-            ->get();
+        $cambios = $turnos->filter(fn (HorarioTurno $t) => $t->ajustado())->values();
 
         $libro = new Spreadsheet;
         $general = $libro->getActiveSheet()->setTitle('GENERAL');
@@ -92,30 +85,32 @@ final class HorarioConsolidadoLibro
     }
 
     /**
-     * @param  iterable<HorarioSolicitud>  $cambios
+     * Turnos de la semana que se modificaron sobre el oficial (cambios autorizados y ediciones de la Zona).
+     *
+     * @param  iterable<HorarioTurno>  $cambios
      */
     private function hojaCambios(Worksheet $hoja, iterable $cambios): void
     {
-        $this->encabezado($hoja, ['Estación', 'No. Empleado', 'Persona', 'Fecha', 'Tipo', 'Jornada original', 'Cambio', 'Motivo', 'Autorizó', 'Autorizado el']);
+        $this->encabezado($hoja, ['Estación', 'No. Empleado', 'Persona', 'Fecha', 'Jornada oficial', 'Jornada actual', 'Comida oficial', 'Comida actual', 'Cambió', 'Cuándo', 'Motivo']);
         $fila = 2;
 
-        foreach ($cambios as $s) {
-            $esFecha = $s->tipo === HorarioSolicitud::CAMBIO_FECHA;
+        foreach ($cambios as $t) {
             $this->fila($hoja, $fila++, [
-                $s->estacion?->nombre ?? '',
-                $s->no_empleado,
-                $s->nombre,
-                $s->fecha->format('d/m/Y'),
-                $esFecha ? 'Cambio de fecha' : 'Cambio de turno',
-                $s->jornada_origen,
-                $esFecha ? 'Se intercambia con el '.$s->nueva_fecha->format('d/m/Y') : (string) $s->nueva_jornada,
-                $s->motivo,
-                $s->resolvio?->name ?? '',
-                $s->resuelta_at?->setTimezone('America/Cancun')->format('d/m/Y H:i') ?? '',
+                $t->estacion?->nombre ?? '',
+                $t->no_empleado,
+                $t->nombre,
+                $t->fecha->format('d/m/Y'),
+                (string) $t->jornada_oficial,
+                $t->jornada,
+                (string) $t->comida_oficial,
+                (string) $t->comida,
+                $t->editor?->name ?? '',
+                $t->editado_at?->setTimezone('America/Cancun')->format('d/m/Y H:i') ?? '',
+                (string) $t->nota,
             ]);
         }
 
-        $this->anchos($hoja, [22, 13, 30, 12, 16, 26, 34, 50, 24, 17]);
+        $this->anchos($hoja, [22, 13, 30, 12, 26, 26, 18, 18, 24, 17, 50]);
         $hoja->freezePane('A2');
     }
 

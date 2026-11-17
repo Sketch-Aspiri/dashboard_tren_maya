@@ -32,6 +32,9 @@ class HorarioTurno extends Model
         'origen',
         'jornada_oficial',
         'comida_oficial',
+        'editado_por',
+        'editado_at',
+        'nota',
     ];
 
     /**
@@ -39,7 +42,7 @@ class HorarioTurno extends Model
      */
     protected function casts(): array
     {
-        return ['fecha' => 'date'];
+        return ['fecha' => 'date', 'editado_at' => 'datetime'];
     }
 
     public function periodo(): BelongsTo
@@ -50,6 +53,11 @@ class HorarioTurno extends Model
     public function estacion(): BelongsTo
     {
         return $this->belongsTo(Estacion::class);
+    }
+
+    public function editor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'editado_por');
     }
 
     public function ajustado(): bool

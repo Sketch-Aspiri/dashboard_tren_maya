@@ -23,6 +23,8 @@ use App\Http\Controllers\FacturaReporteController;
 use App\Http\Controllers\FormatoSolicitudInsumoController;
 use App\Http\Controllers\HorarioConsolidadoController;
 use App\Http\Controllers\HorarioController;
+use App\Http\Controllers\HorarioCreacionController;
+use App\Http\Controllers\HorarioEdicionController;
 use App\Http\Controllers\HorarioImportacionController;
 use App\Http\Controllers\HorarioSolicitudController;
 use App\Http\Controllers\InventarioEstacionController;
@@ -274,6 +276,7 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
     Route::prefix('horarios')->name('horarios.')->group(function () {
         Route::get('/', [HorarioController::class, 'index'])->name('index');
 
+        Route::get('/crear', [HorarioCreacionController::class, 'create'])->name('crear.create');
         Route::get('/importar', [HorarioImportacionController::class, 'create'])->name('importar.create');
         Route::get('/importar/{token}', [HorarioImportacionController::class, 'vista'])->name('importar.vista');
 
@@ -286,6 +289,18 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
             Route::post('/importar', [HorarioImportacionController::class, 'store'])->name('importar.store');
             Route::post('/importar/aplicar', [HorarioImportacionController::class, 'aplicar'])->name('importar.aplicar');
             Route::delete('/importar', [HorarioImportacionController::class, 'descartar'])->name('importar.descartar');
+
+            Route::post('/crear', [HorarioCreacionController::class, 'store'])->name('crear.store');
+            Route::post('/periodos/{periodo}/publicar', [HorarioCreacionController::class, 'publicar'])->whereNumber('periodo')->name('periodos.publicar');
+            Route::delete('/periodos/{periodo}', [HorarioCreacionController::class, 'descartar'])->whereNumber('periodo')->name('periodos.descartar');
+            Route::post('/periodos/{periodo}/rellenar', [HorarioCreacionController::class, 'rellenar'])->whereNumber('periodo')->name('periodos.rellenar');
+            Route::post('/periodos/{periodo}/personas', [HorarioCreacionController::class, 'agregarPersona'])->whereNumber('periodo')->name('periodos.personas.store');
+            Route::post('/periodos/{periodo}/personas/{noEmpleado}/quitar', [HorarioCreacionController::class, 'quitarPersona'])->whereNumber('periodo')->where('noEmpleado', '[A-Za-z0-9._-]{1,30}')->name('periodos.personas.quitar');
+
+            Route::post('/cambios', [HorarioEdicionController::class, 'proponer'])->name('cambios.proponer');
+            Route::put('/turnos', [HorarioEdicionController::class, 'guardar'])->name('turnos.guardar');
+            Route::post('/lotes/{lote}/autorizar', [HorarioSolicitudController::class, 'autorizarLote'])->whereUuid('lote')->name('lotes.autorizar');
+            Route::post('/lotes/{lote}/rechazar', [HorarioSolicitudController::class, 'rechazarLote'])->whereUuid('lote')->name('lotes.rechazar');
 
             Route::post('/turnos/{turno}/solicitudes', [HorarioSolicitudController::class, 'store'])->whereNumber('turno')->name('solicitudes.store');
             Route::post('/solicitudes/{solicitud}/cancelar', [HorarioSolicitudController::class, 'cancelar'])->whereNumber('solicitud')->name('solicitudes.cancelar');

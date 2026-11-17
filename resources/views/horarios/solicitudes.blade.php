@@ -24,7 +24,31 @@
                 @endforeach
             </div>
 
+            @php $loteAnterior = null; @endphp
             @forelse ($solicitudes as $s)
+                @if ($esZona && $estado === 'pendiente' && $s->lote && $s->lote !== $loteAnterior)
+                    <div class="ins-card ins-card-pad space-y-3 !border-brand-teal/40" x-data="{ rechazando: false }">
+                        <div>
+                            <p class="font-heading text-base font-semibold text-gray-900">{{ $s->estacion?->nombre }} · {{ trans_choice(':n cambio pendiente|:n cambios pendientes', $tamanoLote[$s->lote] ?? 1, ['n' => $tamanoLote[$s->lote] ?? 1]) }}</p>
+                            <p class="text-sm text-gray-600">{{ __('Enviados juntos por') }} {{ $s->solicitante?->name ?? '—' }} · {{ $s->created_at->setTimezone('America/Cancun')->format('d/m/Y H:i') }}</p>
+                            <p class="mt-1 whitespace-pre-line text-sm text-gray-900">{{ $s->motivo }}</p>
+                        </div>
+                        <div class="flex flex-wrap items-start gap-2">
+                            <form method="POST" action="{{ route('horarios.lotes.autorizar', $s->lote) }}" class="flex flex-wrap items-center gap-2">
+                                @csrf
+                                <input type="text" name="comentario" maxlength="1000" class="ins-campo w-56" placeholder="{{ __('Comentario (opcional)') }}" aria-label="{{ __('Comentario al autorizar el envío') }}">
+                                <button type="submit" class="ins-btn-primario">{{ __('Autorizar todo el envío') }}</button>
+                            </form>
+                            <button type="button" class="ins-btn-peligro" @click="rechazando = ! rechazando" :aria-expanded="rechazando">{{ __('Rechazar todo el envío') }}</button>
+                            <form method="POST" action="{{ route('horarios.lotes.rechazar', $s->lote) }}" x-show="rechazando" x-cloak class="flex w-full flex-wrap items-center gap-2">
+                                @csrf
+                                <input type="text" name="comentario" maxlength="1000" required class="ins-campo min-w-[16rem] flex-1" placeholder="{{ __('Explica por qué se rechaza') }}" aria-label="{{ __('Motivo del rechazo del envío') }}">
+                                <button type="submit" class="ins-btn-peligro">{{ __('Confirmar rechazo') }}</button>
+                            </form>
+                        </div>
+                    </div>
+                @endif
+                @php $loteAnterior = $s->lote; @endphp
                 <article class="ins-card ins-card-pad space-y-3" x-data="{ rechazando: false }">
                     <div class="flex flex-wrap items-start justify-between gap-2">
                         <div>

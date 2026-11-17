@@ -5,6 +5,7 @@ namespace App\Services\Horarios;
 use App\Models\Empleado;
 use App\Models\Estacion;
 use App\Models\HorarioPeriodo;
+use App\Models\HorarioTurno;
 use App\Models\User;
 use App\Services\Ecosistema\AvisosEcosistema;
 use Illuminate\Http\UploadedFile;
@@ -118,7 +119,12 @@ final class HorarioImportacionService
             ]);
 
             $this->insertarTurnos($periodo, $lectura['filas']);
-            $sinAplicar = $vigente !== null ? $this->solicitudes->reaplicar($periodo, $vigente) : 0;
+            $sinAplicar = 0;
+
+            if ($vigente !== null) {
+                $sinAplicar = $this->copiarAjustes($periodo, $vigente);
+                $this->solicitudes->reaplicar($periodo, $vigente);
+            }
 
             activity('horario')->performedOn($periodo)->causedBy($user)
                 ->withProperties(['turnos' => count($lectura['filas']), 'version' => $version, 'sin_aplicar' => $sinAplicar])
@@ -134,6 +140,38 @@ final class HorarioImportacionService
         Estacion::query()->whereIn('id', $estacionIds)->get()->each(fn (Estacion $e) => $this->avisos->horarioPublicado($e, $periodo));
 
         return ['periodo' => $periodo, 'turnos' => count($lectura['filas']), 'estaciones' => $estacionIds->count(), 'sin_aplicar' => $sinAplicar];
+    }
+
+    /**
+     * Los turnos que se habían ajustado (cambios autorizados y ediciones de la Zona) se
+     * copian sobre el oficial nuevo, que pasa a ser el "oficial" de referencia.
+     *
+     * @return int Ajustes que ya no caben en el oficial nuevo (persona o fecha inexistente).
+     */
+    private function copiarAjustes(HorarioPeriodo $nuevo, HorarioPeriodo $anterior): int
+    {
+        $perdidos = 0;
+
+        foreach ($anterior->turnos()->where('origen', HorarioTurno::AJUSTADO)->cursor() as $viejo) {
+            $turno = HorarioTurno::query()->where('periodo_id', $nuevo->id)->where('no_empleado', $viejo->no_empleado)->whereDate('fecha', $viejo->fecha->toDateString())->first();
+
+            if ($turno === null) {
+                $perdidos++;
+
+                continue;
+            }
+
+            $turno->recordarOficial();
+            $turno->fill([
+                'jornada' => $viejo->jornada,
+                'comida' => $viejo->comida,
+                'editado_por' => $viejo->editado_por,
+                'editado_at' => $viejo->editado_at,
+                'nota' => $viejo->nota,
+            ])->save();
+        }
+
+        return $perdidos;
     }
 
     /**

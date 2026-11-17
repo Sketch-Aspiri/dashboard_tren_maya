@@ -6,6 +6,7 @@
     $pestanas = [
         ['horario', __('Horario'), route('horarios.index'), true],
         ['solicitudes', $esZona ? __('Solicitudes de cambio') : __('Mis solicitudes'), route('horarios.solicitudes.index'), true],
+        ['crear', __('Crear horario'), route('horarios.crear.create'), $esZona],
         ['importar', __('Subir horario oficial'), route('horarios.importar.create'), $esZona],
         ['consolidados', __('Consolidado semanal'), route('horarios.consolidados.index'), $esZona],
     ];

@@ -9,6 +9,7 @@ use App\Models\HorarioPeriodo;
 use App\Models\HorarioSolicitud;
 use App\Models\HorarioTurno;
 use App\Models\User;
+use App\Services\Horarios\HorarioEdicionService;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RoleSeeder;
 use DateTime;
@@ -454,6 +455,35 @@ class HorariosTest extends TestCase
 
         $this->assertFalse(HorarioSolicitud::query()->sole()->aplicada);
         $this->get(route('horarios.solicitudes.index', ['estado' => 'autorizada']))->assertOk()->assertSee('ya no se pudo aplicar');
+    }
+
+    public function test_resubmitting_the_month_keeps_the_zone_direct_edits_and_reports_the_ones_that_no_longer_fit(): void
+    {
+        $this->publicar();
+        $edificio = $this->usuario('Edificio');
+        $this->actingAsTwoFactorVerified($edificio);
+        $ana = $this->turno('241232', '2026-12-07');
+        $beto = $this->turno('241300', '2026-12-07');
+        $this->put(route('horarios.turnos.guardar'), ['turnos' => [
+            $ana->id => ['jornada' => 'COMISIÓN', 'comida' => '', 'antes' => HorarioEdicionService::huella($ana)],
+            $beto->id => ['jornada' => 'VACACIONES', 'comida' => '', 'antes' => HorarioEdicionService::huella($beto)],
+        ], 'nota' => 'Oficio 123'])->assertSessionHasNoErrors();
+
+        // Corrección del oficial: Ana cambia su base; Beto ya no aparece en esa estación.
+        $hojas = $this->oficial();
+        $hojas['23_Puerto Morelos.'] = $this->hoja([
+            [241232, 'Ana Morelos', '23_Puerto Morelos.', '2026-12-07', '09:00 a 17:00', '11:00 a 12:00'],
+            [241232, 'Ana Morelos', '23_Puerto Morelos.', '2026-12-08', 'DESCANSO', 'DESCANSO'],
+        ]);
+        $this->actingAsTwoFactorVerified($edificio);
+        $respuesta = $this->post(route('horarios.importar.store'), ['archivo' => $this->excel($hojas, 'v2.xlsx')]);
+        $token = basename((string) $respuesta->headers->get('Location'));
+        $this->post(route('horarios.importar.aplicar'), ['token' => $token])->assertSessionHas('status', fn ($m) => str_contains($m, '1 ajuste'));
+
+        $nuevo = HorarioPeriodo::query()->where('estado', HorarioPeriodo::VIGENTE)->sole();
+        $nueva = HorarioTurno::query()->where('periodo_id', $nuevo->id)->where('no_empleado', '241232')->whereDate('fecha', '2026-12-07')->sole();
+        $this->assertSame(['COMISIÓN', 'ajustado', '09:00 a 17:00', $edificio->id, 'Oficio 123'], [$nueva->jornada, $nueva->origen, $nueva->jornada_oficial, $nueva->editado_por, $nueva->nota]);
+        $this->assertSame(0, HorarioTurno::query()->where('periodo_id', $nuevo->id)->where('no_empleado', '241300')->count());
     }
 
     public function test_identical_file_cannot_be_published_twice(): void
