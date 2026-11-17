@@ -46,5 +46,12 @@ Schedule::command('asistencia:recordar-pendientes')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Cada lunes deja listo el consolidado de horarios de la semana para enviarlo a Coordinación (se descarga en /horarios/consolidados).
+Schedule::command('horarios:consolidado-semanal')
+    ->weeklyOn(1, (string) config('horarios.consolidado_hora', '07:00'))
+    ->timezone('America/Cancun')
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Limpia los trabajos fallidos con más de 7 días: los de avisos y actividades al ecosistema guardan correos y textos.
 Schedule::command('queue:prune-failed --hours=168')->daily()->onOneServer();

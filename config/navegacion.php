@@ -33,11 +33,12 @@ return [
         [
             'slug' => 'rrhh',
             'nombre' => 'RR.HH.',
-            'patrones' => ['agenda.*', 'asistencia.*'],
+            'patrones' => ['agenda.*', 'asistencia.*', 'horarios.*'],
             'items' => [
                 ['label' => 'Personal', 'ruta' => 'agenda.personal.index', 'patron' => 'agenda.personal.*', 'roles' => Roles::ZONA],
                 ['label' => 'Asistencia Zona Oriente', 'ruta' => 'asistencia.zona.index', 'patron' => 'asistencia.zona.*', 'roles' => Roles::ZONA],
                 ['label' => 'Captura de asistencia', 'ruta' => 'asistencia.captura.index', 'patron' => 'asistencia.captura.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
+                ['label' => 'Rol de horarios', 'ruta' => 'horarios.index', 'patron' => 'horarios.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
             ],
             'secciones' => [
                 'Rol de vacaciones',

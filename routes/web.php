@@ -5,6 +5,7 @@ use App\Http\Controllers\AsistenciaDocumentoController;
 use App\Http\Controllers\AsistenciaZonaController;
 use App\Http\Controllers\AsistenteController;
 use App\Http\Controllers\CatalogoInsumoController;
+use App\Http\Controllers\CatalogoPapeleriaController;
 use App\Http\Controllers\ComisionadoFueraController;
 use App\Http\Controllers\ComisionadoVisitanteController;
 use App\Http\Controllers\ConsolidadoInsumosController;
@@ -20,6 +21,10 @@ use App\Http\Controllers\FacturaComprobacionController;
 use App\Http\Controllers\FacturaController;
 use App\Http\Controllers\FacturaReporteController;
 use App\Http\Controllers\FormatoSolicitudInsumoController;
+use App\Http\Controllers\HorarioConsolidadoController;
+use App\Http\Controllers\HorarioController;
+use App\Http\Controllers\HorarioImportacionController;
+use App\Http\Controllers\HorarioSolicitudController;
 use App\Http\Controllers\InventarioEstacionController;
 use App\Http\Controllers\Nube\NubeCredencialController;
 use App\Http\Controllers\Nube\NubeCuentaController;
@@ -45,9 +50,8 @@ use App\Http\Controllers\Secciones\SeccionImportacionController;
 use App\Http\Controllers\Secciones\SeccionMapeoController;
 use App\Http\Controllers\Secciones\SeccionOrigenController;
 use App\Http\Controllers\Secciones\SeccionTablaController;
-use App\Http\Controllers\CatalogoPapeleriaController;
-use App\Http\Controllers\SolicitudPapeleriaController;
 use App\Http\Controllers\SolicitudInsumoController;
+use App\Http\Controllers\SolicitudPapeleriaController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -261,6 +265,35 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
             Route::post('/{seccion}/archivos/{archivo}/ia', [SeccionImportacionController::class, 'extraerConIa'])
                 ->middleware('throttle:ia')
                 ->name('archivos.ia');
+        });
+    });
+
+    // Módulo "Horarios": Edificio sube el oficial, cada estación ve el suyo y pide
+    // cambios, la Zona autoriza (ver app/Policies/Horario*Policy.php) y cada lunes
+    // se genera el consolidado para Coordinación.
+    Route::prefix('horarios')->name('horarios.')->group(function () {
+        Route::get('/', [HorarioController::class, 'index'])->name('index');
+
+        Route::get('/importar', [HorarioImportacionController::class, 'create'])->name('importar.create');
+        Route::get('/importar/{token}', [HorarioImportacionController::class, 'vista'])->name('importar.vista');
+
+        Route::get('/solicitudes', [HorarioSolicitudController::class, 'index'])->name('solicitudes.index');
+        Route::get('/consolidados', [HorarioConsolidadoController::class, 'index'])->name('consolidados.index');
+        Route::get('/consolidados/{consolidado}/descargar', [HorarioConsolidadoController::class, 'descargar'])
+            ->middleware('throttle:insumos-export')->whereNumber('consolidado')->name('consolidados.descargar');
+
+        Route::middleware('throttle:horarios-write')->group(function () {
+            Route::post('/importar', [HorarioImportacionController::class, 'store'])->name('importar.store');
+            Route::post('/importar/aplicar', [HorarioImportacionController::class, 'aplicar'])->name('importar.aplicar');
+            Route::delete('/importar', [HorarioImportacionController::class, 'descartar'])->name('importar.descartar');
+
+            Route::post('/turnos/{turno}/solicitudes', [HorarioSolicitudController::class, 'store'])->whereNumber('turno')->name('solicitudes.store');
+            Route::post('/solicitudes/{solicitud}/cancelar', [HorarioSolicitudController::class, 'cancelar'])->whereNumber('solicitud')->name('solicitudes.cancelar');
+            Route::post('/solicitudes/{solicitud}/autorizar', [HorarioSolicitudController::class, 'autorizar'])->whereNumber('solicitud')->name('solicitudes.autorizar');
+            Route::post('/solicitudes/{solicitud}/rechazar', [HorarioSolicitudController::class, 'rechazar'])->whereNumber('solicitud')->name('solicitudes.rechazar');
+
+            Route::post('/consolidados', [HorarioConsolidadoController::class, 'generar'])
+                ->middleware('throttle:insumos-export')->name('consolidados.generar');
         });
     });
 

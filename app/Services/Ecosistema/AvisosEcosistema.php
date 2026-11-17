@@ -5,6 +5,9 @@ namespace App\Services\Ecosistema;
 use App\Jobs\EnviarAvisoTickets;
 use App\Models\Cotizacion;
 use App\Models\Estacion;
+use App\Models\HorarioConsolidado;
+use App\Models\HorarioPeriodo;
+use App\Models\HorarioSolicitud;
 use App\Models\SolicitudInsumo;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -70,6 +73,68 @@ final class AvisosEcosistema
             __(':estacion: aún falta capturar la asistencia de hoy.', ['estacion' => $this->limpio((string) $estacion->nombre, 40)]),
             route('asistencia.captura.index', [], false),
         );
+    }
+
+    /** Edificio subió el horario oficial → personas de esa estación. */
+    public function horarioPublicado(Estacion $estacion, HorarioPeriodo $periodo): void
+    {
+        $this->enviar(
+            fn () => $this->deEstacion((int) $estacion->id),
+            __('Horario publicado'),
+            __('Ya está el horario de :mes para :estacion.', [
+                'mes' => Carbon::create((int) $periodo->anio, (int) $periodo->mes, 1)->locale('es')->translatedFormat('F Y'),
+                'estacion' => $this->limpio((string) $estacion->nombre, 40),
+            ]),
+            route('horarios.index', [], false),
+        );
+    }
+
+    /** La estación pidió un cambio de horario → Edificio. */
+    public function horarioSolicitudNueva(HorarioSolicitud $solicitud): void
+    {
+        $solicitud->loadMissing('estacion:id,nombre');
+
+        $this->enviar(
+            fn () => $this->deEdificio(),
+            __('Cambio de horario por autorizar'),
+            __(':estacion pidió un cambio de horario.', ['estacion' => $this->limpio((string) ($solicitud->estacion->nombre ?? __('Una estación')), 40)]),
+            route('horarios.solicitudes.index', [], false),
+        );
+    }
+
+    /** Edificio autorizó o rechazó el cambio → personas de esa estación. */
+    public function horarioSolicitudResuelta(HorarioSolicitud $solicitud): void
+    {
+        $autorizada = $solicitud->estado === HorarioSolicitud::AUTORIZADA;
+
+        $this->enviar(
+            fn () => $this->deEstacion((int) $solicitud->estacion_id),
+            $autorizada ? __('Cambio de horario autorizado') : __('Cambio de horario rechazado'),
+            $autorizada
+                ? __('Se autorizó el cambio de horario del :fecha.', ['fecha' => $solicitud->fecha->format('d/m/Y')])
+                : __('No se autorizó el cambio de horario del :fecha.', ['fecha' => $solicitud->fecha->format('d/m/Y')]),
+            route('horarios.solicitudes.index', [], false),
+        );
+    }
+
+    /** El consolidado semanal ya está listo → Edificio. */
+    public function horarioConsolidadoListo(HorarioConsolidado $consolidado): void
+    {
+        $this->enviar(
+            fn () => $this->deEdificio(),
+            __('Consolidado de horarios listo'),
+            __('El consolidado de la semana del :fecha ya se puede descargar.', ['fecha' => $consolidado->semana_inicio->format('d/m/Y')]),
+            route('horarios.consolidados.index', [], false),
+        );
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    private function deEdificio(): Collection
+    {
+        return User::role('Edificio')->whereNotNull('sso_vinculado_at')->pluck('email')
+            ->map(fn (string $correo) => mb_strtolower($correo))->values();
     }
 
     /**
