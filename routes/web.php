@@ -27,6 +27,7 @@ use App\Http\Controllers\HorarioCreacionController;
 use App\Http\Controllers\HorarioEdicionController;
 use App\Http\Controllers\HorarioImportacionController;
 use App\Http\Controllers\HorarioSolicitudController;
+use App\Http\Controllers\CumpleanosController;
 use App\Http\Controllers\VacacionConsolidadoController;
 use App\Http\Controllers\VacacionController;
 use App\Http\Controllers\VacacionImportacionController;
@@ -327,6 +328,9 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
                 ->middleware('throttle:insumos-export')->name('consolidados.generar');
         });
     });
+
+    // Cumpleaños del personal activo (solo día y mes); el aviso diario sale por cumpleanos:avisar-hoy.
+    Route::get('cumpleanos', [CumpleanosController::class, 'index'])->name('cumpleanos.index');
 
     // Módulo "Rol de vacaciones": la Zona sube el rol del año, cada estación ve el suyo y pide
     // cambios por envío (lote) y la Zona autoriza (ver app/Policies/VacacionPeriodoPolicy.php).

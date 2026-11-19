@@ -83,6 +83,8 @@ return [
     'avisos' => [
         // Hora (America/Cancun, lunes a viernes) del recordatorio a las estaciones sin asistencia capturada.
         'asistencia_hora' => env('ECOSISTEMA_AVISO_ASISTENCIA_HORA', '10:00'),
+        // Hora (America/Cancun, todos los días) del aviso "hoy cumple años".
+        'cumpleanos_hora' => env('ECOSISTEMA_AVISO_CUMPLEANOS_HORA', '08:00'),
     ],
 
 ];

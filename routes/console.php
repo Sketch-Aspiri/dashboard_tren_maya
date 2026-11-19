@@ -53,5 +53,12 @@ Schedule::command('horarios:consolidado-semanal')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Avisa a todas las cuentas quién cumple años hoy (un solo aviso al día; ninguno si nadie cumple).
+Schedule::command('cumpleanos:avisar-hoy')
+    ->dailyAt((string) config('ecosistema.avisos.cumpleanos_hora', '08:00'))
+    ->timezone('America/Cancun')
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Limpia los trabajos fallidos con más de 7 días: los de avisos y actividades al ecosistema guardan correos y textos.
 Schedule::command('queue:prune-failed --hours=168')->daily()->onOneServer();

@@ -26,6 +26,14 @@ class EmpleadoPolicy
     }
 
     /**
+     * Lista de cumpleaños (solo nombre, estación, día y mes): la Zona y las estaciones.
+     */
+    public function cumpleanos(User $user): bool
+    {
+        return $user->hasAnyRole([...Roles::ZONA, Roles::ESTACION]);
+    }
+
+    /**
      * Determine whether the user can view the model.
      */
     public function view(User $user, Empleado $empleado): bool

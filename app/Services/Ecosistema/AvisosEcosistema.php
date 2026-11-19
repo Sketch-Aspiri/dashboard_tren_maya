@@ -84,6 +84,31 @@ final class AvisosEcosistema
         );
     }
 
+    /**
+     * Hoy cumple años alguien → todas las cuentas. Solo nombres (nunca la fecha de nacimiento).
+     *
+     * @param  list<string>  $nombres
+     */
+    public function cumpleanosHoy(array $nombres): void
+    {
+        $nombres = array_values(array_map(fn (string $n) => $this->limpio($n, 40), $nombres));
+        $total = count($nombres);
+
+        $cuerpo = match (true) {
+            $total === 1 => __('Hoy cumple años :nombre.', ['nombre' => $nombres[0]]),
+            $total === 2 => __('Hoy cumplen años :a y :b.', ['a' => $nombres[0], 'b' => $nombres[1]]),
+            default => __('Hoy cumplen años :a, :b y :n más.', ['a' => $nombres[0], 'b' => $nombres[1], 'n' => $total - 2]),
+        };
+
+        $this->enviar(
+            fn () => User::query()->get(),
+            'cumpleanos',
+            $total === 1 ? __('Cumpleaños de hoy') : __('Cumpleaños de hoy (:n)', ['n' => $total]),
+            $cuerpo,
+            route('cumpleanos.index', [], false),
+        );
+    }
+
     /** La Zona publicó el rol de vacaciones → personas de esa estación. */
     public function vacacionesPublicadas(Estacion $estacion, VacacionPeriodo $periodo): void
     {
