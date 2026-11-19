@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\IndexUsersRequest;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\Estacion;
 use App\Models\User;
 use App\Services\UserManagementService;
+use App\Support\Areas;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
+use Spatie\Permission\Models\Role;
 
 /**
  * "Gestión de usuarios": Administrador-only panel to create/edit/delete
@@ -22,16 +25,56 @@ class UserManagementController extends Controller
 {
     public function __construct(private readonly UserManagementService $service) {}
 
-    public function index(): View
+    private const ORDENES = ['nombre', 'rol', 'estacion', 'area'];
+
+    public function index(IndexUsersRequest $request): View
     {
         $this->authorize('viewAny', User::class);
 
-        $users = User::query()
-            ->with(['estacion', 'roles'])
-            ->orderBy('name')
-            ->paginate(15);
+        $orden = in_array($request->validated('orden'), self::ORDENES, true) ? $request->validated('orden') : 'nombre';
+        $dir = $request->validated('dir') === 'desc' ? 'desc' : 'asc';
+        $rol = (string) $request->validated('rol', '');
+        $estacion = (string) $request->validated('estacion', '');
+        $area = (string) $request->validated('area', '');
+        $q = trim((string) $request->validated('q', ''));
+        $like = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $q);
 
-        return view('usuarios.index', ['users' => $users]);
+        $users = User::query()
+            ->select('users.*')
+            ->with(['estacion', 'roles'])
+            ->when($rol !== '', fn ($query) => $query->role($rol))
+            ->when($estacion === 'sin', fn ($query) => $query->whereNull('users.estacion_id'))
+            ->when(ctype_digit($estacion), fn ($query) => $query->where('users.estacion_id', (int) $estacion))
+            ->when($area === 'sin', fn ($query) => $query->whereNull('users.area'))
+            ->when(isset(Areas::NOMBRES[$area]), fn ($query) => $query->where('users.area', $area))
+            ->when($q !== '', fn ($query) => $query->where(fn ($w) => $w
+                ->where('users.name', 'like', '%'.$like.'%')
+                ->orWhere('users.email', 'like', '%'.$like.'%')));
+
+        match ($orden) {
+            'rol' => $users->orderBy(
+                Role::query()->select('roles.name')
+                    ->join('model_has_roles', 'model_has_roles.role_id', '=', 'roles.id')
+                    ->whereColumn('model_has_roles.model_id', 'users.id')
+                    ->where('model_has_roles.model_type', User::class)
+                    ->orderBy('roles.name')->limit(1),
+                $dir,
+            ),
+            'estacion' => $users->orderBy(
+                Estacion::query()->select('estaciones.orden')->whereColumn('estaciones.id', 'users.estacion_id'),
+                $dir,
+            ),
+            'area' => $users->orderBy('users.area', $dir),
+            default => null,
+        };
+        $users->orderBy('users.name', $orden === 'nombre' ? $dir : 'asc');
+
+        return view('usuarios.index', [
+            'users' => $users->paginate(15)->withQueryString(),
+            'roles' => RoleSeeder::ROLES,
+            'estaciones' => $this->estaciones(),
+            'filtros' => compact('rol', 'estacion', 'area', 'q', 'orden', 'dir'),
+        ]);
     }
 
     public function create(): View
