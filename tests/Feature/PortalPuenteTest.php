@@ -140,11 +140,12 @@ class PortalPuenteTest extends TestCase
     {
         $estacion = Estacion::factory()->create();
 
-        $this->crear($this->datos(['email' => 'est@ejemplo.test', 'role' => 'estacion', 'estacion_id' => $estacion->id]))->assertOk();
+        $this->crear($this->datos(['email' => 'est@ejemplo.test', 'role' => 'estacion', 'estacion_id' => $estacion->id, 'area' => 'rm']))->assertOk();
         $this->crear($this->datos(['email' => 'jefe@ejemplo.test', 'role' => 'jefe_zona', 'estacion_id' => $estacion->id]))->assertOk();
 
         $this->assertSame($estacion->id, User::where('email', 'est@ejemplo.test')->value('estacion_id'));
         $this->assertTrue(User::where('email', 'est@ejemplo.test')->firstOrFail()->hasRole(Roles::ESTACION));
+        $this->assertSame('rm', User::where('email', 'est@ejemplo.test')->value('area'));
         // El campo no aplica a otros roles: no se guarda aunque llegue.
         $this->assertNull(User::where('email', 'jefe@ejemplo.test')->value('estacion_id'));
     }

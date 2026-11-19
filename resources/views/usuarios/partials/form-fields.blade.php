@@ -56,6 +56,18 @@
         <x-input-error :messages="$errors->get('estacion_id')" class="mt-2" />
     </div>
 
+    <div x-show="roles.includes('Estación')" x-cloak>
+        <x-input-label for="area" :value="__('Área (equipo)')" />
+        <select id="area" name="area"
+                class="mt-1 block w-full min-h-[44px] rounded-md border-gray-300 shadow-sm focus:border-brand-teal focus:ring-brand-teal">
+            <option value="">{{ __('Selecciona un área') }}</option>
+            @foreach (\App\Support\Areas::NOMBRES as $clave => $nombreArea)
+                <option value="{{ $clave }}" @selected(old('area', $user?->area) === $clave)>{{ $nombreArea }}</option>
+            @endforeach
+        </select>
+        <x-input-error :messages="$errors->get('area')" class="mt-2" />
+    </div>
+
     <div>
         <x-input-label for="password" :value="$user ? __('Nueva contraseña') : __('Contraseña')" />
         <x-text-input id="password" name="password" type="password" class="block mt-1 w-full"

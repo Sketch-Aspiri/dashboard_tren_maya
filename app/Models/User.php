@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Support\Roles;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -42,6 +43,7 @@ class User extends Authenticatable
         'email',
         'password',
         'estacion_id',
+        'area',
     ];
 
     /**
@@ -105,6 +107,19 @@ class User extends Authenticatable
      *
      * @return BelongsTo<Estacion, $this>
      */
+    /**
+     * ¿Puede esta cuenta usar los módulos del área? Solo restringe a las cuentas Estación y solo con
+     * AREAS_ESTRICTAS=true; el resto de roles no tiene área.
+     */
+    public function puedeUsarArea(?string $area): bool
+    {
+        if ($area === null || ! config('equipos.estrictas') || ! $this->hasRole(Roles::ESTACION)) {
+            return true;
+        }
+
+        return $this->area === $area;
+    }
+
     public function estacion(): BelongsTo
     {
         return $this->belongsTo(Estacion::class);

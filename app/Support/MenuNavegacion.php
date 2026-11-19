@@ -48,6 +48,8 @@ class MenuNavegacion
             ->orderBy('id')
             ->when($puedeVerSecciones, fn ($consulta) => $consulta->with(['secciones' => fn ($secciones) => $secciones->where('is_visible', true)->when($visibles !== null, fn ($q) => $q->whereIn('id', array_keys($visibles)))]))
             ->get()
+            // Una cuenta Estación con áreas estrictas no ve los grupos que son de otra área.
+            ->filter(fn (MenuGrupo $grupo) => $usuario->puedeUsarArea(Areas::GRUPOS[$grupo->slug] ?? null))
             ->map(function (MenuGrupo $grupo) use ($usuario, $request, $fijos, $puedeVerSecciones, $seccionActual, $rama, $visibles): array {
                 $config = $fijos->get($grupo->slug, ['items' => [], 'patrones' => []]);
 

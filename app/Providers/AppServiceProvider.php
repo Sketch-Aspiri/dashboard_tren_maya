@@ -19,6 +19,7 @@ use App\Services\Sat\ConsultorSatPhpCfdi;
 use App\Services\Secciones\ExtractorDocumentos;
 use App\Services\Secciones\PermisosPorNombreService;
 use App\Services\Secciones\VisibilidadSecciones;
+use App\Support\Areas;
 use App\Support\ProxyTrust;
 use App\Support\Roles;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -232,6 +233,17 @@ class AppServiceProvider extends ServiceProvider
      */
     private function configureGates(): void
     {
+        // Cuentas Estación con áreas estrictas: solo los módulos de su área (la Policy decide el resto, por estación).
+        Gate::before(function (User $user, string $ability, array $arguments = []): ?bool {
+            $objetivo = $arguments[0] ?? null;
+            if (! is_object($objetivo) && ! is_string($objetivo)) {
+                return null;
+            }
+            $area = Areas::deModelo($objetivo);
+
+            return $area !== null && ! $user->puedeUsarArea($area) ? false : null;
+        });
+
         // Inicio propio de una cuenta Estación (el dashboard de zona queda cerrado para ella).
         Gate::define('view-inicio-estacion', fn (User $user): bool => $user->hasRole(Roles::ESTACION));
 

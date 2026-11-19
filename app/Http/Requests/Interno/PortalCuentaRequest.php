@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Interno;
 
 use App\Services\Ecosistema\PortalAprovisionamiento;
+use App\Support\Areas;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -29,6 +30,7 @@ class PortalCuentaRequest extends FormRequest
             'password_hash' => ['required', 'string', 'regex:/^\$2y\$\d{2}\$[A-Za-z0-9.\/]{53}$/D'],
             'role' => ['required', 'string', Rule::in(array_keys(PortalAprovisionamiento::ROLES))],
             'estacion_id' => ['nullable', 'integer', 'exists:estaciones,id'],
+            'area' => ['nullable', 'string', Rule::in(Areas::claves())],
         ];
     }
 
@@ -38,6 +40,9 @@ class PortalCuentaRequest extends FormRequest
         return [function (Validator $validator): void {
             if ($this->input('role') === 'estacion' && ! $this->filled('estacion_id')) {
                 $validator->errors()->add('estacion_id', 'required');
+            }
+            if ($this->input('role') === 'estacion' && ! $this->filled('area')) {
+                $validator->errors()->add('area', 'required');
             }
         }];
     }

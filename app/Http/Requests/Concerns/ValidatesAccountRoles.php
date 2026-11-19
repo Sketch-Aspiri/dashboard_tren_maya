@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Concerns;
 
+use App\Support\Areas;
 use App\Support\Roles;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Validation\Rule;
@@ -29,6 +30,9 @@ trait ValidatesAccountRoles
         if ($this->input('estacion_id') === '' || ! $this->hasRole(Roles::ESTACION)) {
             $this->merge(['estacion_id' => null]);
         }
+        if ($this->input('area') === '' || ! $this->hasRole(Roles::ESTACION)) {
+            $this->merge(['area' => null]);
+        }
     }
 
     /**
@@ -45,6 +49,11 @@ trait ValidatesAccountRoles
                 'integer',
                 // Cualquier estación del catálogo, incluido "Edificio Zonal Este".
                 'exists:estaciones,id',
+            ],
+            'area' => [
+                Rule::requiredIf(fn () => config('equipos.estrictas') && $this->hasRole(Roles::ESTACION)),
+                'nullable',
+                Rule::in(Areas::claves()),
             ],
         ];
     }

@@ -28,6 +28,7 @@ final class UserManagementService
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
             'estacion_id' => $this->resolveEstacionId($data),
+            'area' => $this->resolveArea($data),
             'email_verified_at' => now(),
         ]);
 
@@ -52,6 +53,7 @@ final class UserManagementService
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'estacion_id' => $this->resolveEstacionId($data),
+                'area' => $this->resolveArea($data),
             ]);
 
             if (! empty($data['password'])) {
@@ -117,6 +119,20 @@ final class UserManagementService
         }
 
         return $data['estacion_id'] ?? null;
+    }
+
+    /**
+     * El área solo se guarda con el rol "Estación", igual que estacion_id.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function resolveArea(array $data): ?string
+    {
+        if (! in_array(Roles::ESTACION, $data['roles'], true)) {
+            return null;
+        }
+
+        return $data['area'] ?? null;
     }
 
     /**

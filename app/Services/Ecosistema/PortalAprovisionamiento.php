@@ -55,6 +55,7 @@ final class PortalAprovisionamiento
                 'email' => $correo,
                 'password' => bin2hex(random_bytes(16)),
                 'estacion_id' => $rol === Roles::ESTACION ? ($datos['estacion_id'] ?? null) : null,
+                'area' => $rol === Roles::ESTACION ? ($datos['area'] ?? null) : null,
             ]);
             $user->forceFill([
                 'email_verified_at' => now(),
@@ -68,7 +69,7 @@ final class PortalAprovisionamiento
             $user->assignRole($rol);
 
             activity('ecosistema')->performedOn($user)->event('aprovisionada_por_portal')
-                ->withProperties(['rol' => $rol, 'estacion_id' => $user->estacion_id])->log('aprovisionada_por_portal');
+                ->withProperties(['rol' => $rol, 'estacion_id' => $user->estacion_id, 'area' => $user->area])->log('aprovisionada_por_portal');
 
             return ['estado' => self::CREADA, 'user_id' => $user->id];
         });
