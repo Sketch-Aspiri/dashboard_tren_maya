@@ -426,6 +426,20 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
         });
     });
 
+    // Equipos por estación (Administrador): estaciones, secciones y vínculo con Tickets (EquipoPolicy).
+    Route::prefix('equipos')->name('equipos.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\EquipoController::class, 'index'])->name('index');
+        Route::get('/crear', [\App\Http\Controllers\EquipoController::class, 'create'])->name('create');
+        Route::get('/{equipo}/editar', [\App\Http\Controllers\EquipoController::class, 'edit'])->name('edit');
+
+        Route::middleware('throttle:usuarios-write')->group(function () {
+            Route::post('/', [\App\Http\Controllers\EquipoController::class, 'store'])->name('store');
+            Route::put('/{equipo}', [\App\Http\Controllers\EquipoController::class, 'update'])->name('update');
+            Route::delete('/{equipo}', [\App\Http\Controllers\EquipoController::class, 'destroy'])->name('destroy');
+            Route::post('/{equipo}/sincronizar', [\App\Http\Controllers\EquipoController::class, 'sincronizar'])->name('sincronizar');
+        });
+    });
+
     // Conexiones de nube (OneDrive/SharePoint, Google Drive, Dropbox): solo
     // Administrador (NubeCuentaPolicy). Las credenciales OAuth se cargan aquí,
     // no en el .env. Los tokens nunca salen del servidor.

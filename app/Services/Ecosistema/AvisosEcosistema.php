@@ -48,7 +48,7 @@ final class AvisosEcosistema
         $aprobada = $accion === 'aprobar';
 
         $this->enviar(
-            fn () => $this->deEstacion((int) $solicitud->estacion_id, Areas::RM),
+            fn () => $this->deEstacion((int) $solicitud->estacion_id, Areas::deGrupo('recursos-materiales')),
             'insumos',
             $aprobada ? __('Solicitud de insumos aprobada') : __('Solicitud de insumos observada'),
             $aprobada
@@ -74,7 +74,7 @@ final class AvisosEcosistema
     public function asistenciaPendiente(Estacion $estacion): void
     {
         $this->enviar(
-            fn () => $this->deEstacion((int) $estacion->id, Areas::RH),
+            fn () => $this->deEstacion((int) $estacion->id, Areas::deGrupo('rrhh')),
             'asistencia',
             __('Asistencia pendiente'),
             __(':estacion: aún falta capturar la asistencia de hoy.', ['estacion' => $this->limpio((string) $estacion->nombre, 40)]),
@@ -86,7 +86,7 @@ final class AvisosEcosistema
     public function horarioPublicado(Estacion $estacion, HorarioPeriodo $periodo): void
     {
         $this->enviar(
-            fn () => $this->deEstacion((int) $estacion->id, Areas::RH),
+            fn () => $this->deEstacion((int) $estacion->id, Areas::deGrupo('rrhh')),
             'horarios',
             __('Horario publicado'),
             __('Ya está el horario de :mes para :estacion.', [
@@ -119,7 +119,7 @@ final class AvisosEcosistema
         $autorizada = $solicitud->estado === HorarioSolicitud::AUTORIZADA;
 
         $this->enviar(
-            fn () => $this->deEstacion((int) $solicitud->estacion_id, Areas::RH),
+            fn () => $this->deEstacion((int) $solicitud->estacion_id, Areas::deGrupo('rrhh')),
             'horarios',
             $autorizada ? __('Cambio de horario autorizado') : __('Cambio de horario rechazado'),
             match (true) {
@@ -136,7 +136,7 @@ final class AvisosEcosistema
     public function horarioEditado(Estacion $estacion, int $cantidad): void
     {
         $this->enviar(
-            fn () => $this->deEstacion((int) $estacion->id, Areas::RH),
+            fn () => $this->deEstacion((int) $estacion->id, Areas::deGrupo('rrhh')),
             'horarios',
             __('Horario modificado'),
             trans_choice('Edificio modificó :n turno de tu horario.|Edificio modificó :n turnos de tu horario.', $cantidad, ['n' => $cantidad]),

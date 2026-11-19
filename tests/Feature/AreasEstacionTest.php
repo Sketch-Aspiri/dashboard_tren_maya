@@ -12,6 +12,8 @@ use App\Services\Ecosistema\AvisosEcosistema;
 use App\Services\InicioEstacionService;
 use App\Support\Areas;
 use App\Support\Roles;
+use Database\Seeders\EquipoSeeder;
+use Database\Seeders\MenuSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
@@ -27,6 +29,8 @@ class AreasEstacionTest extends TestCase
     {
         parent::setUp();
         $this->seed(RoleSeeder::class);
+        $this->seed(MenuSeeder::class);
+        $this->seed(EquipoSeeder::class);
     }
 
     private function cuenta(string $rol, ?string $area = null): User
@@ -58,7 +62,7 @@ class AreasEstacionTest extends TestCase
         $this->assertTrue(Gate::forUser($jefe)->allows('viewAny', SolicitudInsumo::class));
         $this->assertTrue(Gate::forUser($jefe)->allows('viewAny', HorarioPeriodo::class));
         $this->assertTrue(Gate::forUser($jefe)->allows('viewAny', RegistroDiario::class));
-        $this->assertSame('Jefe de estación', Areas::NOMBRES[$jefe->area]);
+        $this->assertSame('Jefe de estación', Areas::nombres()[$jefe->area]);
     }
 
     public function test_rh_usa_horarios_pero_no_insumos(): void
@@ -100,9 +104,9 @@ class AreasEstacionTest extends TestCase
         config(['equipos.estrictas' => true]);
         $rm = $this->cuenta(Roles::ESTACION, Areas::RM);
 
-        $this->assertTrue($rm->puedeUsarArea(Areas::GRUPOS['recursos-materiales']));
-        $this->assertFalse($rm->puedeUsarArea(Areas::GRUPOS['rrhh']));
-        $this->assertTrue($rm->puedeUsarArea(Areas::GRUPOS['otros'] ?? null));
+        $this->assertTrue($rm->puedeUsarArea(Areas::deGrupo('recursos-materiales')));
+        $this->assertFalse($rm->puedeUsarArea(Areas::deGrupo('rrhh')));
+        $this->assertTrue($rm->puedeUsarArea(Areas::deGrupo('otros')));
     }
 
     public function test_los_avisos_de_un_modulo_solo_llegan_a_las_cuentas_de_su_area(): void

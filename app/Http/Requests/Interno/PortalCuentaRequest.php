@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Interno;
 
+use App\Models\Equipo;
 use App\Services\Ecosistema\PortalAprovisionamiento;
 use App\Support\Areas;
 use Illuminate\Foundation\Http\FormRequest;
@@ -43,6 +44,10 @@ class PortalCuentaRequest extends FormRequest
             }
             if ($this->input('role') === 'estacion' && ! $this->filled('area')) {
                 $validator->errors()->add('area', 'required');
+            }
+            if ($this->input('role') === 'estacion' && $this->filled('area') && $this->filled('estacion_id') && config('equipos.estrictas')
+                && ! Equipo::existeEn((string) $this->input('area'), (int) $this->input('estacion_id'))) {
+                $validator->errors()->add('area', 'not_in_station');
             }
         }];
     }

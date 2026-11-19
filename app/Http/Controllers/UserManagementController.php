@@ -46,7 +46,7 @@ class UserManagementController extends Controller
             ->when($estacion === 'sin', fn ($query) => $query->whereNull('users.estacion_id'))
             ->when(ctype_digit($estacion), fn ($query) => $query->where('users.estacion_id', (int) $estacion))
             ->when($area === 'sin', fn ($query) => $query->whereNull('users.area'))
-            ->when(isset(Areas::NOMBRES[$area]), fn ($query) => $query->where('users.area', $area))
+            ->when(isset(Areas::nombres()[$area]), fn ($query) => $query->where('users.area', $area))
             ->when($q !== '', fn ($query) => $query->where(fn ($w) => $w
                 ->where('users.name', 'like', '%'.$like.'%')
                 ->orWhere('users.email', 'like', '%'.$like.'%')));

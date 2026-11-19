@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Cache;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -16,6 +17,13 @@ class MenuGrupo extends Model
     use LogsActivity;
 
     protected $table = 'menu_grupos';
+
+    protected static function booted(): void
+    {
+        $olvidar = fn () => Cache::forget(Equipo::CACHE);
+        static::saved($olvidar);
+        static::deleted($olvidar);
+    }
 
     /**
      * @var list<string>

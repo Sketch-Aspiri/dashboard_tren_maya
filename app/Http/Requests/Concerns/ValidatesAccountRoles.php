@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Concerns;
 
+use App\Models\Equipo;
 use App\Support\Areas;
 use App\Support\Roles;
 use Database\Seeders\RoleSeeder;
@@ -54,6 +55,13 @@ trait ValidatesAccountRoles
                 Rule::requiredIf(fn () => config('equipos.estrictas') && $this->hasRole(Roles::ESTACION)),
                 'nullable',
                 Rule::in(Areas::claves()),
+                // Con áreas estrictas el equipo debe existir en la estación elegida (no todas tienen los mismos).
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    $estacion = (int) $this->input('estacion_id');
+                    if (config('equipos.estrictas') && $estacion > 0 && is_string($value) && ! Equipo::existeEn($value, $estacion)) {
+                        $fail(__('Ese equipo no existe en la estación elegida.'));
+                    }
+                },
             ],
         ];
     }

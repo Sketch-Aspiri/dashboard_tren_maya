@@ -61,7 +61,7 @@
         <select id="area" name="area"
                 class="mt-1 block w-full min-h-[44px] rounded-md border-gray-300 shadow-sm focus:border-brand-teal focus:ring-brand-teal">
             <option value="">{{ __('Selecciona un área') }}</option>
-            @foreach (\App\Support\Areas::NOMBRES as $clave => $nombreArea)
+            @foreach (\App\Support\Areas::nombres() as $clave => $nombreArea)
                 <option value="{{ $clave }}" @selected(old('area', $user?->area) === $clave)>{{ $nombreArea }}</option>
             @endforeach
         </select>

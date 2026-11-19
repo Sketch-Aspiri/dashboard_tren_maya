@@ -48,6 +48,9 @@
                             <x-dropdown-link :href="route('usuarios.index')">
                                 {{ __('Usuarios') }}
                             </x-dropdown-link>
+                            <x-dropdown-link :href="route('equipos.index')">
+                                {{ __('Equipos') }}
+                            </x-dropdown-link>
                             <x-dropdown-link :href="route('nube.cuentas.index')">
                                 {{ __('Conexiones de nube') }}
                             </x-dropdown-link>
@@ -193,6 +196,9 @@
                 @hasrole('Administrador')
                     <x-responsive-nav-link :href="route('usuarios.index')" :active="request()->routeIs('usuarios.*')">
                         {{ __('Usuarios') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('equipos.index')" :active="request()->routeIs('equipos.*')">
+                        {{ __('Equipos') }}
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('nube.cuentas.index')" :active="request()->routeIs('nube.*')">
                         {{ __('Conexiones de nube') }}

@@ -7,6 +7,7 @@ use App\Models\Seccion;
 use App\Models\User;
 use App\Services\Secciones\VisibilidadSecciones;
 use App\Support\Areas;
+use App\Support\Roles;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
@@ -41,7 +42,7 @@ final class InicioEstacionService
             ->get();
 
         $porGrupo = $secciones
-            ->filter(fn (Seccion $s) => $s->grupo !== null && $usuario->puedeUsarArea(Areas::GRUPOS[$s->grupo->slug] ?? null))
+            ->filter(fn (Seccion $s) => $s->grupo !== null && $usuario->puedeUsarArea(Areas::deGrupo($s->grupo->slug)))
             ->groupBy('menu_grupo_id')
             ->map(fn (Collection $delGrupo) => ['grupo' => $delGrupo->first()->grupo, 'secciones' => $delGrupo->values()])
             ->sortBy(fn (array $g) => [$g['grupo']->orden, $g['grupo']->id])
@@ -49,7 +50,7 @@ final class InicioEstacionService
 
         return [
             'secciones' => $porGrupo,
-            'asistencia' => $usuario->puedeUsarArea(Areas::RH) ? $this->asistenciaDeHoy($usuario) : null,
+            'asistencia' => $usuario->puedeUsarArea(Areas::deGrupo('rrhh')) ? $this->asistenciaDeHoy($usuario) : null,
             'area' => $this->areaDe($usuario),
             'accesos' => $this->accesosDeArea($usuario),
         ];
@@ -58,7 +59,7 @@ final class InicioEstacionService
     /** Nombre del área de la cuenta, solo con áreas estrictas (si no, el inicio queda como siempre). */
     private function areaDe(User $usuario): ?string
     {
-        return config('equipos.estrictas') ? (Areas::NOMBRES[$usuario->area] ?? null) : null;
+        return config('equipos.estrictas') ? (Areas::nombres()[$usuario->area] ?? null) : null;
     }
 
     /**
@@ -72,16 +73,14 @@ final class InicioEstacionService
             return [];
         }
 
-        return match ($usuario->area) {
-            Areas::RH => [
-                ['etiqueta' => __('Rol de horarios'), 'ruta' => route('horarios.index')],
-            ],
-            Areas::RM => [
-                ['etiqueta' => __('Solicitud de insumos'), 'ruta' => route('insumos.index')],
-                ['etiqueta' => __('Solicitud de papelería'), 'ruta' => route('papeleria.index')],
-            ],
-            default => [],
-        };
+        // Los módulos fijos (config/navegacion.php) de los grupos del menú que pertenecen a su equipo.
+        return collect(config('navegacion.grupos'))
+            ->filter(fn (array $grupo) => Areas::deGrupo($grupo['slug']) === $usuario->area)
+            ->flatMap(fn (array $grupo) => $grupo['items'])
+            ->filter(fn (array $item) => in_array(Roles::ESTACION, $item['roles'], true))
+            ->map(fn (array $item) => ['etiqueta' => __($item['label']), 'ruta' => route($item['ruta'])])
+            ->values()
+            ->all();
     }
 
     /**

@@ -61,7 +61,7 @@
                     <select id="f-area" name="area" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
                         <option value="">{{ __('Todas') }}</option>
                         <option value="sin" @selected($filtros['area'] === 'sin')>{{ __('Sin área') }}</option>
-                        @foreach (\App\Support\Areas::NOMBRES as $clave => $nombreArea)
+                        @foreach (\App\Support\Areas::nombres() as $clave => $nombreArea)
                             <option value="{{ $clave }}" @selected($filtros['area'] === $clave)>{{ $nombreArea }}</option>
                         @endforeach
                     </select>
@@ -99,7 +99,7 @@
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-500">{{ $u->estacion?->nombre ?? '—' }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-500">{{ \App\Support\Areas::NOMBRES[$u->area] ?? '—' }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-500">{{ \App\Support\Areas::nombres()[$u->area] ?? '—' }}</td>
                                     <td class="px-6 py-4 text-right text-sm">
                                         <div class="flex items-center justify-end gap-3">
                                             @can('update', $u)
@@ -145,7 +145,7 @@
                                 </div>
                                 <div>
                                     <dt class="text-gray-400">{{ __('Área') }}</dt>
-                                    <dd class="text-gray-700">{{ \App\Support\Areas::NOMBRES[$u->area] ?? '—' }}</dd>
+                                    <dd class="text-gray-700">{{ \App\Support\Areas::nombres()[$u->area] ?? '—' }}</dd>
                                 </div>
                             </dl>
                             <div class="mt-3 flex items-center gap-4">
