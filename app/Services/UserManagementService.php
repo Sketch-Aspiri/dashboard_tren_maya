@@ -29,6 +29,7 @@ final class UserManagementService
             'password' => Hash::make($data['password']),
             'estacion_id' => $this->resolveEstacionId($data),
             'area' => $this->resolveArea($data),
+            'areas_adicionales' => $this->resolveAreasAdicionales($data),
             'email_verified_at' => now(),
         ]);
 
@@ -54,6 +55,7 @@ final class UserManagementService
                 'email' => $data['email'],
                 'estacion_id' => $this->resolveEstacionId($data),
                 'area' => $this->resolveArea($data),
+                'areas_adicionales' => $this->resolveAreasAdicionales($data),
             ]);
 
             if (! empty($data['password'])) {
@@ -133,6 +135,23 @@ final class UserManagementService
         }
 
         return $data['area'] ?? null;
+    }
+
+    /**
+     * Equipos adicionales: solo con rol Estación y un equipo principal; sin repetir el principal.
+     *
+     * @param  array<string, mixed>  $data
+     * @return list<string>|null
+     */
+    private function resolveAreasAdicionales(array $data): ?array
+    {
+        if (! in_array(Roles::ESTACION, $data['roles'], true) || empty($data['area'])) {
+            return null;
+        }
+
+        $extra = array_values(array_diff(array_unique((array) ($data['areas_adicionales'] ?? [])), [$data['area']]));
+
+        return $extra === [] ? null : $extra;
     }
 
     /**

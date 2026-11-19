@@ -45,6 +45,7 @@ class User extends Authenticatable
         'password',
         'estacion_id',
         'area',
+        'areas_adicionales',
     ];
 
     /**
@@ -73,6 +74,7 @@ class User extends Authenticatable
             // must not be enough to derive a user's TOTP codes.
             'google2fa_secret' => 'encrypted',
             'sso_vinculado_at' => 'datetime',
+            'areas_adicionales' => 'array',
         ];
     }
 
@@ -119,7 +121,19 @@ class User extends Authenticatable
         }
 
         // El jefe de estación entra a todos los equipos de su estación (el filtro por estación sigue vigente).
-        return $this->area === Areas::JEFE || $this->area === $area;
+        $propias = $this->areas();
+
+        return in_array(Areas::JEFE, $propias, true) || in_array($area, $propias, true);
+    }
+
+    /**
+     * Todos los equipos de la cuenta: el principal (`area`) y los adicionales.
+     *
+     * @return list<string>
+     */
+    public function areas(): array
+    {
+        return array_values(array_unique(array_filter([$this->area, ...(array) $this->areas_adicionales])));
     }
 
     public function estacion(): BelongsTo

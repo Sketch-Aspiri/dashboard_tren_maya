@@ -68,6 +68,22 @@
         <x-input-error :messages="$errors->get('area')" class="mt-2" />
     </div>
 
+    <fieldset x-show="roles.includes('Estación')" x-cloak>
+        <legend class="text-sm font-medium text-gray-700">{{ __('Equipos adicionales (opcional)') }}</legend>
+        <p class="text-xs text-gray-500">{{ __('La cuenta también usa los módulos de estos equipos, en su misma estación.') }}</p>
+        @php($extras = (array) old('areas_adicionales', $user?->areas_adicionales ?? []))
+        <div class="mt-2 grid gap-2 sm:grid-cols-2">
+            @foreach (\App\Support\Areas::nombres() as $clave => $nombreArea)
+                @continue($clave === \App\Support\Areas::JEFE)
+                <label class="flex items-center gap-2 text-sm">
+                    <input type="checkbox" name="areas_adicionales[]" value="{{ $clave }}" @checked(in_array($clave, $extras, true))>
+                    {{ $nombreArea }}
+                </label>
+            @endforeach
+        </div>
+        <x-input-error :messages="$errors->get('areas_adicionales.*')" class="mt-2" />
+    </fieldset>
+
     <div>
         <x-input-label for="password" :value="$user ? __('Nueva contraseña') : __('Contraseña')" />
         <x-text-input id="password" name="password" type="password" class="block mt-1 w-full"

@@ -115,6 +115,32 @@ class EquiposTest extends TestCase
         $this->assertDatabaseMissing('equipos', ['clave' => 'rh']);
     }
 
+    public function test_una_cuenta_puede_tener_equipos_adicionales_y_usa_los_modulos_de_todos(): void
+    {
+        config(['equipos.estrictas' => true]);
+        $estacion = Estacion::factory()->create();
+        Equipo::query()->whereIn('clave', ['rh', 'rm'])->get()->each(fn (Equipo $e) => $e->estaciones()->attach($estacion->id));
+        $this->actingAsTwoFactorVerified($this->cuenta(Roles::ADMINISTRADOR));
+
+        $this->post(route('usuarios.store'), [
+            'name' => 'Persona Dos', 'email' => 'dos@ejemplo.test', 'password' => 'Contrasena-Larga-123!', 'password_confirmation' => 'Contrasena-Larga-123!',
+            'roles' => [Roles::ESTACION], 'estacion_id' => $estacion->id, 'area' => 'rh', 'areas_adicionales' => ['rm', 'rh'],
+        ])->assertSessionHasNoErrors();
+
+        $usuario = User::query()->where('email', 'dos@ejemplo.test')->firstOrFail();
+        $this->assertSame(['rh', 'rm'], $usuario->areas());
+        $this->assertSame(['rm'], $usuario->areas_adicionales);
+        $this->assertTrue($usuario->puedeUsarArea('rh'));
+        $this->assertTrue($usuario->puedeUsarArea('rm'));
+        $this->assertFalse($usuario->puedeUsarArea('seguridad'));
+
+        $this->get(route('usuarios.index', ['area' => 'rm']))->assertSee('Persona Dos');
+        $this->post(route('usuarios.store'), [
+            'name' => 'Tres', 'email' => 'tres@ejemplo.test', 'password' => 'Contrasena-Larga-123!', 'password_confirmation' => 'Contrasena-Larga-123!',
+            'roles' => [Roles::ESTACION], 'estacion_id' => $estacion->id, 'area' => 'rh', 'areas_adicionales' => ['no-existe'],
+        ])->assertSessionHasErrors('areas_adicionales.0');
+    }
+
     public function test_la_cuenta_estacion_solo_puede_tener_equipos_que_existen_en_su_estacion(): void
     {
         config(['equipos.estrictas' => true]);

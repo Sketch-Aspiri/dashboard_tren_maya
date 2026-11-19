@@ -34,6 +34,9 @@ trait ValidatesAccountRoles
         if ($this->input('area') === '' || ! $this->hasRole(Roles::ESTACION)) {
             $this->merge(['area' => null]);
         }
+        if (! $this->hasRole(Roles::ESTACION)) {
+            $this->merge(['areas_adicionales' => []]);
+        }
     }
 
     /**
@@ -50,6 +53,17 @@ trait ValidatesAccountRoles
                 'integer',
                 // Cualquier estación del catálogo, incluido "Edificio Zonal Este".
                 'exists:estaciones,id',
+            ],
+            'areas_adicionales' => ['nullable', 'array', 'max:20'],
+            'areas_adicionales.*' => [
+                'string', 'distinct', Rule::in(Areas::claves()),
+                // Con áreas estrictas cada equipo adicional también debe existir en la estación elegida.
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    $estacion = (int) $this->input('estacion_id');
+                    if (config('equipos.estrictas') && $estacion > 0 && is_string($value) && ! Equipo::existeEn($value, $estacion)) {
+                        $fail(__('Ese equipo no existe en la estación elegida.'));
+                    }
+                },
             ],
             'area' => [
                 Rule::requiredIf(fn () => config('equipos.estrictas') && $this->hasRole(Roles::ESTACION)),

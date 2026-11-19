@@ -99,7 +99,7 @@
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-500">{{ $u->estacion?->nombre ?? '—' }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-500">{{ \App\Support\Areas::nombres()[$u->area] ?? '—' }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-500">{{ collect($u->areas())->map(fn ($a) => \App\Support\Areas::nombres()[$a] ?? $a)->join(', ') ?: '—' }}</td>
                                     <td class="px-6 py-4 text-right text-sm">
                                         <div class="flex items-center justify-end gap-3">
                                             @can('update', $u)
@@ -145,7 +145,7 @@
                                 </div>
                                 <div>
                                     <dt class="text-gray-400">{{ __('Área') }}</dt>
-                                    <dd class="text-gray-700">{{ \App\Support\Areas::nombres()[$u->area] ?? '—' }}</dd>
+                                    <dd class="text-gray-700">{{ collect($u->areas())->map(fn ($a) => \App\Support\Areas::nombres()[$a] ?? $a)->join(', ') ?: '—' }}</dd>
                                 </div>
                             </dl>
                             <div class="mt-3 flex items-center gap-4">

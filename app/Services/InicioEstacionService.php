@@ -59,7 +59,7 @@ final class InicioEstacionService
     /** Nombre del área de la cuenta, solo con áreas estrictas (si no, el inicio queda como siempre). */
     private function areaDe(User $usuario): ?string
     {
-        return config('equipos.estrictas') ? (Areas::nombres()[$usuario->area] ?? null) : null;
+        return config('equipos.estrictas') ? collect($usuario->areas())->map(fn (string $clave) => Areas::nombres()[$clave] ?? null)->filter()->implode(' · ') ?: null : null;
     }
 
     /**
@@ -75,7 +75,7 @@ final class InicioEstacionService
 
         // Los módulos fijos (config/navegacion.php) de los grupos del menú que pertenecen a su equipo.
         return collect(config('navegacion.grupos'))
-            ->filter(fn (array $grupo) => Areas::deGrupo($grupo['slug']) === $usuario->area)
+            ->filter(fn (array $grupo) => in_array(Areas::deGrupo($grupo['slug']), $usuario->areas(), true))
             ->flatMap(fn (array $grupo) => $grupo['items'])
             ->filter(fn (array $item) => in_array(Roles::ESTACION, $item['roles'], true))
             ->map(fn (array $item) => ['etiqueta' => __($item['label']), 'ruta' => route($item['ruta'])])
