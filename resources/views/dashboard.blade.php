@@ -2,7 +2,7 @@
     /** @var list<array<string, mixed>> $kpis */
     /** @var \Illuminate\Support\Collection<int, array<string, mixed>>|null $asistencia */
     /** @var array<string, int>|null $insumos */
-    $ahora = now()->locale('es');
+    $ahora = now('America/Cancun')->locale('es');
     $saludo = $ahora->hour < 12 ? __('Buenos días') : ($ahora->hour < 19 ? __('Buenas tardes') : __('Buenas noches'));
     $nombreCorto = \Illuminate\Support\Str::of(Auth::user()->name)->explode(' ')->first();
 

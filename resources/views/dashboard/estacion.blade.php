@@ -9,7 +9,7 @@
         <div class="mx-auto max-w-5xl space-y-6 px-4 sm:px-6 lg:px-8">
 
             @php
-                $ahora = now()->locale('es');
+                $ahora = now('America/Cancun')->locale('es');
                 $saludo = $ahora->hour < 12 ? __('Buenos días') : ($ahora->hour < 19 ? __('Buenas tardes') : __('Buenas noches'));
             @endphp
             <section class="relative overflow-hidden rounded-2xl bg-brand-green px-5 py-6 text-white shadow-sm sm:px-8 sm:py-7">
