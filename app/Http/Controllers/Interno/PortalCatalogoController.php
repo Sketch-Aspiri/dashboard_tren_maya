@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Interno;
 use App\Http\Controllers\Controller;
 use App\Models\Estacion;
 use App\Services\Ecosistema\PortalAprovisionamiento;
+use App\Support\Areas;
 use App\Support\Roles;
 use Illuminate\Http\JsonResponse;
 
@@ -22,7 +23,10 @@ class PortalCatalogoController extends Controller
                 'clave' => $clave,
                 'nombre' => $nombre,
                 'requiere_estacion' => $nombre === Roles::ESTACION,
+                'requiere_area' => $nombre === Roles::ESTACION,
             ])->values()->all(),
+            // Áreas (equipos) comunes a Portal, Dashboard y Tickets.
+            'areas' => collect(Areas::NOMBRES)->map(fn (string $nombre, string $clave): array => ['clave' => $clave, 'nombre' => $nombre])->values()->all(),
             // Todas las del catálogo, incluido "Edificio Zonal Este": una cuenta Estación también puede ligarse a él.
             'estaciones' => Estacion::query()->orderBy('orden')->get(['id', 'nombre', 'codigo'])
                 ->map(fn (Estacion $estacion): array => [
