@@ -8,6 +8,8 @@ use App\Models\Estacion;
 use App\Models\HorarioConsolidado;
 use App\Models\HorarioPeriodo;
 use App\Models\HorarioSolicitud;
+use App\Models\VacacionPeriodo;
+use App\Models\VacacionSolicitud;
 use App\Models\SolicitudInsumo;
 use App\Models\User;
 use App\Notifications\AvisoDashboard;
@@ -79,6 +81,56 @@ final class AvisosEcosistema
             __('Asistencia pendiente'),
             __(':estacion: aún falta capturar la asistencia de hoy.', ['estacion' => $this->limpio((string) $estacion->nombre, 40)]),
             route('asistencia.captura.index', [], false),
+        );
+    }
+
+    /** La Zona publicó el rol de vacaciones → personas de esa estación. */
+    public function vacacionesPublicadas(Estacion $estacion, VacacionPeriodo $periodo): void
+    {
+        $this->enviar(
+            fn () => $this->deEstacion((int) $estacion->id, Areas::deGrupo('rrhh')),
+            'vacaciones',
+            __('Rol de vacaciones publicado'),
+            __('Ya está el rol de vacaciones :anio de :estacion.', ['anio' => $periodo->anio, 'estacion' => $this->limpio((string) $estacion->nombre, 40)]),
+            route('vacaciones.index', [], false),
+        );
+    }
+
+    /** La estación pidió cambios a sus vacaciones → Edificio. */
+    public function vacacionSolicitudNueva(VacacionSolicitud $solicitud, int $cantidad = 1): void
+    {
+        $this->enviar(
+            fn () => $this->deEdificio()->merge($this->jefesDeZona()),
+            'vacaciones',
+            __('Cambio de vacaciones por autorizar'),
+            __(':estacion pidió :n cambio(s) de vacaciones.', ['estacion' => $this->limpio((string) ($solicitud->estacion->nombre ?? __('Una estación')), 40), 'n' => $cantidad]),
+            route('vacaciones.solicitudes.index', [], false),
+        );
+    }
+
+    /** La Zona resolvió un envío de vacaciones → personas de la estación. */
+    public function vacacionSolicitudResuelta(VacacionSolicitud $solicitud, int $cantidad = 1): void
+    {
+        $autorizada = $solicitud->estado === VacacionSolicitud::AUTORIZADA;
+
+        $this->enviar(
+            fn () => $this->deEstacion((int) $solicitud->estacion_id, Areas::deGrupo('rrhh')),
+            'vacaciones',
+            $autorizada ? __('Cambio de vacaciones autorizado') : __('Cambio de vacaciones rechazado'),
+            $autorizada ? __('Se autorizaron :n cambio(s) de vacaciones.', ['n' => $cantidad]) : __('No se autorizaron :n cambio(s) de vacaciones.', ['n' => $cantidad]),
+            route('vacaciones.solicitudes.index', [], false),
+        );
+    }
+
+    /** La Zona modificó vacaciones de la estación directamente. */
+    public function vacacionesEditadas(Estacion $estacion, int $cantidad): void
+    {
+        $this->enviar(
+            fn () => $this->deEstacion((int) $estacion->id, Areas::deGrupo('rrhh')),
+            'vacaciones',
+            __('Rol de vacaciones modificado'),
+            __('Edificio modificó :n tramo(s) de vacaciones de tu estación.', ['n' => $cantidad]),
+            route('vacaciones.index', [], false),
         );
     }
 

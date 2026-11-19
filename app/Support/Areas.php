@@ -15,6 +15,9 @@ use App\Models\InventarioEstacion;
 use App\Models\RegistroDiario;
 use App\Models\SolicitudInsumo;
 use App\Models\SolicitudPapeleria;
+use App\Models\VacacionPeriodo;
+use App\Models\VacacionSolicitud;
+use App\Models\VacacionTramo;
 use Illuminate\Support\Facades\Cache;
 use Throwable;
 
@@ -73,6 +76,9 @@ final class Areas
         HorarioTurno::class => 'rrhh',
         HorarioSolicitud::class => 'rrhh',
         HorarioConsolidado::class => 'rrhh',
+        VacacionPeriodo::class => 'rrhh',
+        VacacionTramo::class => 'rrhh',
+        VacacionSolicitud::class => 'rrhh',
         SolicitudInsumo::class => 'recursos-materiales',
         SolicitudPapeleria::class => 'recursos-materiales',
         InventarioEstacion::class => 'recursos-materiales',

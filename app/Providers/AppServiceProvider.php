@@ -221,6 +221,11 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
         });
 
+        // Módulo "Vacaciones" — subir el rol, pedir y resolver cambios.
+        RateLimiter::for('vacaciones-write', function (Request $request) {
+            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+        });
+
         // Módulo "Solicitud de insumos" — captura, envío y revisión.
         RateLimiter::for('insumos-write', function (Request $request) {
             return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());

@@ -27,6 +27,10 @@ use App\Http\Controllers\HorarioCreacionController;
 use App\Http\Controllers\HorarioEdicionController;
 use App\Http\Controllers\HorarioImportacionController;
 use App\Http\Controllers\HorarioSolicitudController;
+use App\Http\Controllers\VacacionConsolidadoController;
+use App\Http\Controllers\VacacionController;
+use App\Http\Controllers\VacacionImportacionController;
+use App\Http\Controllers\VacacionSolicitudController;
 use App\Http\Controllers\InventarioEstacionController;
 use App\Http\Controllers\Nube\NubeCredencialController;
 use App\Http\Controllers\Nube\NubeCuentaController;
@@ -321,6 +325,28 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
 
             Route::post('/consolidados', [HorarioConsolidadoController::class, 'generar'])
                 ->middleware('throttle:insumos-export')->name('consolidados.generar');
+        });
+    });
+
+    // Módulo "Rol de vacaciones": la Zona sube el rol del año, cada estación ve el suyo y pide
+    // cambios por envío (lote) y la Zona autoriza (ver app/Policies/VacacionPeriodoPolicy.php).
+    Route::prefix('vacaciones')->name('vacaciones.')->group(function () {
+        Route::get('/', [VacacionController::class, 'index'])->name('index');
+        Route::get('/solicitudes', [VacacionSolicitudController::class, 'index'])->name('solicitudes.index');
+        Route::get('/importar', [VacacionImportacionController::class, 'create'])->name('importar.create');
+        Route::get('/importar/{token}', [VacacionImportacionController::class, 'vistaPrevia'])->name('importar.vista');
+        Route::get('/periodos/{periodo}/consolidado', [VacacionConsolidadoController::class, 'descargar'])
+            ->whereNumber('periodo')->middleware('throttle:insumos-export')->name('consolidado.descargar');
+
+        Route::middleware('throttle:vacaciones-write')->group(function () {
+            Route::post('/importar', [VacacionImportacionController::class, 'store'])->name('importar.store');
+            Route::post('/importar/aplicar', [VacacionImportacionController::class, 'aplicar'])->name('importar.aplicar');
+            Route::delete('/importar', [VacacionImportacionController::class, 'descartar'])->name('importar.descartar');
+
+            Route::put('/periodos/{periodo}/tramos', [VacacionController::class, 'cambiar'])->whereNumber('periodo')->name('tramos.cambiar');
+            Route::post('/lotes/{lote}/autorizar', [VacacionSolicitudController::class, 'autorizar'])->whereUuid('lote')->name('lotes.autorizar');
+            Route::post('/lotes/{lote}/rechazar', [VacacionSolicitudController::class, 'rechazar'])->whereUuid('lote')->name('lotes.rechazar');
+            Route::post('/lotes/{lote}/cancelar', [VacacionSolicitudController::class, 'cancelar'])->whereUuid('lote')->name('lotes.cancelar');
         });
     });
 
