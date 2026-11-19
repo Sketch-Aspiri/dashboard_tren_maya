@@ -35,6 +35,9 @@ final class Areas
 
     public const SOPORTE = 'soporte';
 
+    /** No es un equipo: el jefe de estación accede a todos los equipos de SU estación (como la cuenta Estación de antes). */
+    public const JEFE = 'jefe';
+
     /** Clave => nombre para mostrar. */
     public const NOMBRES = [
         self::RH => 'Recursos Humanos',
@@ -44,6 +47,7 @@ final class Areas
         self::FINANZAS => 'Finanzas y comercialización',
         self::ADMINISTRACION => 'Administración',
         self::SOPORTE => 'Soporte del Sistema',
+        self::JEFE => 'Jefe de estación',
     ];
 
     /** Grupo del menú (config/navegacion.php) => área dueña. Los grupos que no figuran no son de ningún área. */

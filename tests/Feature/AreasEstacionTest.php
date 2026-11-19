@@ -50,6 +50,17 @@ class AreasEstacionTest extends TestCase
         $this->assertFalse(Gate::forUser($rm)->allows('viewAny', RegistroDiario::class));
     }
 
+    public function test_jefe_de_estacion_usa_los_modulos_de_todas_las_areas(): void
+    {
+        config(['equipos.estrictas' => true]);
+        $jefe = $this->cuenta(Roles::ESTACION, Areas::JEFE);
+
+        $this->assertTrue(Gate::forUser($jefe)->allows('viewAny', SolicitudInsumo::class));
+        $this->assertTrue(Gate::forUser($jefe)->allows('viewAny', HorarioPeriodo::class));
+        $this->assertTrue(Gate::forUser($jefe)->allows('viewAny', RegistroDiario::class));
+        $this->assertSame('Jefe de estación', Areas::NOMBRES[$jefe->area]);
+    }
+
     public function test_rh_usa_horarios_pero_no_insumos(): void
     {
         config(['equipos.estrictas' => true]);

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Support\Areas;
 use App\Support\Roles;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -117,7 +118,8 @@ class User extends Authenticatable
             return true;
         }
 
-        return $this->area === $area;
+        // El jefe de estación entra a todos los equipos de su estación (el filtro por estación sigue vigente).
+        return $this->area === Areas::JEFE || $this->area === $area;
     }
 
     public function estacion(): BelongsTo
