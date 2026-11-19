@@ -20,6 +20,13 @@ final class VacacionLector
 {
     public const MAX_FILAS = 5000;
 
+    /** Nombre de la hoja del Excel (normalizado) => nombre de la estación en el catálogo. */
+    private const ALIAS = [
+        'limones chacchoben' => 'Limones',
+        'nicolas bravo kohunlich' => 'Kohunlich',
+        'chetumal aeropuerto' => 'Chetumal',
+    ];
+
     public function __construct(private readonly ResolutorEstacion $resolutor) {}
 
     /**
@@ -82,7 +89,7 @@ final class VacacionLector
             return;
         }
 
-        $estacionId = $this->resolutor->resolver($titulo);
+        $estacionId = $this->resolutor->resolver($titulo) ?? $this->resolutor->resolver(self::ALIAS[ResolutorEstacion::normalizar($titulo)] ?? null);
 
         foreach (array_slice($filas, $cols['fila'] + 1, null, true) as $numero => $fila) {
             $noEmpleado = $this->empleado($fila[$cols['no_empleado']] ?? null);

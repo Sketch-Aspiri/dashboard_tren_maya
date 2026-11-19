@@ -324,6 +324,16 @@ class VacacionesTest extends TestCase
         $this->put(route('vacaciones.tramos.cambiar', $periodo), ['tramos' => [$uno->id => ['inicio' => '2026-02-09', 'fin' => '2026-02-18']]])->assertInvalid('tramos');
     }
 
+    public function test_sheet_names_that_differ_from_the_catalog_use_the_alias_table(): void
+    {
+        $chetumal = Estacion::factory()->create(['nombre' => 'Chetumal', 'codigo' => '30']);
+        $hojas = ['CHETUMAL AEROPUERTO' => $this->hoja([[250001, 'Dora Chetumal', 20, [['2026-02-02', '2026-02-06', 5], null, null, null]]])];
+
+        $this->publicar($hojas);
+
+        $this->assertSame($chetumal->id, $this->tramo('250001', 1)->estacion_id);
+    }
+
     public function test_zona_downloads_the_consolidated_workbook(): void
     {
         $periodo = $this->publicar();
