@@ -11,6 +11,7 @@ use App\Models\HorarioSolicitud;
 use App\Models\SolicitudInsumo;
 use App\Models\User;
 use App\Notifications\AvisoDashboard;
+use App\Support\Areas;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -47,7 +48,7 @@ final class AvisosEcosistema
         $aprobada = $accion === 'aprobar';
 
         $this->enviar(
-            fn () => $this->deEstacion((int) $solicitud->estacion_id),
+            fn () => $this->deEstacion((int) $solicitud->estacion_id, Areas::RM),
             'insumos',
             $aprobada ? __('Solicitud de insumos aprobada') : __('Solicitud de insumos observada'),
             $aprobada
@@ -73,7 +74,7 @@ final class AvisosEcosistema
     public function asistenciaPendiente(Estacion $estacion): void
     {
         $this->enviar(
-            fn () => $this->deEstacion((int) $estacion->id),
+            fn () => $this->deEstacion((int) $estacion->id, Areas::RH),
             'asistencia',
             __('Asistencia pendiente'),
             __(':estacion: aún falta capturar la asistencia de hoy.', ['estacion' => $this->limpio((string) $estacion->nombre, 40)]),
@@ -85,7 +86,7 @@ final class AvisosEcosistema
     public function horarioPublicado(Estacion $estacion, HorarioPeriodo $periodo): void
     {
         $this->enviar(
-            fn () => $this->deEstacion((int) $estacion->id),
+            fn () => $this->deEstacion((int) $estacion->id, Areas::RH),
             'horarios',
             __('Horario publicado'),
             __('Ya está el horario de :mes para :estacion.', [
@@ -118,7 +119,7 @@ final class AvisosEcosistema
         $autorizada = $solicitud->estado === HorarioSolicitud::AUTORIZADA;
 
         $this->enviar(
-            fn () => $this->deEstacion((int) $solicitud->estacion_id),
+            fn () => $this->deEstacion((int) $solicitud->estacion_id, Areas::RH),
             'horarios',
             $autorizada ? __('Cambio de horario autorizado') : __('Cambio de horario rechazado'),
             match (true) {
@@ -135,7 +136,7 @@ final class AvisosEcosistema
     public function horarioEditado(Estacion $estacion, int $cantidad): void
     {
         $this->enviar(
-            fn () => $this->deEstacion((int) $estacion->id),
+            fn () => $this->deEstacion((int) $estacion->id, Areas::RH),
             'horarios',
             __('Horario modificado'),
             trans_choice('Edificio modificó :n turno de tu horario.|Edificio modificó :n turnos de tu horario.', $cantidad, ['n' => $cantidad]),
@@ -223,9 +224,11 @@ final class AvisosEcosistema
     }
 
     /** @return Collection<int, User> */
-    private function deEstacion(int $estacionId): Collection
+    private function deEstacion(int $estacionId, ?string $area = null): Collection
     {
-        return User::role('Estación')->where('estacion_id', $estacionId)->get();
+        // Con áreas estrictas, solo las cuentas del área dueña del módulo (RM: insumos; RH: asistencia y horarios).
+        return User::role('Estación')->where('estacion_id', $estacionId)->get()
+            ->filter(fn (User $u): bool => $u->puedeUsarArea($area))->values();
     }
 
     private function estacion(SolicitudInsumo $solicitud): string

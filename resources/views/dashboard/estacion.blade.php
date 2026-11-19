@@ -16,7 +16,7 @@
                 <div class="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-brand-mint/20 blur-2xl" aria-hidden="true"></div>
                 <p class="relative text-sm font-medium text-white/75 first-letter:uppercase">{{ $ahora->isoFormat('dddd D [de] MMMM [de] YYYY') }}</p>
                 <p class="relative mt-1 font-heading text-2xl font-bold sm:text-3xl">{{ $saludo }}, {{ \Illuminate\Support\Str::of(Auth::user()->name)->explode(' ')->first() }}</p>
-                <p class="relative mt-1 text-sm text-white/80">{{ Auth::user()->estacion?->nombre ?? __('Zona Oriente') }}</p>
+                <p class="relative mt-1 text-sm text-white/80">{{ Auth::user()->estacion?->nombre ?? __('Zona Oriente') }}@if ($inicio['area']) · {{ $inicio['area'] }}@endif</p>
             </section>
 
             @if ($inicio['asistencia'])
@@ -32,6 +32,13 @@
                     </p>
                 </a>
             @endif
+
+            @foreach ($inicio['accesos'] as $acceso)
+                <a href="{{ $acceso['ruta'] }}"
+                   class="block rounded-xl border border-brand-green/10 bg-white p-5 shadow-sm shadow-brand-green/5 hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">
+                    <p class="font-heading text-base font-semibold text-brand-green">{{ $acceso['etiqueta'] }}</p>
+                </a>
+            @endforeach
 
             {{-- Mis pendientes en Tickets (ecosistema) --}}
             <x-tickets-pendientes :pendientes="$pendientesTickets ?? null" />

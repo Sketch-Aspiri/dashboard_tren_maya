@@ -6,6 +6,7 @@ use App\Models\MenuGrupo;
 use App\Models\Seccion;
 use App\Models\User;
 use App\Services\Secciones\VisibilidadSecciones;
+use App\Support\Areas;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
@@ -40,13 +41,47 @@ final class InicioEstacionService
             ->get();
 
         $porGrupo = $secciones
-            ->filter(fn (Seccion $s) => $s->grupo !== null)
+            ->filter(fn (Seccion $s) => $s->grupo !== null && $usuario->puedeUsarArea(Areas::GRUPOS[$s->grupo->slug] ?? null))
             ->groupBy('menu_grupo_id')
             ->map(fn (Collection $delGrupo) => ['grupo' => $delGrupo->first()->grupo, 'secciones' => $delGrupo->values()])
             ->sortBy(fn (array $g) => [$g['grupo']->orden, $g['grupo']->id])
             ->values();
 
-        return ['secciones' => $porGrupo, 'asistencia' => $this->asistenciaDeHoy($usuario)];
+        return [
+            'secciones' => $porGrupo,
+            'asistencia' => $usuario->puedeUsarArea(Areas::RH) ? $this->asistenciaDeHoy($usuario) : null,
+            'area' => $this->areaDe($usuario),
+            'accesos' => $this->accesosDeArea($usuario),
+        ];
+    }
+
+    /** Nombre del área de la cuenta, solo con áreas estrictas (si no, el inicio queda como siempre). */
+    private function areaDe(User $usuario): ?string
+    {
+        return config('equipos.estrictas') ? (Areas::NOMBRES[$usuario->area] ?? null) : null;
+    }
+
+    /**
+     * Atajos a los módulos de su área (solo con áreas estrictas).
+     *
+     * @return list<array{etiqueta: string, ruta: string}>
+     */
+    private function accesosDeArea(User $usuario): array
+    {
+        if (! config('equipos.estrictas')) {
+            return [];
+        }
+
+        return match ($usuario->area) {
+            Areas::RH => [
+                ['etiqueta' => __('Rol de horarios'), 'ruta' => route('horarios.index')],
+            ],
+            Areas::RM => [
+                ['etiqueta' => __('Solicitud de insumos'), 'ruta' => route('insumos.index')],
+                ['etiqueta' => __('Solicitud de papelería'), 'ruta' => route('papeleria.index')],
+            ],
+            default => [],
+        };
     }
 
     /**
