@@ -371,7 +371,7 @@
                                         @endif
                                         <td class="min-w-[14rem]">
                                             @if ($puedeRevisar)
-                                                <input type="text" maxlength="255" class="ins-campo w-full" aria-label="{{ __('Descripción de la partida :n', ['n' => $n]) }}" name="partidas[{{ $partida->id }}][descripcion]" value="{{ old('partidas.'.$partida->id.'.descripcion', $partida->descripcion) }}">
+                                                <textarea rows="3" maxlength="255" style="field-sizing: content; min-height: 4.5rem;" class="ins-campo min-w-[16rem] w-full resize-y leading-snug" aria-label="{{ __('Descripción de la partida :n', ['n' => $n]) }}" name="partidas[{{ $partida->id }}][descripcion]">{{ old('partidas.'.$partida->id.'.descripcion', $partida->descripcion) }}</textarea>
                                             @else
                                                 <span class="fuerte {{ $partida->excluida() ? 'line-through' : '' }}">{{ $partida->descripcion }}</span>
                                             @endif
