@@ -208,6 +208,12 @@ final class SolicitudInsumoService
 
             $accion = $datos['accion'];
 
+            // Edición de una solicitud ya aprobada: el catálogo y el consolidado reflejan lo nuevo.
+            if ($accion === 'guardar' && $solicitud->estado === SolicitudInsumo::APROBADA) {
+                $this->actualizarCatalogo($solicitud);
+                activity('solicitud_insumo')->performedOn($solicitud)->causedBy($user)->log('editada después de aprobarse');
+            }
+
             if ($cambios !== []) {
                 $solicitud->update(['cambios_zona' => [
                     'por' => $user->name,

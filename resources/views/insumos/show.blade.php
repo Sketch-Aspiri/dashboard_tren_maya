@@ -435,12 +435,15 @@
                             <textarea id="comentario_zona" name="comentario_zona" rows="3" class="ins-campo mt-1" placeholder="{{ __('Qué debe corregir la estación…') }}">{{ old('comentario_zona') }}</textarea>
                         </section>
 
+                        @php $yaAprobada = $solicitud->estado === \App\Models\SolicitudInsumo::APROBADA; @endphp
                         <div class="ins-barra-acciones">
-                            <p class="text-sm text-gray-500">{{ __('Guardar precios no cambia el estado; aprobar la pasa al consolidado. Si cambias cantidad, unidad o descripción, la estación recibe un aviso sin necesidad de devolverla.') }}</p>
+                            <p class="text-sm text-gray-500">@if ($yaAprobada){{ __('Esta solicitud ya está aprobada: puedes corregirla y guardar los cambios; se actualizan el consolidado y el catálogo.') }}@else{{ __('Guardar precios no cambia el estado; aprobar la pasa al consolidado. Si cambias cantidad, unidad o descripción, la estación recibe un aviso sin necesidad de devolverla.') }}@endif</p>
                             <div class="flex flex-col-reverse gap-2 sm:flex-row">
                                 <button type="submit" name="accion" value="devolver" class="ins-btn-peligro">{{ __('Devolver a la estación') }}</button>
-                                <button type="submit" name="accion" value="guardar" class="ins-btn-secundario">{{ __('Guardar precios') }}</button>
-                                <button type="submit" name="accion" value="aprobar" class="ins-btn-primario">{{ __('Aprobar') }}</button>
+                                <button type="submit" name="accion" value="guardar" class="ins-btn-secundario">{{ $yaAprobada ? __('Guardar cambios') : __('Guardar precios') }}</button>
+                                @unless ($yaAprobada)
+                                    <button type="submit" name="accion" value="aprobar" class="ins-btn-primario">{{ __('Aprobar') }}</button>
+                                @endunless
                             </div>
                         </div>
                     @endif

@@ -223,6 +223,31 @@ class SolicitudInsumoTest extends TestCase
         $this->assertTrue($solicitud->fresh()->esEditablePorEstacion());
     }
 
+    public function test_zona_edita_una_solicitud_ya_aprobada_y_la_estacion_no(): void
+    {
+        $estacion = Estacion::factory()->create();
+        $solicitud = SolicitudInsumo::factory()->enviada()->create(['estacion_id' => $estacion->id]);
+        $partida = SolicitudInsumoPartida::factory()->create(['solicitud_insumo_id' => $solicitud->id, 'cantidad' => 10]);
+        $this->actingAsTwoFactorVerified($this->userWithRole('Jefe de Zona'));
+        $this->post(route('insumos.revisar', $solicitud), [
+            'accion' => 'aprobar',
+            'partidas' => [$partida->id => ['precio_unitario' => '100', 'partida_presupuestal' => '35101']],
+        ])->assertRedirect();
+
+        $this->post(route('insumos.revisar', $solicitud), [
+            'accion' => 'guardar',
+            'partidas' => [$partida->id => ['cantidad' => '4', 'precio_unitario' => '120', 'partida_presupuestal' => '35101']],
+        ])->assertRedirect();
+
+        $partida->refresh();
+        $this->assertSame('aprobada', $solicitud->refresh()->estado);
+        $this->assertEquals(4, $partida->cantidad);
+        $this->assertEquals(120, $partida->precio_unitario);
+
+        $this->actingAsTwoFactorVerified($this->userWithRole('Estación', ['estacion_id' => $estacion->id]));
+        $this->post(route('insumos.revisar', $solicitud), ['accion' => 'guardar'])->assertForbidden();
+    }
+
     public function test_approving_requires_price_and_partida_presupuestal_then_computes_totals(): void
     {
         $estacion = Estacion::factory()->create();

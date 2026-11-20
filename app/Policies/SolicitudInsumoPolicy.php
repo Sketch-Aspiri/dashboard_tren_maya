@@ -46,12 +46,13 @@ class SolicitudInsumoPolicy
     }
 
     /**
-     * Revisión de la Zona: completa precios/partida, devuelve o aprueba.
+     * Revisión de la Zona: completa precios/partida, devuelve o aprueba. Una
+     * solicitud ya aprobada (aún sin enviar a Coordinación) sigue siendo editable.
      */
     public function review(User $user, SolicitudInsumo $solicitud): bool
     {
         return $user->hasAnyRole(Roles::JEFATURA)
-            && in_array($solicitud->estado, [SolicitudInsumo::ENVIADA, SolicitudInsumo::OBSERVADA], true);
+            && in_array($solicitud->estado, [SolicitudInsumo::ENVIADA, SolicitudInsumo::OBSERVADA, SolicitudInsumo::APROBADA], true);
     }
 
     /**
