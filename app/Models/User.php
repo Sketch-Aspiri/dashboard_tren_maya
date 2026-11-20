@@ -111,6 +111,18 @@ class User extends Authenticatable
      * @return BelongsTo<Estacion, $this>
      */
     /**
+     * Dirección de la foto de perfil (lleva `v`, que cambia con cada foto, para el caché del navegador).
+     */
+    public function urlFoto(): ?string
+    {
+        if ($this->avatar_path === null) {
+            return null;
+        }
+
+        return route('fotos.show', ['user' => $this->getKey(), 'v' => substr(sha1((string) $this->avatar_path), 0, 10)], false);
+    }
+
+    /**
      * ¿Puede esta cuenta usar los módulos del área? Solo restringe a las cuentas Estación y solo con
      * AREAS_ESTRICTAS=true; el resto de roles no tiene área.
      */

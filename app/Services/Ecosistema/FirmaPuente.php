@@ -105,6 +105,27 @@ final class FirmaPuente
         return Cache::add('ecosistema:puente:nonce:'.hash('sha256', $sistema.'|'.$nonce), true, $ventana * 2 + 60) ? $sistema : null;
     }
 
+    /**
+     * Encabezados para una llamada saliente AL PORTAL: mismo formato, firmada con el secreto propio del portal y con
+     * el sistema de este servidor (el portal distingue así los sentidos).
+     *
+     * @param  array<string, mixed>  $consulta
+     * @return array<string, string>
+     */
+    public function encabezadosPortal(string $metodo, string $ruta, array $consulta = [], string $cuerpo = ''): array
+    {
+        $sistema = (string) config('ecosistema.sistema');
+        $fecha = (string) now()->getTimestamp();
+        $nonce = Str::random(40);
+
+        return [
+            self::SISTEMA => $sistema,
+            self::FECHA => $fecha,
+            self::NONCE => $nonce,
+            self::FIRMA => $this->calcular((string) config('ecosistema.puente.portal.secreto'), $metodo, $ruta, $consulta, $sistema, $fecha, $nonce, $cuerpo),
+        ];
+    }
+
     public function portalConfigurado(): bool
     {
         return strlen((string) config('ecosistema.puente.portal.secreto')) >= 32;

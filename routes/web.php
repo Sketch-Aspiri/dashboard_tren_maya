@@ -39,6 +39,7 @@ use App\Http\Controllers\Nube\NubeEstadoController;
 use App\Http\Controllers\Nube\NubeOAuthController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PersonalImportacionController;
+use App\Http\Controllers\FotoPerfilController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\Secciones\AdministrarMenuController;
@@ -86,6 +87,9 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/foto', [FotoPerfilController::class, 'update'])->middleware('throttle:20,60')->name('profile.foto.update');
+    Route::delete('/profile/foto', [FotoPerfilController::class, 'destroy'])->middleware('throttle:20,60')->name('profile.foto.destroy');
+    Route::get('/fotos/{user}', [FotoPerfilController::class, 'show'])->whereNumber('user')->middleware('throttle:240,1')->name('fotos.show');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Agenda Zona Oriente -> Personal: real data module (see CLAUDE.md and

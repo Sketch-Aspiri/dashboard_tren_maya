@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Interno\PortalCatalogoController;
 use App\Http\Controllers\Interno\PortalCuentasController;
+use App\Http\Controllers\Interno\PortalFotoController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -11,3 +12,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('catalogo', PortalCatalogoController::class)->name('catalogo');
 Route::get('cuentas', [PortalCuentasController::class, 'index'])->name('cuentas.index');
 Route::post('cuentas', [PortalCuentasController::class, 'store'])->name('cuentas.store');
+
+// Foto de perfil única: el portal la lee (herencia inicial) y la reparte.
+Route::get('avatar', [PortalFotoController::class, 'show'])->name('avatar.show');
+Route::put('avatar', [PortalFotoController::class, 'update'])->name('avatar.update');
+Route::delete('avatar', [PortalFotoController::class, 'destroy'])->name('avatar.destroy');

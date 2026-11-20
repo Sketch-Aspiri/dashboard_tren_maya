@@ -26,7 +26,7 @@
                 <x-dropdown align="right" width="w-56">
                     <x-slot name="trigger">
                         <button type="button" class="inline-flex min-h-[44px] items-center gap-2 rounded-md border border-brand-green/15 px-3 py-2 text-sm font-medium text-brand-green transition duration-150 ease-in-out hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">
-                            <span class="flex h-7 w-7 items-center justify-center rounded-full bg-brand-green text-xs font-semibold uppercase text-white" aria-hidden="true">{{ mb_substr(Auth::user()->name, 0, 1) }}</span>
+                            <x-foto-perfil :user="Auth::user()" />
                             <span class="max-w-[14rem] truncate">{{ Auth::user()->name }}</span>
                             <svg class="h-4 w-4 fill-current transition-transform" :class="{ 'rotate-180': open }" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" aria-hidden="true">
                                 <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />

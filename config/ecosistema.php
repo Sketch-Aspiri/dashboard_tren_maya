@@ -54,7 +54,17 @@ return [
         // Tickets. Sin él, /interno/portal/* responde 404.
         'portal' => [
             'secreto' => env('ECOSISTEMA_PUENTE_SECRETO_PORTAL'),
+            // Dirección con la que este servidor llama al portal (foto de perfil única).
+            'url' => rtrim((string) env('ECOSISTEMA_PORTAL_PUENTE_URL', 'https://zonaorientetm.tech'), '/'),
         ],
+    ],
+
+    // Foto de perfil única: el portal es el origen; este sistema guarda una copia y avisa de sus cambios.
+    'avatares' => [
+        'directorio' => 'avatars',
+        'tamano' => 256,
+        'max_kb' => (int) env('AVATAR_MAX_KB', 4096),
+        'max_dimension' => 6000,
     ],
 
     // Herramientas para IA por el puente (App\Services\Ecosistema\IaHerramientas): el MCP de Tickets publica las consultas
