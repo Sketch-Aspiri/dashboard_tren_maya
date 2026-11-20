@@ -44,7 +44,7 @@ final class FormatoSolicitudInsumoLibro
         $libro->setActiveSheetIndex(0);
         $hoja = $libro->getSheetByName('SOLICITUD');
 
-        $partidas = $solicitud->partidas->reject(fn ($p) => $p->eliminada_por_coordinacion)->values();
+        $partidas = $solicitud->partidas->reject(fn ($p) => $p->excluida())->values();
         $extra = max(0, $partidas->count() - self::FILAS_PLANTILLA);
         $ultima = self::PRIMERA_FILA + max($partidas->count(), self::FILAS_PLANTILLA) - 1;
 

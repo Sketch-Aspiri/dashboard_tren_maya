@@ -53,6 +53,7 @@ final class CotizacionService
         return SolicitudInsumoPartida::query()
             ->with('solicitud.estacion')
             ->where('eliminada_por_coordinacion', false)
+            ->where('pasa', true)
             ->whereHas('solicitud', fn ($q) => $q->where('anio', $anio)->where('mes', $mes)->whereIn('estado', SolicitudInsumo::ESTADOS_APROBADOS))
             ->get()
             ->sortBy(fn (SolicitudInsumoPartida $p) => ($p->solicitud->estacion->orden ?? 0) * 1000 + $p->numero)

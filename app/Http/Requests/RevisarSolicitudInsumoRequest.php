@@ -34,6 +34,7 @@ class RevisarSolicitudInsumoRequest extends FormRequest
             'partidas.*.precio_unitario' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99'],
             'partidas.*.partida_presupuestal' => ['nullable', 'string', 'max:10'],
             'partidas.*.proveedor' => ['nullable', 'string', 'max:255'],
+            'partidas.*.pasa' => ['nullable', 'boolean'],
         ];
     }
 
@@ -52,6 +53,12 @@ class RevisarSolicitudInsumoRequest extends FormRequest
 
             foreach ($solicitud->partidas as $partida) {
                 $datos = $enviadas[$partida->id] ?? [];
+
+                // Un insumo que no pasa no necesita precio ni partida.
+                if (array_key_exists('pasa', $datos) ? ! $datos['pasa'] : ! $partida->pasa) {
+                    continue;
+                }
+
                 $precio = $datos['precio_unitario'] ?? $partida->precio_unitario;
                 $presupuestal = $datos['partida_presupuestal'] ?? $partida->partida_presupuestal;
 

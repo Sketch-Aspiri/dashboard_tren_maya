@@ -43,7 +43,7 @@ final class ConsolidadoInsumosService
         $bloques = $this->estacionesEnOrden()->map(function (Estacion $estacion) use ($solicitudes) {
             $solicitud = $solicitudes->get($estacion->id);
             $incluida = $solicitud?->estaAprobada() === true;
-            $partidas = $incluida ? $solicitud->partidas->reject(fn (SolicitudInsumoPartida $p) => $p->eliminada_por_coordinacion)->values() : collect();
+            $partidas = $incluida ? $solicitud->partidas->reject(fn (SolicitudInsumoPartida $p) => $p->excluida())->values() : collect();
             $desglose = $this->proveedores->desglose($partidas);
             $subtotal = round(array_sum(array_column($desglose, 'base')), 2);
             $iva = round(array_sum(array_column($desglose, 'iva')), 2);

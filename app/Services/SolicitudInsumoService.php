@@ -188,6 +188,7 @@ final class SolicitudInsumoService
                 $partida = $solicitud->partidas()->whereKey($id)->first();
 
                 $partida?->update([
+                    'pasa' => array_key_exists('pasa', $fila) ? (bool) $fila['pasa'] : $partida->pasa,
                     'codigo' => $fila['codigo'] ?? null,
                     'precio_unitario' => $fila['precio_unitario'] ?? null,
                     'partida_presupuestal' => $fila['partida_presupuestal'] ?? null,
@@ -246,7 +247,7 @@ final class SolicitudInsumoService
      */
     public function totales(SolicitudInsumo $solicitud): array
     {
-        $desglose = $this->proveedores->desglose($solicitud->partidas->reject(fn (SolicitudInsumoPartida $p) => $p->eliminada_por_coordinacion));
+        $desglose = $this->proveedores->desglose($solicitud->partidas->reject(fn (SolicitudInsumoPartida $p) => $p->excluida()));
         $subtotal = round(array_sum(array_column($desglose, 'base')), 2);
         $iva = round(array_sum(array_column($desglose, 'iva')), 2);
         $total = round($subtotal + $iva, 2);
@@ -330,6 +331,10 @@ final class SolicitudInsumoService
     private function actualizarCatalogo(SolicitudInsumo $solicitud): void
     {
         foreach ($solicitud->partidas()->get() as $partida) {
+            if ($partida->excluida()) {
+                continue;
+            }
+
             $catalogo = $partida->catalogo
                 ?? CatalogoInsumo::query()->firstOrNew(
                     ['descripcion' => $partida->descripcion],

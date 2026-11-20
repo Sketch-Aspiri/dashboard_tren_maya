@@ -219,6 +219,28 @@ class SolicitudInsumoTest extends TestCase
         $this->assertSame(3920.0, $totales['restante']);
     }
 
+    public function test_partida_marked_as_not_passing_is_excluded_and_needs_no_price(): void
+    {
+        $solicitud = SolicitudInsumo::factory()->enviada()->create(['estacion_id' => Estacion::factory()->create()->id]);
+        $pasa = SolicitudInsumoPartida::factory()->create(['solicitud_insumo_id' => $solicitud->id, 'cantidad' => 10]);
+        $noPasa = SolicitudInsumoPartida::factory()->create(['solicitud_insumo_id' => $solicitud->id, 'numero' => 2, 'cantidad' => 5, 'precio_unitario' => null, 'partida_presupuestal' => null]);
+        $this->actingAsTwoFactorVerified($this->userWithRole('Jefe de Zona'));
+
+        $this->post(route('insumos.revisar', $solicitud), [
+            'accion' => 'aprobar',
+            'partidas' => [
+                $pasa->id => ['pasa' => '1', 'precio_unitario' => '100', 'partida_presupuestal' => '35101'],
+                $noPasa->id => ['pasa' => '0'],
+            ],
+        ])->assertRedirect();
+
+        $this->assertTrue($pasa->fresh()->pasa);
+        $this->assertFalse($noPasa->fresh()->pasa);
+
+        $totales = app(SolicitudInsumoService::class)->totales($solicitud->fresh()->load('partidas'));
+        $this->assertSame(1000.0, $totales['subtotal']);
+    }
+
     // --- Reglas del servicio --------------------------------------------------
 
     public function test_mes_objetivo_rolls_to_next_month_from_day_15(): void

@@ -73,7 +73,7 @@ class GuardarCotizacionRequest extends FormRequest
                 ->where('anio', (int) $this->input('anio'))->where('mes', (int) $this->input('mes'))
                 ->whereIn('estado', SolicitudInsumo::ESTADOS_APROBADOS)
                 ->join('solicitud_insumo_partidas as p', 'p.solicitud_insumo_id', '=', 'solicitudes_insumos.id')
-                ->whereIn('p.id', $ids)->where('p.eliminada_por_coordinacion', false)
+                ->whereIn('p.id', $ids)->where('p.eliminada_por_coordinacion', false)->where('p.pasa', true)
                 ->pluck('p.id')->all();
 
             foreach ($this->input('renglones', []) as $i => $fila) {

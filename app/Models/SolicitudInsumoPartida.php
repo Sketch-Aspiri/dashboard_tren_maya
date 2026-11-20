@@ -35,6 +35,7 @@ class SolicitudInsumoPartida extends Model
         'partida_presupuestal',
         'partida_final',
         'eliminada_por_coordinacion',
+        'pasa',
         'agregada_por_coordinacion',
         'proveedor',
         'ficha_tecnica_ruta',
@@ -53,7 +54,16 @@ class SolicitudInsumoPartida extends Model
             'precio_estimado' => 'decimal:2',
             'eliminada_por_coordinacion' => 'boolean',
             'agregada_por_coordinacion' => 'boolean',
+            'pasa' => 'boolean',
         ];
+    }
+
+    /**
+     * Fuera de cuentas: la quitó la Coordinación o la Zona marcó que no pasa.
+     */
+    public function excluida(): bool
+    {
+        return $this->eliminada_por_coordinacion || ! $this->pasa;
     }
 
     public function total(): ?float

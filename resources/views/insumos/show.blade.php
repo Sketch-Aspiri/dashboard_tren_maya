@@ -335,6 +335,7 @@
                                     <th scope="col">{{ __('Unidad') }}</th>
                                     <th scope="col">{{ __('Descripción') }}</th>
                                     <th scope="col">{{ __('Justificación específica detallada') }}</th>
+                                    <th scope="col">{{ __('Pasa') }}</th>
                                     <th scope="col">{{ __('Código') }}</th>
                                     <th scope="col">{{ __('P. unitario') }}</th>
                                     <th scope="col">{{ __('Partida') }}</th>
@@ -345,14 +346,16 @@
                             <tbody>
                                 @foreach ($solicitud->partidas as $partida)
                                     @php $n = $partida->numero; @endphp
-                                    <tr class="{{ in_array($partida->id, $atipicas, true) ? '!bg-amber-50' : '' }} {{ $partida->eliminada_por_coordinacion ? 'opacity-60' : '' }}">
+                                    <tr class="{{ in_array($partida->id, $atipicas, true) ? '!bg-amber-50' : '' }} {{ $partida->excluida() ? 'opacity-60' : '' }}">
                                         <td>{{ $n }}</td>
                                         <td class="num">{{ $partida->cantidad + 0 }}</td>
                                         <td>{{ $partida->unidad }}</td>
                                         <td class="min-w-[14rem]">
-                                            <span class="fuerte {{ $partida->eliminada_por_coordinacion ? 'line-through' : '' }}">{{ $partida->descripcion }}</span>
+                                            <span class="fuerte {{ $partida->excluida() ? 'line-through' : '' }}">{{ $partida->descripcion }}</span>
                                             @if ($partida->eliminada_por_coordinacion)
                                                 <span class="ins-chip-error ml-1">{{ __('quitada por la Coordinación') }}</span>
+                                            @elseif (! $partida->pasa)
+                                                <span class="ins-chip-error ml-1">{{ __('no pasa') }}</span>
                                             @elseif ($partida->agregada_por_coordinacion)
                                                 <span class="ins-chip-info ml-1">{{ __('agregada por la Coordinación') }}</span>
                                             @endif
@@ -367,11 +370,16 @@
                                             @endif
                                         </td>
                                         @if ($puedeRevisar)
+                                            <td class="text-center">
+                                                <input type="hidden" name="partidas[{{ $partida->id }}][pasa]" value="0">
+                                                <input type="checkbox" value="1" class="h-5 w-5 rounded border-gray-300" aria-label="{{ __('La partida :n pasa', ['n' => $n]) }}" name="partidas[{{ $partida->id }}][pasa]" @checked(old('partidas.'.$partida->id.'.pasa', $partida->pasa))>
+                                            </td>
                                             <td><input type="text" maxlength="50" class="ins-campo w-28" aria-label="{{ __('Código de la partida :n', ['n' => $n]) }}" name="partidas[{{ $partida->id }}][codigo]" value="{{ old('partidas.'.$partida->id.'.codigo', $partida->codigo) }}"></td>
                                             <td><input type="number" inputmode="decimal" step="0.01" min="0" class="ins-campo w-28 text-right" aria-label="{{ __('Precio unitario de la partida :n', ['n' => $n]) }}" name="partidas[{{ $partida->id }}][precio_unitario]" value="{{ old('partidas.'.$partida->id.'.precio_unitario', $partida->precio_unitario) }}"></td>
                                             <td><input type="text" inputmode="numeric" maxlength="10" class="ins-campo w-24" aria-label="{{ __('Partida presupuestal de la partida :n', ['n' => $n]) }}" name="partidas[{{ $partida->id }}][partida_presupuestal]" value="{{ old('partidas.'.$partida->id.'.partida_presupuestal', $partida->partida_presupuestal ?: $partida->catalogo?->partida_presupuestal) }}"></td>
                                             <td><input type="text" maxlength="255" class="ins-campo w-44" list="lista-proveedores" aria-label="{{ __('Proveedor de la partida :n', ['n' => $n]) }}" name="partidas[{{ $partida->id }}][proveedor]" value="{{ old('partidas.'.$partida->id.'.proveedor', $partida->proveedor) }}"></td>
                                         @else
+                                            <td class="text-center">{{ $partida->pasa ? __('Sí') : __('No') }}</td>
                                             <td>{{ $partida->codigo ?? '—' }}</td>
                                             <td class="num">{{ $dinero($partida->precio_unitario === null ? null : (float) $partida->precio_unitario) }}</td>
                                             <td>{{ $partida->partida_final ?? $partida->partida_presupuestal ?? '—' }}</td>
