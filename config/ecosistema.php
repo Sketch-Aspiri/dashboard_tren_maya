@@ -19,6 +19,9 @@ return [
         'portal' => env('ECOSISTEMA_PORTAL_URL') ? rtrim((string) env('ECOSISTEMA_PORTAL_URL'), '/') : null,
     ]),
 
+    // Destino del logo de la barra: el portal central. Independiente del inicio único (ECOSISTEMA_PORTAL_URL).
+    'portal_inicio' => rtrim((string) env('ECOSISTEMA_PORTAL_INICIO_URL', 'https://zonaorientetm.tech'), '/'),
+
     // Inicio de sesión único entre los dos sistemas (App\Services\Ecosistema\InicioUnicoService).
     // ECOSISTEMA_SSO_SECRET: el MISMO valor en los .env de ambos sistemas (32+ caracteres aleatorios;
     // `php -r "echo bin2hex(random_bytes(32));"`). Sin él, cada sistema pide su propio login.
