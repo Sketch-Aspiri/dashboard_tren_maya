@@ -51,6 +51,38 @@ class SolicitudInsumoTest extends TestCase
         ], $override);
     }
 
+    public function test_zona_modifica_producto_al_revisar_sin_devolver_y_avisa_a_la_estacion(): void
+    {
+        $estacion = Estacion::factory()->create();
+        $solicitud = SolicitudInsumo::factory()->enviada()->create(['estacion_id' => $estacion->id]);
+        $partida = SolicitudInsumoPartida::factory()->create([
+            'solicitud_insumo_id' => $solicitud->id, 'cantidad' => 10, 'unidad' => 'Pieza', 'descripcion' => 'Foco LED 12W',
+        ]);
+        $this->actingAsTwoFactorVerified($zona = $this->userWithRole('Jefe de Zona'));
+
+        $this->post(route('insumos.revisar', $solicitud), [
+            'accion' => 'guardar',
+            'partidas' => [$partida->id => ['cantidad' => '4', 'unidad' => 'Caja', 'descripcion' => 'Foco LED 9W']],
+        ])->assertRedirect();
+
+        $solicitud->refresh();
+        $partida->refresh();
+        $this->assertSame('enviada', $solicitud->estado);
+        $this->assertSame('Foco LED 9W', $partida->descripcion);
+        $this->assertSame('Caja', $partida->unidad);
+        $this->assertEquals(4, $partida->cantidad);
+        $this->assertCount(3, $solicitud->cambios_zona['partidas']);
+        $this->assertSame($zona->name, $solicitud->cambios_zona['por']);
+        $this->assertTrue(Activity::query()->where('description', 'producto modificado por la Zona')->exists());
+
+        // Sin cambios no se registra nada nuevo.
+        $this->post(route('insumos.revisar', $solicitud), [
+            'accion' => 'guardar',
+            'partidas' => [$partida->id => ['cantidad' => '4', 'unidad' => 'Caja', 'descripcion' => 'Foco LED 9W']],
+        ])->assertRedirect();
+        $this->assertCount(3, $solicitud->refresh()->cambios_zona['partidas']);
+    }
+
     // --- Authentication / authorization ------------------------------------
 
     public function test_guest_is_redirected_to_login(): void

@@ -63,6 +63,7 @@ class SolicitudInsumo extends Model
         'revisada_por',
         'revisada_at',
         'comentario_zona',
+        'cambios_zona',
         'oficio_numero',
         'enviada_coordinacion_at',
         'devuelta_at',
@@ -80,6 +81,7 @@ class SolicitudInsumo extends Model
             'revisada_at' => 'datetime',
             'enviada_coordinacion_at' => 'datetime',
             'devuelta_at' => 'datetime',
+            'cambios_zona' => 'array',
         ];
     }
 

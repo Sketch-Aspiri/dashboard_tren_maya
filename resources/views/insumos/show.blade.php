@@ -60,6 +60,20 @@
                 </div>
             @endif
 
+            @if (! empty($solicitud->cambios_zona['partidas']))
+                <div class="ins-aviso-alerta" role="status">
+                    <span aria-hidden="true" class="mt-0.5 font-bold">!</span>
+                    <div>
+                        <p class="font-semibold">{{ __('La Zona modificó productos de esta solicitud al revisarla:') }}</p>
+                        <ul class="mt-1 list-disc pl-5">
+                            @foreach ($solicitud->cambios_zona['partidas'] as $cambio)
+                                <li>{{ __('Partida :n, :campo', ['n' => $cambio['n'], 'campo' => __($cambio['campo'] === 'descripcion' ? 'descripción' : $cambio['campo'])]) }}: <span class="line-through">{{ $cambio['antes'] }}</span> → <span class="font-semibold">{{ $cambio['despues'] }}</span></li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
+            @endif
+
             <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-600">
                 <x-insumos.estado :valor="$solicitud->estado" :texto="__($solicitud->etiquetaEstado())" />
                 @if ($solicitud->oficio_numero)
@@ -348,10 +362,19 @@
                                     @php $n = $partida->numero; @endphp
                                     <tr class="{{ in_array($partida->id, $atipicas, true) ? '!bg-amber-50' : '' }} {{ $partida->excluida() ? 'opacity-60' : '' }}">
                                         <td>{{ $n }}</td>
-                                        <td class="num">{{ $partida->cantidad + 0 }}</td>
-                                        <td>{{ $partida->unidad }}</td>
+                                        @if ($puedeRevisar)
+                                            <td><input type="number" inputmode="decimal" step="0.01" min="0.01" class="ins-campo w-20 text-right" aria-label="{{ __('Cantidad de la partida :n', ['n' => $n]) }}" name="partidas[{{ $partida->id }}][cantidad]" value="{{ old('partidas.'.$partida->id.'.cantidad', $partida->cantidad + 0) }}"></td>
+                                            <td><input type="text" maxlength="30" class="ins-campo w-24" aria-label="{{ __('Unidad de la partida :n', ['n' => $n]) }}" name="partidas[{{ $partida->id }}][unidad]" value="{{ old('partidas.'.$partida->id.'.unidad', $partida->unidad) }}"></td>
+                                        @else
+                                            <td class="num">{{ $partida->cantidad + 0 }}</td>
+                                            <td>{{ $partida->unidad }}</td>
+                                        @endif
                                         <td class="min-w-[14rem]">
-                                            <span class="fuerte {{ $partida->excluida() ? 'line-through' : '' }}">{{ $partida->descripcion }}</span>
+                                            @if ($puedeRevisar)
+                                                <input type="text" maxlength="255" class="ins-campo w-full" aria-label="{{ __('Descripción de la partida :n', ['n' => $n]) }}" name="partidas[{{ $partida->id }}][descripcion]" value="{{ old('partidas.'.$partida->id.'.descripcion', $partida->descripcion) }}">
+                                            @else
+                                                <span class="fuerte {{ $partida->excluida() ? 'line-through' : '' }}">{{ $partida->descripcion }}</span>
+                                            @endif
                                             @if ($partida->eliminada_por_coordinacion)
                                                 <span class="ins-chip-error ml-1">{{ __('quitada por la Coordinación') }}</span>
                                             @elseif (! $partida->pasa)
@@ -413,7 +436,7 @@
                         </section>
 
                         <div class="ins-barra-acciones">
-                            <p class="text-sm text-gray-500">{{ __('Guardar precios no cambia el estado; aprobar la pasa al consolidado.') }}</p>
+                            <p class="text-sm text-gray-500">{{ __('Guardar precios no cambia el estado; aprobar la pasa al consolidado. Si cambias cantidad, unidad o descripción, la estación recibe un aviso sin necesidad de devolverla.') }}</p>
                             <div class="flex flex-col-reverse gap-2 sm:flex-row">
                                 <button type="submit" name="accion" value="devolver" class="ins-btn-peligro">{{ __('Devolver a la estación') }}</button>
                                 <button type="submit" name="accion" value="guardar" class="ins-btn-secundario">{{ __('Guardar precios') }}</button>

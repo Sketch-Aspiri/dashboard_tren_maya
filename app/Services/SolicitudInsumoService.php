@@ -183,11 +183,20 @@ final class SolicitudInsumoService
      */
     public function revisar(SolicitudInsumo $solicitud, array $datos, User $user): SolicitudInsumo
     {
-        $revisada = DB::transaction(function () use ($solicitud, $datos, $user) {
+        $cambios = [];
+
+        $revisada = DB::transaction(function () use ($solicitud, $datos, $user, &$cambios) {
             foreach (($datos['partidas'] ?? []) as $id => $fila) {
                 $partida = $solicitud->partidas()->whereKey($id)->first();
 
-                $partida?->update([
+                if ($partida === null) {
+                    continue;
+                }
+
+                // La Zona puede corregir el producto (cantidad, unidad, descripción) sin devolverla.
+                $cambios = [...$cambios, ...$this->corregirProducto($partida, $fila)];
+
+                $partida->update([
                     'pasa' => array_key_exists('pasa', $fila) ? (bool) $fila['pasa'] : $partida->pasa,
                     'codigo' => $fila['codigo'] ?? null,
                     'precio_unitario' => $fila['precio_unitario'] ?? null,
@@ -198,6 +207,16 @@ final class SolicitudInsumoService
             }
 
             $accion = $datos['accion'];
+
+            if ($cambios !== []) {
+                $solicitud->update(['cambios_zona' => [
+                    'por' => $user->name,
+                    'fecha' => now()->toIso8601String(),
+                    'partidas' => $cambios,
+                ]]);
+                activity('solicitud_insumo')->performedOn($solicitud)->causedBy($user)
+                    ->withProperties(['cambios' => $cambios])->log('producto modificado por la Zona');
+            }
 
             if ($accion === 'devolver') {
                 $solicitud->update([
@@ -222,6 +241,11 @@ final class SolicitudInsumoService
             return $solicitud->refresh();
         });
 
+        // Si la Zona cambió algún producto, la estación se entera aunque no se devuelva.
+        if ($cambios !== []) {
+            $this->avisos->productoModificado($revisada, count($cambios));
+        }
+
         // Aviso al celular de la estación cuando se devuelve o se aprueba (guardar no avisa).
         if (in_array($datos['accion'], ['devolver', 'aprobar'], true)) {
             $this->avisos->solicitudRevisada($revisada, $datos['accion']);
@@ -233,6 +257,55 @@ final class SolicitudInsumoService
         }
 
         return $revisada;
+    }
+
+    /**
+     * Aplica a la partida los cambios de cantidad, unidad o descripción que
+     * hizo la Zona y devuelve una línea por cada campo cambiado.
+     *
+     * @param  array<string, mixed>  $fila
+     * @return list<array{n: int, campo: string, antes: string, despues: string}>
+     */
+    private function corregirProducto(SolicitudInsumoPartida $partida, array $fila): array
+    {
+        $cambios = [];
+        $nuevos = [];
+
+        foreach (['cantidad', 'unidad', 'descripcion'] as $campo) {
+            $valor = isset($fila[$campo]) ? trim((string) $fila[$campo]) : '';
+
+            if ($valor === '') {
+                continue;
+            }
+
+            $antes = $partida->{$campo};
+            $igual = $campo === 'cantidad'
+                ? abs((float) $antes - (float) $valor) < 0.005
+                : $antes === $valor;
+
+            if ($igual) {
+                continue;
+            }
+
+            $nuevos[$campo] = $campo === 'cantidad' ? round((float) $valor, 2) : $valor;
+            $cambios[] = [
+                'n' => (int) $partida->numero,
+                'campo' => $campo,
+                'antes' => (string) ($campo === 'cantidad' ? (float) $antes : $antes),
+                'despues' => (string) ($campo === 'cantidad' ? round((float) $valor, 2) : $valor),
+            ];
+        }
+
+        if ($nuevos !== []) {
+            // Otra descripción es otro producto: se desenlaza del catálogo para no pisar el anterior.
+            if (isset($nuevos['descripcion'])) {
+                $nuevos['catalogo_insumo_id'] = null;
+            }
+
+            $partida->update($nuevos);
+        }
+
+        return $cambios;
     }
 
     /**

@@ -8,10 +8,10 @@ use App\Models\Estacion;
 use App\Models\HorarioConsolidado;
 use App\Models\HorarioPeriodo;
 use App\Models\HorarioSolicitud;
-use App\Models\VacacionPeriodo;
-use App\Models\VacacionSolicitud;
 use App\Models\SolicitudInsumo;
 use App\Models\User;
+use App\Models\VacacionPeriodo;
+use App\Models\VacacionSolicitud;
 use App\Notifications\AvisoDashboard;
 use App\Support\Areas;
 use Illuminate\Support\Carbon;
@@ -57,6 +57,18 @@ final class AvisosEcosistema
                 ? __('Tu solicitud de :mes fue aprobada.', ['mes' => $this->mes($solicitud)])
                 : __('Tu solicitud de :mes tiene observaciones de Zona.', ['mes' => $this->mes($solicitud)]),
             route('insumos.estacion', $solicitud->estacion_id, false),
+        );
+    }
+
+    /** La Zona corrigió productos de la solicitud al revisarla (sin devolverla) → personas de esa estación. */
+    public function productoModificado(SolicitudInsumo $solicitud, int $cambios): void
+    {
+        $this->enviar(
+            fn () => $this->deEstacion((int) $solicitud->estacion_id, Areas::deGrupo('recursos-materiales')),
+            'insumos',
+            __('Zona modificó tu solicitud de insumos'),
+            __('Zona cambió :n dato(s) de producto en tu solicitud de :mes.', ['n' => $cambios, 'mes' => $this->mes($solicitud)]),
+            route('insumos.show', $solicitud, false),
         );
     }
 
