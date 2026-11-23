@@ -116,14 +116,9 @@ class SolicitudPapeleriaTest extends TestCase
         $this->assertSame(SolicitudPapeleria::APROBADA, $solicitud->refresh()->estado);
     }
 
-    public function test_building_role_and_station_cannot_review_or_download(): void
+    public function test_station_cannot_review_or_download(): void
     {
         $solicitud = SolicitudPapeleria::factory()->enviada()->create();
-
-        $this->actingAsTwoFactorVerified($this->userWithRole('Edificio'));
-        $this->post(route('papeleria.revisar', $solicitud), ['accion' => 'aprobar'])->assertForbidden();
-        $this->get(route('papeleria.descargar'))->assertForbidden();
-        $this->get(route('papeleria.catalogo.index'))->assertForbidden();
 
         $this->actingAsTwoFactorVerified($this->userWithRole('Estación', ['estacion_id' => $solicitud->estacion_id]));
         $this->get(route('papeleria.descargar'))->assertForbidden();

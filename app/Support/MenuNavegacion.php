@@ -54,7 +54,7 @@ class MenuNavegacion
                 $config = $fijos->get($grupo->slug, ['items' => [], 'patrones' => []]);
 
                 $items = collect($config['items'])
-                    ->filter(fn (array $item) => $usuario->hasAnyRole($item['roles']))
+                    ->filter(fn (array $item) => $usuario->hasAnyRole($item['roles']) && (! ($item['requiere_empleado'] ?? false) || $usuario->empleado_id !== null))
                     ->map(fn (array $item) => [
                         'label' => $item['label'],
                         'href' => route($item['ruta']),

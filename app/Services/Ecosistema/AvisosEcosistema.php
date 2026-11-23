@@ -4,6 +4,7 @@ namespace App\Services\Ecosistema;
 
 use App\Jobs\EnviarAvisoPortal;
 use App\Jobs\EnviarAvisoTickets;
+use App\Models\AguaRegistro;
 use App\Models\Cotizacion;
 use App\Models\Estacion;
 use App\Models\HorarioConsolidado;
@@ -12,6 +13,7 @@ use App\Models\HorarioSolicitud;
 use App\Models\SolicitudInsumo;
 use App\Models\User;
 use App\Models\VacacionPeriodo;
+use App\Models\VacacionPlan;
 use App\Models\VacacionSolicitud;
 use App\Notifications\AvisoDashboard;
 use App\Support\Areas;
@@ -33,11 +35,11 @@ final class AvisosEcosistema
 {
     public function __construct(private readonly PuenteCliente $puente, private readonly FirmaPuente $firma) {}
 
-    /** La estación envió su solicitud → Jefe de Zona. */
+    /** La estación envió su solicitud → Jefe de Zona y Edificio (que también revisa; no se avisa a quien la envió). */
     public function solicitudEnviada(SolicitudInsumo $solicitud): void
     {
         $this->enviar(
-            fn () => $this->jefesDeZona(),
+            fn () => $this->jefesDeZona()->merge($this->deEdificio())->reject(fn (User $u) => $u->id === auth()->id())->values(),
             'insumos',
             __('Solicitud de insumos enviada'),
             __(':estacion envió su solicitud de :mes.', ['estacion' => $this->estacion($solicitud), 'mes' => $this->mes($solicitud)]),
@@ -157,6 +159,58 @@ final class AvisosEcosistema
             $autorizada ? __('Cambio de vacaciones autorizado') : __('Cambio de vacaciones rechazado'),
             $autorizada ? __('Se autorizaron :n cambio(s) de vacaciones.', ['n' => $cantidad]) : __('No se autorizaron :n cambio(s) de vacaciones.', ['n' => $cantidad]),
             route('vacaciones.solicitudes.index', [], false),
+        );
+    }
+
+    /** Una persona envió su selección de vacaciones → Edificio y Jefe de Zona. */
+    public function vacacionPlanEnviado(VacacionPlan $plan): void
+    {
+        $this->enviar(
+            fn () => $this->deEdificio()->merge($this->jefesDeZona()),
+            'vacaciones',
+            __('Selección de vacaciones por revisar'),
+            __(':estacion: una persona envió sus vacaciones :anio.', ['estacion' => $this->limpio((string) ($plan->estacion->nombre ?? __('Una estación')), 40), 'anio' => $plan->anio]),
+            route('vacaciones.seleccion.revision', [], false),
+        );
+    }
+
+    /** La Zona resolvió la selección de una persona → su cuenta. */
+    public function vacacionPlanResuelto(VacacionPlan $plan): void
+    {
+        $autorizada = $plan->estado === VacacionPlan::AUTORIZADA;
+
+        $this->enviar(
+            fn () => User::query()->where('empleado_id', $plan->empleado_id)->get(),
+            'vacaciones',
+            $autorizada ? __('Vacaciones autorizadas') : __('Vacaciones rechazadas'),
+            $autorizada ? __('Se autorizó tu selección de vacaciones :anio.', ['anio' => $plan->anio]) : __('Tu selección de vacaciones :anio necesita cambios.', ['anio' => $plan->anio]),
+            route('vacaciones.mi.show', [], false),
+        );
+    }
+
+    /** La estación envió su registro de agua → Jefe de Zona y Edificio (no a quien lo envió). */
+    public function aguaEnviada(AguaRegistro $registro, User $envio): void
+    {
+        $this->enviar(
+            fn () => $this->jefesDeZona()->merge($this->deEdificio())->reject(fn (User $u) => $u->is($envio))->values(),
+            'agua',
+            __('Registro de agua enviado'),
+            __(':estacion envió su registro de agua de :mes.', ['estacion' => $this->limpio((string) ($registro->estacion->nombre ?? __('Una estación')), 40), 'mes' => Carbon::create((int) $registro->anio, (int) $registro->mes, 1)->locale('es')->translatedFormat('F Y')]),
+            route('agua.show', $registro, false),
+        );
+    }
+
+    /** La Zona aprobó o devolvió el registro de agua → personas de esa estación. */
+    public function aguaRevisada(AguaRegistro $registro): void
+    {
+        $aprobada = $registro->estado === AguaRegistro::APROBADA;
+
+        $this->enviar(
+            fn () => $this->deEstacion((int) $registro->estacion_id, Areas::deGrupo('recursos-materiales')),
+            'agua',
+            $aprobada ? __('Registro de agua aprobado') : __('Registro de agua observado'),
+            $aprobada ? __('Tu registro de agua de :mes fue aprobado.', ['mes' => Carbon::create((int) $registro->anio, (int) $registro->mes, 1)->locale('es')->translatedFormat('F Y')]) : __('Tu registro de agua tiene observaciones de Zona.'),
+            route('agua.show', $registro, false),
         );
     }
 
@@ -355,8 +409,11 @@ final class AvisosEcosistema
     private function deEstacion(int $estacionId, ?string $area = null): Collection
     {
         // Con áreas estrictas, solo las cuentas del área dueña del módulo (RM: insumos; RH: asistencia y horarios).
-        return User::role('Estación')->where('estacion_id', $estacionId)->get()
+        $cuentas = User::role('Estación')->where('estacion_id', $estacionId)->get()
             ->filter(fn (User $u): bool => $u->puedeUsarArea($area))->values();
+
+        // Las cuentas Edificio capturan a nombre de "Edificio Zonal Este": son su personal.
+        return $estacionId === Estacion::edificioId() ? $cuentas->merge($this->deEdificio())->values() : $cuentas;
     }
 
     private function estacion(SolicitudInsumo $solicitud): string

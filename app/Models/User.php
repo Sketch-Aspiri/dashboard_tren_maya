@@ -155,6 +155,24 @@ class User extends Authenticatable
     }
 
     /**
+     * Estación a nombre de la que captura esta cuenta: la suya si es Estación, "Edificio Zonal Este" si es Edificio.
+     */
+    public function estacionPropiaId(): ?int
+    {
+        if ($this->hasRole(Roles::ESTACION)) {
+            return $this->estacion_id;
+        }
+
+        return $this->hasRole(Roles::EDIFICIO) ? Estacion::edificioId() : null;
+    }
+
+    /** Ficha de la persona (solo cuentas con rol Personal). */
+    public function empleado(): BelongsTo
+    {
+        return $this->belongsTo(Empleado::class);
+    }
+
+    /**
      * Only name/email/estacion_id are diffed automatically — password,
      * google2fa_secret, remember_token and email_verified_at are excluded
      * from logOnly() entirely (not meaningful to audit as "changed", and

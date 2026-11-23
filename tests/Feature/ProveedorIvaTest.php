@@ -78,12 +78,12 @@ class ProveedorIvaTest extends TestCase
         $this->post(route('insumos.proveedores.store'), [])->assertRedirect(route('login'));
     }
 
-    public function test_only_jefatura_can_manage_providers(): void
+    public function test_only_the_zone_can_manage_providers(): void
     {
         $proveedor = Proveedor::factory()->create();
 
-        foreach (['Estación', 'Edificio'] as $rol) {
-            $this->actingAsTwoFactorVerified($this->userWithRole($rol, ['estacion_id' => $rol === 'Estación' ? $this->estacion->id : null]));
+        foreach (['Estación'] as $rol) {
+            $this->actingAsTwoFactorVerified($this->userWithRole($rol, ['estacion_id' => $this->estacion->id]));
 
             $this->get(route('insumos.proveedores.index'))->assertForbidden();
             $this->post(route('insumos.proveedores.store'), ['nombre' => 'X'])->assertForbidden();

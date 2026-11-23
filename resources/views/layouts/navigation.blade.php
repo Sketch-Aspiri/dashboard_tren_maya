@@ -7,7 +7,7 @@
          fila visible por debajo de xl; ahí la hamburguesa reemplaza al nivel 2. --}}
     <div class="border-b border-brand-green/10">
         <div class="mx-auto flex h-16 max-w-screen-2xl items-center justify-between gap-3 px-4 sm:h-[72px] sm:px-6 lg:px-8">
-            <a href="{{ config('ecosistema.portal_inicio') ?: route('dashboard') }}"
+            <a href="{{ config('ecosistema.portal_panel') ?: route('dashboard') }}"
                class="flex min-w-0 items-center gap-3 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2"
                aria-label="{{ config('app.name', 'Dashboard - Zona Oriente') }} — {{ __('portal') }}">
                 <x-brand-logo class="logo-placa h-11 sm:h-14" />

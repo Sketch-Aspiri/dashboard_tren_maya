@@ -21,6 +21,7 @@ class RoleSeeder extends Seeder
         'Administrador',
         'Edificio',
         'Estación',
+        'Personal',
     ];
 
     public function run(): void
