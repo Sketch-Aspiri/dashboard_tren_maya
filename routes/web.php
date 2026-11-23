@@ -13,33 +13,31 @@ use App\Http\Controllers\CoordinacionInsumosController;
 use App\Http\Controllers\CotizacionController;
 use App\Http\Controllers\CotizacionIaController;
 use App\Http\Controllers\CotizacionReporteController;
+use App\Http\Controllers\CumpleanosController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EcosistemaReporteController;
 use App\Http\Controllers\EcosistemaSesionController;
 use App\Http\Controllers\EmpleadoController;
+use App\Http\Controllers\EquipoController;
 use App\Http\Controllers\FacturaComprobacionController;
 use App\Http\Controllers\FacturaController;
 use App\Http\Controllers\FacturaReporteController;
 use App\Http\Controllers\FormatoSolicitudInsumoController;
+use App\Http\Controllers\FotoPerfilController;
 use App\Http\Controllers\HorarioConsolidadoController;
 use App\Http\Controllers\HorarioController;
 use App\Http\Controllers\HorarioCreacionController;
 use App\Http\Controllers\HorarioEdicionController;
 use App\Http\Controllers\HorarioImportacionController;
 use App\Http\Controllers\HorarioSolicitudController;
-use App\Http\Controllers\CumpleanosController;
-use App\Http\Controllers\VacacionConsolidadoController;
-use App\Http\Controllers\VacacionController;
-use App\Http\Controllers\VacacionImportacionController;
-use App\Http\Controllers\VacacionSolicitudController;
 use App\Http\Controllers\InventarioEstacionController;
+use App\Http\Controllers\MiVacacionController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Nube\NubeCredencialController;
 use App\Http\Controllers\Nube\NubeCuentaController;
 use App\Http\Controllers\Nube\NubeEstadoController;
 use App\Http\Controllers\Nube\NubeOAuthController;
-use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PersonalImportacionController;
-use App\Http\Controllers\FotoPerfilController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\Secciones\AdministrarMenuController;
@@ -62,6 +60,12 @@ use App\Http\Controllers\Secciones\SeccionTablaController;
 use App\Http\Controllers\SolicitudInsumoController;
 use App\Http\Controllers\SolicitudPapeleriaController;
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\VacacionCatalogoController;
+use App\Http\Controllers\VacacionConsolidadoController;
+use App\Http\Controllers\VacacionController;
+use App\Http\Controllers\VacacionImportacionController;
+use App\Http\Controllers\VacacionRevisionController;
+use App\Http\Controllers\VacacionSolicitudController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -72,7 +76,7 @@ Route::get('/', function () {
     return redirect()->route(Auth::check() ? 'dashboard' : 'login');
 });
 
-Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'two-factor.verified', 'solo-personal'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Asistente de preguntas (Claude API), respuesta en streaming NDJSON.
@@ -343,10 +347,27 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
         Route::get('/solicitudes', [VacacionSolicitudController::class, 'index'])->name('solicitudes.index');
         Route::get('/importar', [VacacionImportacionController::class, 'create'])->name('importar.create');
         Route::get('/importar/{token}', [VacacionImportacionController::class, 'vistaPrevia'])->name('importar.vista');
+        // Selección del año siguiente: cada persona elige entre los periodos del catálogo y la Zona revisa.
+        Route::get('/mi', [MiVacacionController::class, 'show'])->name('mi.show');
+        Route::get('/seleccion', [VacacionRevisionController::class, 'index'])->name('seleccion.revision');
+        Route::get('/seleccion/catalogo', [VacacionCatalogoController::class, 'index'])->name('seleccion.catalogo');
         Route::get('/periodos/{periodo}/consolidado', [VacacionConsolidadoController::class, 'descargar'])
             ->whereNumber('periodo')->middleware('throttle:insumos-export')->name('consolidado.descargar');
 
         Route::middleware('throttle:vacaciones-write')->group(function () {
+            Route::put('/mi', [MiVacacionController::class, 'guardar'])->name('mi.guardar');
+            Route::post('/mi/enviar', [MiVacacionController::class, 'enviar'])->name('mi.enviar');
+            Route::post('/mi/retirar', [MiVacacionController::class, 'retirar'])->name('mi.retirar');
+
+            Route::post('/seleccion/{plan}/autorizar', [VacacionRevisionController::class, 'autorizar'])->whereNumber('plan')->name('seleccion.autorizar');
+            Route::post('/seleccion/{plan}/rechazar', [VacacionRevisionController::class, 'rechazar'])->whereNumber('plan')->name('seleccion.rechazar');
+            Route::patch('/seleccion/{plan}/dias', [VacacionRevisionController::class, 'dias'])->whereNumber('plan')->name('seleccion.dias');
+            Route::post('/seleccion/catalogo/generar', [VacacionCatalogoController::class, 'generar'])->name('seleccion.catalogo.generar');
+            Route::patch('/seleccion/catalogo/periodos/{periodo}', [VacacionCatalogoController::class, 'periodo'])->whereNumber('periodo')->name('seleccion.catalogo.periodo');
+            Route::put('/seleccion/catalogo/topes', [VacacionCatalogoController::class, 'topes'])->name('seleccion.catalogo.topes');
+            Route::post('/seleccion/catalogo/inhabiles', [VacacionCatalogoController::class, 'inhabilStore'])->name('seleccion.catalogo.inhabil.store');
+            Route::delete('/seleccion/catalogo/inhabiles/{inhabil}', [VacacionCatalogoController::class, 'inhabilDestroy'])->whereNumber('inhabil')->name('seleccion.catalogo.inhabil.destroy');
+
             Route::post('/importar', [VacacionImportacionController::class, 'store'])->name('importar.store');
             Route::post('/importar/aplicar', [VacacionImportacionController::class, 'aplicar'])->name('importar.aplicar');
             Route::delete('/importar', [VacacionImportacionController::class, 'descartar'])->name('importar.descartar');
@@ -462,15 +483,15 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
 
     // Equipos por estación (Administrador): estaciones, secciones y vínculo con Tickets (EquipoPolicy).
     Route::prefix('equipos')->name('equipos.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\EquipoController::class, 'index'])->name('index');
-        Route::get('/crear', [\App\Http\Controllers\EquipoController::class, 'create'])->name('create');
-        Route::get('/{equipo}/editar', [\App\Http\Controllers\EquipoController::class, 'edit'])->name('edit');
+        Route::get('/', [EquipoController::class, 'index'])->name('index');
+        Route::get('/crear', [EquipoController::class, 'create'])->name('create');
+        Route::get('/{equipo}/editar', [EquipoController::class, 'edit'])->name('edit');
 
         Route::middleware('throttle:usuarios-write')->group(function () {
-            Route::post('/', [\App\Http\Controllers\EquipoController::class, 'store'])->name('store');
-            Route::put('/{equipo}', [\App\Http\Controllers\EquipoController::class, 'update'])->name('update');
-            Route::delete('/{equipo}', [\App\Http\Controllers\EquipoController::class, 'destroy'])->name('destroy');
-            Route::post('/{equipo}/sincronizar', [\App\Http\Controllers\EquipoController::class, 'sincronizar'])->name('sincronizar');
+            Route::post('/', [EquipoController::class, 'store'])->name('store');
+            Route::put('/{equipo}', [EquipoController::class, 'update'])->name('update');
+            Route::delete('/{equipo}', [EquipoController::class, 'destroy'])->name('destroy');
+            Route::post('/{equipo}/sincronizar', [EquipoController::class, 'sincronizar'])->name('sincronizar');
         });
     });
 

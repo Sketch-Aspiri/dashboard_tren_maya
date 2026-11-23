@@ -153,6 +153,12 @@ class User extends Authenticatable
         return $this->belongsTo(Estacion::class);
     }
 
+    /** Ficha de la persona (solo cuentas con rol Personal). */
+    public function empleado(): BelongsTo
+    {
+        return $this->belongsTo(Empleado::class);
+    }
+
     /**
      * Only name/email/estacion_id are diffed automatically — password,
      * google2fa_secret, remember_token and email_verified_at are excluded

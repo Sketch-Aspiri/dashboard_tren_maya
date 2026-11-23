@@ -40,6 +40,8 @@ return [
                 ['label' => 'Captura de asistencia', 'ruta' => 'asistencia.captura.index', 'patron' => 'asistencia.captura.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
                 ['label' => 'Rol de horarios', 'ruta' => 'horarios.index', 'patron' => 'horarios.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
                 ['label' => 'Rol de vacaciones', 'ruta' => 'vacaciones.index', 'patron' => 'vacaciones.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
+                ['label' => 'Mis vacaciones', 'ruta' => 'vacaciones.mi.show', 'patron' => 'vacaciones.mi.*', 'roles' => [Roles::PERSONAL]],
+                ['label' => 'Selección de vacaciones', 'ruta' => 'vacaciones.seleccion.revision', 'patron' => 'vacaciones.seleccion.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
                 ['label' => 'Cumpleaños', 'ruta' => 'cumpleanos.index', 'patron' => 'cumpleanos.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
             ],
             'secciones' => [

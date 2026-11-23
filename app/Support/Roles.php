@@ -16,6 +16,9 @@ final class Roles
 
     public const ESTACION = 'Estación';
 
+    /** Cuenta individual de una persona: solo ve y elige sus propias vacaciones. */
+    public const PERSONAL = 'Personal';
+
     /** Ven y editan todos los datos (y la estructura). */
     public const ZONA = [self::JEFE_ZONA, self::ADMINISTRADOR, self::EDIFICIO];
 
@@ -23,5 +26,5 @@ final class Roles
     public const JEFATURA = [self::JEFE_ZONA, self::ADMINISTRADOR];
 
     /** Roles que no se pueden combinar con ningún otro. */
-    public const EXCLUSIVOS = [self::EDIFICIO, self::ESTACION];
+    public const EXCLUSIVOS = [self::EDIFICIO, self::ESTACION, self::PERSONAL];
 }

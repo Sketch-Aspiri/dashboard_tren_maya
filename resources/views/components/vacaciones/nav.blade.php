@@ -7,6 +7,8 @@
         ['rol', __('Rol de vacaciones'), route('vacaciones.index'), true],
         ['solicitudes', $esZona ? __('Solicitudes de cambio') : __('Mis solicitudes'), route('vacaciones.solicitudes.index'), true],
         ['importar', __('Subir rol'), route('vacaciones.importar.create'), $esZona],
+        ['seleccion', __('Selección :anio', ['anio' => config('vacaciones.anio_seleccion')]), route('vacaciones.seleccion.revision'), true],
+        ['catalogo', __('Catálogo :anio', ['anio' => config('vacaciones.anio_seleccion')]), route('vacaciones.seleccion.catalogo'), $esZona],
     ];
 @endphp
 

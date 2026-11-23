@@ -12,6 +12,7 @@ use App\Models\HorarioSolicitud;
 use App\Models\SolicitudInsumo;
 use App\Models\User;
 use App\Models\VacacionPeriodo;
+use App\Models\VacacionPlan;
 use App\Models\VacacionSolicitud;
 use App\Notifications\AvisoDashboard;
 use App\Support\Areas;
@@ -157,6 +158,32 @@ final class AvisosEcosistema
             $autorizada ? __('Cambio de vacaciones autorizado') : __('Cambio de vacaciones rechazado'),
             $autorizada ? __('Se autorizaron :n cambio(s) de vacaciones.', ['n' => $cantidad]) : __('No se autorizaron :n cambio(s) de vacaciones.', ['n' => $cantidad]),
             route('vacaciones.solicitudes.index', [], false),
+        );
+    }
+
+    /** Una persona envió su selección de vacaciones → Edificio y Jefe de Zona. */
+    public function vacacionPlanEnviado(VacacionPlan $plan): void
+    {
+        $this->enviar(
+            fn () => $this->deEdificio()->merge($this->jefesDeZona()),
+            'vacaciones',
+            __('Selección de vacaciones por revisar'),
+            __(':estacion: una persona envió sus vacaciones :anio.', ['estacion' => $this->limpio((string) ($plan->estacion->nombre ?? __('Una estación')), 40), 'anio' => $plan->anio]),
+            route('vacaciones.seleccion.revision', [], false),
+        );
+    }
+
+    /** La Zona resolvió la selección de una persona → su cuenta. */
+    public function vacacionPlanResuelto(VacacionPlan $plan): void
+    {
+        $autorizada = $plan->estado === VacacionPlan::AUTORIZADA;
+
+        $this->enviar(
+            fn () => User::query()->where('empleado_id', $plan->empleado_id)->get(),
+            'vacaciones',
+            $autorizada ? __('Vacaciones autorizadas') : __('Vacaciones rechazadas'),
+            $autorizada ? __('Se autorizó tu selección de vacaciones :anio.', ['anio' => $plan->anio]) : __('Tu selección de vacaciones :anio necesita cambios.', ['anio' => $plan->anio]),
+            route('vacaciones.mi.show', [], false),
         );
     }
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureTwoFactorIsVerified;
+use App\Http\Middleware\RestringirPersonal;
 use App\Http\Middleware\VerificarPuente;
 use App\Http\Middleware\VerificarPuentePortal;
 use Illuminate\Foundation\Application;
@@ -33,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'two-factor.verified' => EnsureTwoFactorIsVerified::class,
+            'solo-personal' => RestringirPersonal::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
