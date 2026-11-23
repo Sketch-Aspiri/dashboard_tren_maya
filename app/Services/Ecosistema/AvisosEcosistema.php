@@ -4,6 +4,7 @@ namespace App\Services\Ecosistema;
 
 use App\Jobs\EnviarAvisoPortal;
 use App\Jobs\EnviarAvisoTickets;
+use App\Models\AguaRegistro;
 use App\Models\Cotizacion;
 use App\Models\Estacion;
 use App\Models\HorarioConsolidado;
@@ -184,6 +185,32 @@ final class AvisosEcosistema
             $autorizada ? __('Vacaciones autorizadas') : __('Vacaciones rechazadas'),
             $autorizada ? __('Se autorizó tu selección de vacaciones :anio.', ['anio' => $plan->anio]) : __('Tu selección de vacaciones :anio necesita cambios.', ['anio' => $plan->anio]),
             route('vacaciones.mi.show', [], false),
+        );
+    }
+
+    /** La estación envió su registro de agua → Jefe de Zona y Edificio (no a quien lo envió). */
+    public function aguaEnviada(AguaRegistro $registro, User $envio): void
+    {
+        $this->enviar(
+            fn () => $this->jefesDeZona()->merge($this->deEdificio())->reject(fn (User $u) => $u->is($envio))->values(),
+            'agua',
+            __('Registro de agua enviado'),
+            __(':estacion envió su registro de agua de :mes.', ['estacion' => $this->limpio((string) ($registro->estacion->nombre ?? __('Una estación')), 40), 'mes' => Carbon::create((int) $registro->anio, (int) $registro->mes, 1)->locale('es')->translatedFormat('F Y')]),
+            route('agua.show', $registro, false),
+        );
+    }
+
+    /** La Zona aprobó o devolvió el registro de agua → personas de esa estación. */
+    public function aguaRevisada(AguaRegistro $registro): void
+    {
+        $aprobada = $registro->estado === AguaRegistro::APROBADA;
+
+        $this->enviar(
+            fn () => $this->deEstacion((int) $registro->estacion_id, Areas::deGrupo('recursos-materiales')),
+            'agua',
+            $aprobada ? __('Registro de agua aprobado') : __('Registro de agua observado'),
+            $aprobada ? __('Tu registro de agua de :mes fue aprobado.', ['mes' => Carbon::create((int) $registro->anio, (int) $registro->mes, 1)->locale('es')->translatedFormat('F Y')]) : __('Tu registro de agua tiene observaciones de Zona.'),
+            route('agua.show', $registro, false),
         );
     }
 

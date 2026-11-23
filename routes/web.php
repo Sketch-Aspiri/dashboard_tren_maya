@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\AguaConsolidadoController;
+use App\Http\Controllers\AguaController;
 use App\Http\Controllers\AsistenciaCapturaController;
 use App\Http\Controllers\AsistenciaDocumentoController;
 use App\Http\Controllers\AsistenciaZonaController;
@@ -465,6 +467,26 @@ Route::middleware(['auth', 'verified', 'two-factor.verified', 'solo-personal'])-
             Route::put('/{solicitud}', [SolicitudPapeleriaController::class, 'update'])->whereNumber('solicitud')->name('update');
             Route::post('/{solicitud}/enviar', [SolicitudPapeleriaController::class, 'enviar'])->whereNumber('solicitud')->name('enviar');
             Route::post('/{solicitud}/revisar', [SolicitudPapeleriaController::class, 'revisar'])->whereNumber('solicitud')->name('revisar');
+        });
+    });
+
+    // Registro de agua (garrafones): la estación captura sus compras con comprobante y la Zona fija el
+    // programa, revisa y descarga el Excel (ver app/Policies/AguaRegistroPolicy.php).
+    Route::prefix('agua')->name('agua.')->group(function () {
+        Route::get('/', [AguaController::class, 'index'])->name('index');
+        Route::get('/descargar', [AguaConsolidadoController::class, 'descargar'])
+            ->middleware('throttle:insumos-export')->name('descargar');
+        Route::get('/estaciones/{estacion}', [AguaController::class, 'estacion'])->whereNumber('estacion')->name('estacion');
+        Route::get('/{registro}', [AguaController::class, 'show'])->whereNumber('registro')->name('show');
+        Route::get('/{registro}/compras/{compra}/comprobante', [AguaController::class, 'comprobante'])
+            ->whereNumber(['registro', 'compra'])->middleware('throttle:insumos-export')->name('comprobante');
+
+        Route::middleware('throttle:insumos-write')->group(function () {
+            Route::put('/{registro}/programa', [AguaController::class, 'programa'])->whereNumber('registro')->name('programa');
+            Route::post('/{registro}/compras', [AguaController::class, 'agregarCompra'])->whereNumber('registro')->name('compras.store');
+            Route::delete('/{registro}/compras/{compra}', [AguaController::class, 'quitarCompra'])->whereNumber(['registro', 'compra'])->name('compras.destroy');
+            Route::post('/{registro}/enviar', [AguaController::class, 'enviar'])->whereNumber('registro')->name('enviar');
+            Route::post('/{registro}/revisar', [AguaController::class, 'revisar'])->whereNumber('registro')->name('revisar');
         });
     });
 
