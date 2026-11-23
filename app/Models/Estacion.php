@@ -48,6 +48,16 @@ class Estacion extends Model
     /**
      * @return HasMany<Empleado, $this>
      */
+    /** Código de la estación "Edificio Zonal Este": la propia de las cuentas Edificio. */
+    public const CODIGO_EDIFICIO = '00';
+
+    public static function edificioId(): ?int
+    {
+        $id = static::query()->where('codigo', self::CODIGO_EDIFICIO)->value('id');
+
+        return $id === null ? null : (int) $id;
+    }
+
     public function empleados(): HasMany
     {
         return $this->hasMany(Empleado::class);

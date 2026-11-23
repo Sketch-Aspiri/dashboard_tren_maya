@@ -153,6 +153,18 @@ class User extends Authenticatable
         return $this->belongsTo(Estacion::class);
     }
 
+    /**
+     * Estación a nombre de la que captura esta cuenta: la suya si es Estación, "Edificio Zonal Este" si es Edificio.
+     */
+    public function estacionPropiaId(): ?int
+    {
+        if ($this->hasRole(Roles::ESTACION)) {
+            return $this->estacion_id;
+        }
+
+        return $this->hasRole(Roles::EDIFICIO) ? Estacion::edificioId() : null;
+    }
+
     /** Ficha de la persona (solo cuentas con rol Personal). */
     public function empleado(): BelongsTo
     {

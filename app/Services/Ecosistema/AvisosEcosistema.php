@@ -34,11 +34,11 @@ final class AvisosEcosistema
 {
     public function __construct(private readonly PuenteCliente $puente, private readonly FirmaPuente $firma) {}
 
-    /** La estación envió su solicitud → Jefe de Zona. */
+    /** La estación envió su solicitud → Jefe de Zona y Edificio (que también revisa; no se avisa a quien la envió). */
     public function solicitudEnviada(SolicitudInsumo $solicitud): void
     {
         $this->enviar(
-            fn () => $this->jefesDeZona(),
+            fn () => $this->jefesDeZona()->merge($this->deEdificio())->reject(fn (User $u) => $u->id === auth()->id())->values(),
             'insumos',
             __('Solicitud de insumos enviada'),
             __(':estacion envió su solicitud de :mes.', ['estacion' => $this->estacion($solicitud), 'mes' => $this->mes($solicitud)]),
@@ -382,8 +382,11 @@ final class AvisosEcosistema
     private function deEstacion(int $estacionId, ?string $area = null): Collection
     {
         // Con áreas estrictas, solo las cuentas del área dueña del módulo (RM: insumos; RH: asistencia y horarios).
-        return User::role('Estación')->where('estacion_id', $estacionId)->get()
+        $cuentas = User::role('Estación')->where('estacion_id', $estacionId)->get()
             ->filter(fn (User $u): bool => $u->puedeUsarArea($area))->values();
+
+        // Las cuentas Edificio capturan a nombre de "Edificio Zonal Este": son su personal.
+        return $estacionId === Estacion::edificioId() ? $cuentas->merge($this->deEdificio())->values() : $cuentas;
     }
 
     private function estacion(SolicitudInsumo $solicitud): string

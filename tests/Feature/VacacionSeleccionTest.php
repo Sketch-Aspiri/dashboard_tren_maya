@@ -293,4 +293,28 @@ class VacacionSeleccionTest extends TestCase
         $this->assertTrue($cuenta->fresh()->hasRole('Estación'));
         $this->assertFalse($cuenta->fresh()->hasRole('Personal'));
     }
+
+    public function test_edificio_picks_its_own_and_approves_others_but_not_itself(): void
+    {
+        $empleado = Empleado::factory()->create(['estacion_id' => $this->estacion->id]);
+        $edificio = User::factory()->create();
+        $edificio->forceFill(['empleado_id' => $empleado->id])->save();
+        $edificio->assignRole('Edificio');
+        $persona = $this->persona();
+
+        foreach ([$persona, $edificio] as $u) {
+            $this->como($u)->put(route('vacaciones.mi.guardar'), ['periodos' => [1 => $this->periodo('2027-01-11', 10)->id, 2 => $this->periodo('2027-05-10', 10)->id]])->assertSessionHasNoErrors();
+            $this->como($u)->post(route('vacaciones.mi.enviar'))->assertSessionHasNoErrors();
+        }
+
+        $ajena = VacacionPlan::query()->where('empleado_id', $persona->empleado_id)->firstOrFail();
+        $propia = VacacionPlan::query()->where('empleado_id', $empleado->id)->firstOrFail();
+
+        $this->como($edificio)->post(route('vacaciones.seleccion.autorizar', $ajena))->assertSessionHasNoErrors();
+        $this->assertSame('autorizada', $ajena->fresh()->estado);
+        $this->como($edificio)->post(route('vacaciones.seleccion.autorizar', $propia))->assertSessionHasErrors('plan');
+        $this->assertSame('enviada', $propia->fresh()->estado);
+
+        $this->como($this->zona())->post(route('vacaciones.seleccion.autorizar', $propia))->assertSessionHasNoErrors();
+    }
 }

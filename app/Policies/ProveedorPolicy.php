@@ -13,11 +13,11 @@ class ProveedorPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(Roles::JEFATURA);
+        return $user->hasAnyRole(Roles::ZONA);
     }
 
     public function manage(User $user): bool
     {
-        return $user->hasAnyRole(Roles::JEFATURA);
+        return $user->hasAnyRole(Roles::ZONA);
     }
 }
