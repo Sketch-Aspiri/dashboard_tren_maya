@@ -12,10 +12,10 @@ use App\Support\Roles;
  */
 class VacacionPlanPolicy
 {
-    /** Elegir, enviar y retirar la propia selección. */
+    /** Elegir, enviar y retirar la propia selección: cualquier cuenta ligada a una ficha de empleado, sea cual sea su rol. */
     public function propio(User $user): bool
     {
-        return $user->hasRole(Roles::PERSONAL) && $user->empleado_id !== null;
+        return $user->empleado_id !== null;
     }
 
     /** Ver la bandeja de revisión (la estación solo ve su estación). */

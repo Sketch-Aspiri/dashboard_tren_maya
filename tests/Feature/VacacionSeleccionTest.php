@@ -255,4 +255,42 @@ class VacacionSeleccionTest extends TestCase
         $this->assertSame($e->id, $user->empleado_id);
         $this->artisan('vacaciones:crear-cuentas-personal')->expectsOutputToContain('Se crearon 0 cuentas.')->assertSuccessful();
     }
+
+    public function test_any_role_linked_to_an_employee_can_pick_its_own_vacations(): void
+    {
+        foreach (['Jefe de Zona', 'Estación', 'Edificio', 'Administrador'] as $rol) {
+            $empleado = Empleado::factory()->create(['estacion_id' => $this->estacion->id]);
+            $user = User::factory()->create($rol === 'Estación' ? ['estacion_id' => $this->estacion->id] : []);
+            $user->forceFill(['empleado_id' => $empleado->id])->save();
+            $user->assignRole($rol);
+
+            $this->como($user)->get(route('vacaciones.mi.show'))->assertOk();
+            $this->como($user)->put(route('vacaciones.mi.guardar'), ['periodos' => [1 => $this->periodo('2027-01-11', 10)->id]])->assertSessionHasNoErrors();
+            $this->assertDatabaseHas('vacacion_planes', ['empleado_id' => $empleado->id, 'estado' => 'borrador']);
+        }
+    }
+
+    public function test_account_without_employee_link_cannot_use_my_vacations_and_zone_keeps_its_powers(): void
+    {
+        $zona = $this->zona();
+
+        $this->como($zona)->get(route('vacaciones.mi.show'))->assertForbidden();
+        $this->como($zona)->get(route('vacaciones.seleccion.catalogo'))->assertOk();
+    }
+
+    public function test_command_links_existing_account_without_changing_its_role(): void
+    {
+        Storage::fake('local');
+        $empleado = Empleado::factory()->create(['estacion_id' => $this->estacion->id, 'correo' => 'jefe.estacion@example.com']);
+        $cuenta = User::factory()->create(['email' => 'jefe.estacion@example.com', 'estacion_id' => $this->estacion->id]);
+        $cuenta->assignRole('Estación');
+
+        $this->artisan('vacaciones:crear-cuentas-personal', ['--simular' => true])->expectsOutputToContain('Se ligaría')->assertSuccessful();
+        $this->assertNull($cuenta->fresh()->empleado_id);
+
+        $this->artisan('vacaciones:crear-cuentas-personal')->expectsOutputToContain('Ligada')->assertSuccessful();
+        $this->assertSame($empleado->id, $cuenta->fresh()->empleado_id);
+        $this->assertTrue($cuenta->fresh()->hasRole('Estación'));
+        $this->assertFalse($cuenta->fresh()->hasRole('Personal'));
+    }
 }

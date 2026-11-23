@@ -13,7 +13,7 @@ use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 /**
- * Crea una cuenta individual (rol Personal) por cada persona activa con estación y correo. Las
+ * Crea una cuenta individual (rol Personal) por cada persona activa con estación y correo; si ese correo ya tiene cuenta (cualquier rol), la liga a la ficha sin cambiarle el rol. Las
  * contraseñas temporales NO se imprimen: se guardan en un CSV privado para entregarlas en mano.
  * Las cuentas con rol Personal solo llegan a su selección de vacaciones (middleware solo-personal).
  */
@@ -38,6 +38,7 @@ class CrearCuentasPersonalCommand extends Command
         $filas = [['no_empleado', 'nombre', 'correo', 'contrasena_temporal']];
         $creadas = 0;
         $omitidas = [];
+        $ligadas = [];
 
         foreach ($empleados as $e) {
             $correo = mb_strtolower(trim((string) $e->correo));
@@ -52,8 +53,22 @@ class CrearCuentasPersonalCommand extends Command
                 continue;
             }
 
-            if (User::query()->where('email', $correo)->exists()) {
-                $omitidas[] = "{$e->no_empleado} {$e->nombre_completo}: el correo ya tiene otra cuenta";
+            $existente = User::query()->where('email', $correo)->first();
+
+            if ($existente !== null) {
+                // Cuenta que ya existe con ese correo (p. ej. de estación o de zona): se liga a la ficha para que
+                // también pueda elegir sus vacaciones; conserva su rol y sus permisos.
+                if ($existente->empleado_id !== null) {
+                    $omitidas[] = "{$e->no_empleado} {$e->nombre_completo}: el correo ya está ligado a otra ficha";
+
+                    continue;
+                }
+
+                $ligadas[] = "{$e->no_empleado} {$e->nombre_completo} -> cuenta #{$existente->id} (".$existente->getRoleNames()->implode(', ').')';
+
+                if (! $simular) {
+                    $existente->forceFill(['empleado_id' => $e->id])->save();
+                }
 
                 continue;
             }
@@ -78,6 +93,10 @@ class CrearCuentasPersonalCommand extends Command
         }
 
         $this->info(($simular ? 'Se crearían ' : 'Se crearon ').$creadas.' cuentas.');
+
+        foreach ($ligadas as $linea) {
+            $this->line(($simular ? 'Se ligaría: ' : 'Ligada: ').$linea);
+        }
 
         foreach ($omitidas as $linea) {
             $this->warn('Omitida: '.$linea);
