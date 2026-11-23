@@ -28,6 +28,19 @@ Schedule::command('secciones:sincronizar-nube')
 // Facturas del fondo rotatorio: cada noche se vuelve a preguntar al SAT por las vigentes (detecta cancelaciones) y por las que no se pudieron consultar.
 Schedule::command('facturas:verificar-sat')->dailyAt('03:30')->withoutOverlapping()->onOneServer();
 
+// Escribe en el Google Sheet de Coordinación la asistencia capturada (antes lo hacía n8n desde la PC): cada 10 min en las ventanas
+// de captura 06-10 y 12-16 y, a las 10:00 y 16:00, lo que haya aunque falten estaciones. Apagado hasta ASISTENCIA_SHEETS_ACTIVO=true.
+Schedule::command('asistencia:sincronizar-sheets')
+    ->cron('*/10 6-9,12-15 * * *')
+    ->timezone('America/Cancun')
+    ->withoutOverlapping()
+    ->onOneServer();
+Schedule::command('asistencia:sincronizar-sheets --limite')
+    ->cron('0 10,16 * * *')
+    ->timezone('America/Cancun')
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // A la hora límite, una actividad en Tickets por cada estación sin asistencia capturada (una vez por estación y día).
 // Sin el puente configurado, o con el evento apagado (ECOSISTEMA_ACT_EVENTOS), no hace nada.
 Schedule::command('asistencia:abrir-actividades')

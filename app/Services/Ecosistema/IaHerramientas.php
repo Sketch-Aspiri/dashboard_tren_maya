@@ -3,6 +3,7 @@
 namespace App\Services\Ecosistema;
 
 use App\Enums\EstatusAsistencia;
+use App\Enums\TurnoAsistencia;
 use App\Models\Empleado;
 use App\Services\AsistenciaCapturaService;
 use App\Services\Asistente\CatalogoAsistente;
@@ -77,6 +78,7 @@ final class IaHerramientas
                                 'properties' => [
                                     'no_empleado' => ['type' => 'string', 'description' => 'Número de empleado, tal como aparece en asistencia_pendiente_hoy.'],
                                     'estatus' => ['type' => 'string', 'enum' => array_column(EstatusAsistencia::cases(), 'value')],
+                                    'turno' => ['type' => 'string', 'enum' => array_column(TurnoAsistencia::cases(), 'value'), 'description' => 'Opcional: sin él se usa el último turno conocido de la persona.'],
                                     'fecha_inicio' => ['type' => ['string', 'null'], 'description' => 'AAAA-MM-DD, para vacaciones, licencias o comisiones.'],
                                     'fecha_fin' => ['type' => ['string', 'null'], 'description' => 'AAAA-MM-DD, no anterior a fecha_inicio.'],
                                     'notas' => ['type' => ['string', 'null'], 'description' => 'Hasta 1000 caracteres.'],

@@ -3,6 +3,7 @@
 namespace App\Services\Ecosistema;
 
 use App\Enums\EstatusAsistencia;
+use App\Enums\TurnoAsistencia;
 use App\Models\Empleado;
 use App\Models\Estacion;
 use App\Models\RegistroDiario;
@@ -144,6 +145,7 @@ final class CapturaAsistenciaIa
                 'empleado_id' => $porNumero[$clave][0]->id,
                 'no_empleado' => $porNumero[$clave][0]->no_empleado,
                 'estatus' => $fila['estatus'],
+                'turno' => $this->turno($fila['turno'] ?? null),
                 'fecha_inicio' => $this->fecha($fila['fecha_inicio'] ?? null),
                 'fecha_fin' => $this->fecha($fila['fecha_fin'] ?? null),
                 'notas' => $this->notas($fila['notas'] ?? null),
@@ -167,6 +169,7 @@ final class CapturaAsistenciaIa
             count($porNumero[$clave]) > 1 => 'El no_empleado está repetido en el roster: captúralo desde el Dashboard.',
             isset($vistos[$clave]) => 'El no_empleado aparece dos veces en la llamada.',
             ! is_string($fila['estatus'] ?? null) || EstatusAsistencia::tryFrom($fila['estatus']) === null => 'Estatus no válido.',
+            isset($fila['turno']) && (! is_string($fila['turno']) || TurnoAsistencia::tryFrom($fila['turno']) === null) => 'Turno no válido (primer o segundo).',
             default => $this->motivoDeFechas($fila['fecha_inicio'] ?? null, $fila['fecha_fin'] ?? null)
                 ?? (isset($fila['notas']) && ! is_string($fila['notas']) ? 'Las notas deben ser texto.' : null),
         };
@@ -200,6 +203,12 @@ final class CapturaAsistenciaIa
     /**
      * Texto de un valor escalar simple (cadena o entero); cualquier otra cosa no es un número de empleado.
      */
+    /** Turno enviado, si es válido; null deja que se use el último conocido de la persona. */
+    private function turno(mixed $valor): ?string
+    {
+        return is_string($valor) && TurnoAsistencia::tryFrom($valor) !== null ? $valor : null;
+    }
+
     private function texto(mixed $valor): ?string
     {
         return is_string($valor) || is_int($valor) ? (string) $valor : null;

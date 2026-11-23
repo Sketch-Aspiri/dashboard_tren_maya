@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\EmpleadoEstatus;
+use App\Enums\TurnoAsistencia;
 use App\Models\ComisionadoFuera;
 use App\Models\ComisionadoVisitante;
 use App\Models\Empleado;
@@ -95,7 +96,7 @@ final class AsistenciaCapturaService
      * row" and both attempt an insert, colliding on the unique constraint
      * and surfacing as an uncaught 500 for the second submitter.
      *
-     * @param  list<array{empleado_id: int, estatus: string, fecha_inicio?: ?string, fecha_fin?: ?string, notas?: ?string}>  $filas
+     * @param  list<array{empleado_id: int, estatus: string, turno?: ?string, fecha_inicio?: ?string, fecha_fin?: ?string, notas?: ?string}>  $filas
      */
     public function guardar(Estacion $estacion, CarbonInterface $fecha, array $filas, User $actor): void
     {
@@ -113,6 +114,7 @@ final class AsistenciaCapturaService
                 $registro->fill([
                     'estacion_id' => $estacion->id,
                     'estatus' => $fila['estatus'],
+                    'turno' => $fila['turno'] ?? $registro->turno?->value ?? $this->ultimoTurno((int) $fila['empleado_id'], $fecha),
                     'fecha_inicio' => $fila['fecha_inicio'] ?? null,
                     'fecha_fin' => $fila['fecha_fin'] ?? null,
                     'notas' => $fila['notas'] ?? null,
@@ -123,11 +125,26 @@ final class AsistenciaCapturaService
     }
 
     /**
+     * Turno que tenía la persona en su registro más reciente anterior a $fecha; primer turno si no hay historial.
+     * Es el valor que se propone (y se guarda si no se envía otro) para que nadie cambie de turno sin capturarlo.
+     */
+    public function ultimoTurno(int $empleadoId, CarbonInterface $fecha): string
+    {
+        $turno = RegistroDiario::query()
+            ->where('empleado_id', $empleadoId)
+            ->whereDate('fecha', '<', $fecha)
+            ->orderByDesc('fecha')
+            ->value('turno');
+
+        return $turno instanceof TurnoAsistencia ? $turno->value : (string) ($turno ?: TurnoAsistencia::Primer->value);
+    }
+
+    /**
      * Crea el registro del día SOLO para quien aún no lo tiene y nunca modifica uno existente. La comprobación se hace
      * dentro de la transacción, con la fila bloqueada: si una persona captura a ese empleado mientras tanto, su captura
      * no se pisa (guardar() hace upsert y sí lo haría). Lo usa la captura por IA.
      *
-     * @param  list<array{empleado_id: int, estatus: string, fecha_inicio?: ?string, fecha_fin?: ?string, notas?: ?string}>  $filas
+     * @param  list<array{empleado_id: int, estatus: string, turno?: ?string, fecha_inicio?: ?string, fecha_fin?: ?string, notas?: ?string}>  $filas
      * @return array{creados: list<int>, existentes: list<int>} ids de empleado
      */
     public function crearFaltantes(Estacion $estacion, CarbonInterface $fecha, array $filas, User $actor): array
@@ -153,6 +170,7 @@ final class AsistenciaCapturaService
                     (new RegistroDiario(['empleado_id' => $fila['empleado_id'], 'fecha' => $fecha]))->fill([
                         'estacion_id' => $estacion->id,
                         'estatus' => $fila['estatus'],
+                        'turno' => $fila['turno'] ?? $this->ultimoTurno((int) $fila['empleado_id'], $fecha),
                         'fecha_inicio' => $fila['fecha_inicio'] ?? null,
                         'fecha_fin' => $fila['fecha_fin'] ?? null,
                         'notas' => $fila['notas'] ?? null,

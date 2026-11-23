@@ -6,6 +6,8 @@ use App\Console\Commands\NubeDiagnosticoCommand;
 use App\Models\Seccion;
 use App\Models\SeccionTabla;
 use App\Models\User;
+use App\Services\Asistencia\GoogleSheetsCliente;
+use App\Services\Asistencia\HojaGoogleCliente;
 use App\Services\Asistente\ClienteClaude;
 use App\Services\Asistente\ModeloLenguaje;
 use App\Services\Documentos\ConvertidorPdf;
@@ -56,6 +58,8 @@ class AppServiceProvider extends ServiceProvider
             binario: (string) config('asistencia_documentos.soffice_path'),
             timeoutSegundos: (int) config('asistencia_documentos.conversion_timeout'),
         ));
+
+        $this->app->singleton(HojaGoogleCliente::class, fn () => new GoogleSheetsCliente(config('asistencia_sheets.credenciales')));
 
         $this->app->singleton(UnidorPdf::class, fn () => new UnidorPdfGhostscript((string) config('insumos.comprobacion.gs_path')));
 

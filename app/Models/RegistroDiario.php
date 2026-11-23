@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\EstatusAsistencia;
+use App\Enums\TurnoAsistencia;
 use Database\Factories\RegistroDiarioFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -36,6 +37,7 @@ class RegistroDiario extends Model
         'estacion_id',
         'fecha',
         'estatus',
+        'turno',
         'fecha_inicio',
         'fecha_fin',
         'notas',
@@ -50,6 +52,7 @@ class RegistroDiario extends Model
         return [
             'fecha' => 'date',
             'estatus' => EstatusAsistencia::class,
+            'turno' => TurnoAsistencia::class,
             'fecha_inicio' => 'date',
             'fecha_fin' => 'date',
         ];
