@@ -67,14 +67,14 @@ class EdificioPermisosTest extends TestCase
         $this->assertSame('aprobada', $solicitud->refresh()->estado);
     }
 
-    public function test_edificio_does_not_review_its_own_insumos_but_the_jefatura_does(): void
+    public function test_edificio_also_reviews_its_own_insumos(): void
     {
         $propia = SolicitudInsumo::factory()->enviada()->create(['estacion_id' => $this->eze->id]);
 
-        $this->assertFalse($this->con('Edificio')->can('review', $propia));
-        $this->post(route('insumos.revisar', $propia), ['accion' => 'aprobar'])->assertForbidden();
+        $this->con('Edificio');
+        $this->post(route('insumos.revisar', $propia), ['accion' => 'aprobar'])->assertRedirect();
+        $this->assertSame('aprobada', $propia->refresh()->estado);
 
-        $this->assertTrue($this->con('Jefe de Zona')->can('review', $propia));
     }
 
     public function test_edificio_still_cannot_consolidate_or_send_to_coordinacion(): void
@@ -94,7 +94,7 @@ class EdificioPermisosTest extends TestCase
         $this->assertTrue($edificio->can('review', $ajena));
         $this->assertFalse($edificio->can('update', $ajena));
         $this->assertTrue($edificio->can('update', $propia));
-        $this->assertFalse($edificio->can('review', $propia->forceFill(['estado' => SolicitudPapeleria::ENVIADA])));
+        $this->assertTrue($edificio->can('review', $propia->forceFill(['estado' => SolicitudPapeleria::ENVIADA])));
 
         $this->post(route('papeleria.revisar', $ajena), ['accion' => 'aprobar'])->assertRedirect();
         $this->get(route('papeleria.catalogo.index'))->assertOk();

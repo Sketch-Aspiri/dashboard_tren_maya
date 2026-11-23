@@ -42,7 +42,7 @@ class SolicitudPapeleriaPolicy
 
     public function review(User $user, SolicitudPapeleria $solicitud): bool
     {
-        return $this->puedeRevisarDe($user, $solicitud->estacion_id) && $solicitud->estado === SolicitudPapeleria::ENVIADA;
+        return $user->hasAnyRole(Roles::ZONA) && $solicitud->estado === SolicitudPapeleria::ENVIADA;
     }
 
     /**
@@ -51,17 +51,5 @@ class SolicitudPapeleriaPolicy
     public function consolidate(User $user): bool
     {
         return $user->hasAnyRole(Roles::ZONA);
-    }
-
-    /**
-     * Revisa la Jefatura (todas) y Edificio (las de las demás estaciones, no la suya: otra persona la revisa).
-     */
-    private function puedeRevisarDe(User $user, int $estacionId): bool
-    {
-        if ($user->hasAnyRole(Roles::JEFATURA)) {
-            return true;
-        }
-
-        return $user->hasRole(Roles::EDIFICIO) && $user->estacionPropiaId() !== $estacionId;
     }
 }

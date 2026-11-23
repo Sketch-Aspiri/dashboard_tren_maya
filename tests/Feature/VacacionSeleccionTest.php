@@ -294,7 +294,7 @@ class VacacionSeleccionTest extends TestCase
         $this->assertFalse($cuenta->fresh()->hasRole('Personal'));
     }
 
-    public function test_edificio_picks_its_own_and_approves_others_but_not_itself(): void
+    public function test_edificio_picks_its_own_and_approves_others_and_itself(): void
     {
         $empleado = Empleado::factory()->create(['estacion_id' => $this->estacion->id]);
         $edificio = User::factory()->create();
@@ -312,9 +312,7 @@ class VacacionSeleccionTest extends TestCase
 
         $this->como($edificio)->post(route('vacaciones.seleccion.autorizar', $ajena))->assertSessionHasNoErrors();
         $this->assertSame('autorizada', $ajena->fresh()->estado);
-        $this->como($edificio)->post(route('vacaciones.seleccion.autorizar', $propia))->assertSessionHasErrors('plan');
-        $this->assertSame('enviada', $propia->fresh()->estado);
-
-        $this->como($this->zona())->post(route('vacaciones.seleccion.autorizar', $propia))->assertSessionHasNoErrors();
+        $this->como($edificio)->post(route('vacaciones.seleccion.autorizar', $propia))->assertSessionHasNoErrors();
+        $this->assertSame('autorizada', $propia->fresh()->estado);
     }
 }

@@ -11,7 +11,7 @@ use App\Support\Roles;
  * Autorización de "Recursos materiales" -> Solicitud de insumos. "Estación"
  * captura/envía solo la de su estación y solo mientras está en borrador u
  * observada; "Jefe de Zona", "Administrador" y "Edificio" ven todas; Edificio captura la de
- * "Edificio Zonal Este" y, junto con la Jefatura, revisa, aprueba y consolida (Edificio no revisa la suya).
+ * "Edificio Zonal Este" y, junto con la Jefatura, revisa y aprueba todas (también la suya); consolidar es de la Jefatura.
  */
 class SolicitudInsumoPolicy
 {
@@ -53,7 +53,7 @@ class SolicitudInsumoPolicy
      */
     public function review(User $user, SolicitudInsumo $solicitud): bool
     {
-        return $this->puedeRevisarDe($user, $solicitud->estacion_id)
+        return $user->hasAnyRole(Roles::ZONA)
             && in_array($solicitud->estado, [SolicitudInsumo::ENVIADA, SolicitudInsumo::OBSERVADA, SolicitudInsumo::APROBADA], true);
     }
 
@@ -63,17 +63,5 @@ class SolicitudInsumoPolicy
     public function consolidate(User $user): bool
     {
         return $user->hasAnyRole(Roles::JEFATURA);
-    }
-
-    /**
-     * Revisa la Jefatura (todas) y Edificio (las de las demás estaciones, no la suya: otra persona la revisa).
-     */
-    private function puedeRevisarDe(User $user, int $estacionId): bool
-    {
-        if ($user->hasAnyRole(Roles::JEFATURA)) {
-            return true;
-        }
-
-        return $user->hasRole(Roles::EDIFICIO) && $user->estacionPropiaId() !== $estacionId;
     }
 }

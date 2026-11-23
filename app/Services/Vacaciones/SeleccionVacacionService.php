@@ -134,10 +134,6 @@ final class SeleccionVacacionService
                 throw ValidationException::withMessages(['plan' => __('Esa selección ya fue resuelta o la persona la retiró.')]);
             }
 
-            if ($usuario->empleado_id !== null && $usuario->empleado_id === $plan->empleado_id) {
-                throw ValidationException::withMessages(['plan' => __('No puedes resolver tu propia selección; la revisa otra persona de la Zona.')]);
-            }
-
             $plan->update(['estado' => $estado, 'resuelta_por' => $usuario->id, 'resuelta_at' => now(), 'comentario' => $comentario]);
             activity('vacaciones')->performedOn($plan)->causedBy($usuario)->withProperties(['estado' => $estado])->log('selección de vacaciones '.$estado);
 
