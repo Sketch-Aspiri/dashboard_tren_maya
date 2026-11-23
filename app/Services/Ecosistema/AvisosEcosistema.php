@@ -2,6 +2,7 @@
 
 namespace App\Services\Ecosistema;
 
+use App\Jobs\EnviarAvisoPortal;
 use App\Jobs\EnviarAvisoTickets;
 use App\Models\Cotizacion;
 use App\Models\Estacion;
@@ -30,7 +31,7 @@ use Throwable;
  */
 final class AvisosEcosistema
 {
-    public function __construct(private readonly PuenteCliente $puente) {}
+    public function __construct(private readonly PuenteCliente $puente, private readonly FirmaPuente $firma) {}
 
     /** La estación envió su solicitud → Jefe de Zona. */
     public function solicitudEnviada(SolicitudInsumo $solicitud): void
@@ -277,7 +278,45 @@ final class AvisosEcosistema
             Log::warning('No se pudo guardar el aviso en la bandeja.', ['error' => $e::class]);
         }
 
+        if (config('ecosistema.avisos.destino') === 'portal') {
+            $this->enviarAlPortal($usuarios, $modulo, $titulo, $cuerpo, $ruta);
+
+            return;
+        }
+
         $this->enviarATickets($usuarios, $titulo, $cuerpo, $ruta);
+    }
+
+    /**
+     * Push general por el PWA del portal. Se mandan los correos de TODOS los destinatarios (el portal descarta a quien
+     * no tiene cuenta activa); sin vínculo con Tickets no hace falta.
+     *
+     * @param  Collection<int, User>  $usuarios
+     */
+    private function enviarAlPortal(Collection $usuarios, string $modulo, string $titulo, string $cuerpo, string $ruta): void
+    {
+        if (! $this->firma->portalConfigurado()) {
+            return;
+        }
+
+        try {
+            $correos = $usuarios->map(fn (User $u) => mb_strtolower($u->email))
+                ->reject(fn (string $correo) => str_ends_with($correo, '.invalid'))->unique()->values();
+
+            foreach ($correos->chunk(50) as $lote) {
+                EnviarAvisoPortal::dispatch(
+                    $lote->values()->all(),
+                    $titulo,
+                    $cuerpo,
+                    rtrim((string) config('ecosistema.urls.dashboard'), '/').$ruta,
+                    (string) Str::uuid(),
+                    $modulo,
+                );
+            }
+        } catch (Throwable $e) {
+            // Un aviso nunca debe impedir la acción que lo originó.
+            Log::warning('No se pudo encolar el aviso para el portal.', ['error' => $e::class]);
+        }
     }
 
     /** @param  Collection<int, User>  $usuarios */

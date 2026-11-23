@@ -98,6 +98,10 @@ return [
         'asistencia_hora' => env('ECOSISTEMA_AVISO_ASISTENCIA_HORA', '10:00'),
         // Hora (America/Cancun, todos los días) del aviso "hoy cumple años".
         'cumpleanos_hora' => env('ECOSISTEMA_AVISO_CUMPLEANOS_HORA', '08:00'),
+        // Por dónde sale el push: `tickets` (PWA de Tickets, solo cuentas vinculadas) o `portal` (PWA del portal, cuentas
+        // activas del portal). Se cambia a `portal` cuando las personas ya tienen cuenta y dispositivo en el portal;
+        // volver a `tickets` es la reversa inmediata (config:cache).
+        'destino' => env('ECOSISTEMA_AVISOS_DESTINO', 'tickets'),
     ],
 
 ];
