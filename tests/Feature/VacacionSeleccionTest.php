@@ -315,4 +315,74 @@ class VacacionSeleccionTest extends TestCase
         $this->como($edificio)->post(route('vacaciones.seleccion.autorizar', $propia))->assertSessionHasNoErrors();
         $this->assertSame('autorizada', $propia->fresh()->estado);
     }
+
+    private function envia(User $persona, int ...$periodos): void
+    {
+        $this->como($persona)->put(route('vacaciones.mi.guardar'), ['periodos' => [1 => $periodos[0], 2 => $periodos[1] ?? null]])->assertSessionHasNoErrors();
+        $this->como($persona)->post(route('vacaciones.mi.enviar'))->assertSessionHasNoErrors();
+    }
+
+    public function test_calendar_shows_sent_vacations_filters_by_person_and_station_and_hides_drafts(): void
+    {
+        $otra = Estacion::factory()->create(['nombre' => 'Bacalar', 'codigo' => '29', 'orden' => 2]);
+        $ana = $this->persona();
+        $ana->empleado->update(['nombre_completo' => 'Ana Prueba Uno']);
+        $beto = $this->persona($otra);
+        $beto->empleado->update(['nombre_completo' => 'Beto Prueba Dos']);
+        $borrador = $this->persona();
+        $borrador->empleado->update(['nombre_completo' => 'Carla Borrador Tres']);
+
+        $enero = $this->periodo('2027-01-11', 10);
+        $mayo = $this->periodo('2027-05-10', 10);
+        $this->envia($ana, $enero->id, $mayo->id);
+        $this->envia($beto, $enero->id, $mayo->id);
+        $this->como($borrador)->put(route('vacaciones.mi.guardar'), ['periodos' => [1 => $enero->id]]);
+
+        $zona = $this->zona();
+        $this->como($zona)->get(route('vacaciones.seleccion.calendario', ['mes' => 1]))
+            ->assertOk()->assertSee('Ana Prueba Uno')->assertSee('Beto Prueba Dos')->assertDontSee('Carla Borrador Tres')->assertSee('Enero 2027');
+        $this->como($zona)->get(route('vacaciones.seleccion.calendario', ['mes' => 1, 'q' => 'beto']))
+            ->assertOk()->assertSee('Beto Prueba Dos')->assertDontSee('Ana Prueba Uno');
+        $this->como($zona)->get(route('vacaciones.seleccion.calendario', ['mes' => 1, 'estacion' => $this->estacion->id]))
+            ->assertOk()->assertSee('Ana Prueba Uno')->assertDontSee('Beto Prueba Dos');
+        $this->como($zona)->get(route('vacaciones.seleccion.calendario', ['mes' => 2]))->assertOk()->assertDontSee('Ana Prueba Uno')->assertSee('Nadie tiene vacaciones');
+        $this->como($zona)->get(route('vacaciones.seleccion.calendario', ['mes' => 13]))->assertSessionHasErrors('mes');
+
+        $plan = VacacionPlan::query()->where('empleado_id', $ana->empleado_id)->firstOrFail();
+        $this->como($zona)->post(route('vacaciones.seleccion.autorizar', $plan));
+        $this->como($zona)->get(route('vacaciones.seleccion.calendario', ['mes' => 1, 'estado' => 'autorizada']))
+            ->assertOk()->assertSee('Ana Prueba Uno')->assertDontSee('Beto Prueba Dos');
+    }
+
+    public function test_calendar_gives_each_station_its_own_color_and_scopes_station_accounts(): void
+    {
+        $otra = Estacion::factory()->create(['nombre' => 'Bacalar', 'codigo' => '29', 'orden' => 2]);
+        $this->estacion->update(['orden' => 1]);
+        $ana = $this->persona();
+        $beto = $this->persona($otra);
+        $enero = $this->periodo('2027-01-11', 10);
+        $mayo = $this->periodo('2027-05-10', 10);
+        $this->envia($ana, $enero->id, $mayo->id);
+        $this->envia($beto, $enero->id, $mayo->id);
+
+        $zona = $this->zona();
+        $html = $this->como($zona)->get(route('vacaciones.seleccion.calendario', ['mes' => 1]))->getContent();
+        $this->assertStringContainsString('#2563eb', $html); // estación de orden 1
+        $this->assertStringContainsString('#dc2626', $html); // estación de orden 2
+
+        $cuenta = User::factory()->create(['estacion_id' => $this->estacion->id]);
+        $cuenta->assignRole('Estación');
+        $this->como($cuenta)->get(route('vacaciones.seleccion.calendario', ['mes' => 1, 'estacion' => $otra->id]))
+            ->assertOk()->assertSee($ana->empleado->nombre_completo, false)->assertDontSee($beto->empleado->nombre_completo, false);
+    }
+
+    public function test_calendar_is_closed_to_personal_and_guests(): void
+    {
+        $this->get(route('vacaciones.seleccion.calendario'))->assertRedirect(route('login'));
+        $this->como($this->persona())->get(route('vacaciones.seleccion.calendario'))->assertForbidden();
+
+        $sinEstacion = User::factory()->create();
+        $sinEstacion->assignRole('Estación');
+        $this->como($sinEstacion)->get(route('vacaciones.seleccion.calendario'))->assertForbidden();
+    }
 }

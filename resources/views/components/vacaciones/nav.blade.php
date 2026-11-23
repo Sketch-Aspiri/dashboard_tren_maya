@@ -8,6 +8,7 @@
         ['solicitudes', $esZona ? __('Solicitudes de cambio') : __('Mis solicitudes'), route('vacaciones.solicitudes.index'), true],
         ['importar', __('Subir rol'), route('vacaciones.importar.create'), $esZona],
         ['seleccion', __('Selección :anio', ['anio' => config('vacaciones.anio_seleccion')]), route('vacaciones.seleccion.revision'), true],
+        ['calendario', __('Calendario'), route('vacaciones.seleccion.calendario'), auth()->user()?->can('viewAny', \App\Models\VacacionPlan::class)],
         ['catalogo', __('Catálogo :anio', ['anio' => config('vacaciones.anio_seleccion')]), route('vacaciones.seleccion.catalogo'), $esZona],
     ];
 @endphp

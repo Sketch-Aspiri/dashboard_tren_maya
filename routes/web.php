@@ -60,6 +60,7 @@ use App\Http\Controllers\Secciones\SeccionTablaController;
 use App\Http\Controllers\SolicitudInsumoController;
 use App\Http\Controllers\SolicitudPapeleriaController;
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\VacacionCalendarioController;
 use App\Http\Controllers\VacacionCatalogoController;
 use App\Http\Controllers\VacacionConsolidadoController;
 use App\Http\Controllers\VacacionController;
@@ -350,6 +351,7 @@ Route::middleware(['auth', 'verified', 'two-factor.verified', 'solo-personal'])-
         // Selección del año siguiente: cada persona elige entre los periodos del catálogo y la Zona revisa.
         Route::get('/mi', [MiVacacionController::class, 'show'])->name('mi.show');
         Route::get('/seleccion', [VacacionRevisionController::class, 'index'])->name('seleccion.revision');
+        Route::get('/seleccion/calendario', [VacacionCalendarioController::class, 'index'])->name('seleccion.calendario');
         Route::get('/seleccion/catalogo', [VacacionCatalogoController::class, 'index'])->name('seleccion.catalogo');
         Route::get('/periodos/{periodo}/consolidado', [VacacionConsolidadoController::class, 'descargar'])
             ->whereNumber('periodo')->middleware('throttle:insumos-export')->name('consolidado.descargar');
