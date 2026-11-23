@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureCuentaActiva;
 use App\Http\Middleware\EnsureTwoFactorIsVerified;
 use App\Http\Middleware\VerificarPuente;
 use App\Http\Middleware\VerificarPuentePortal;
@@ -30,6 +31,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         // Los proxies de confianza se fijan en AppServiceProvider desde TRUSTED_PROXIES (config/proxies.php): con `*`
         // cualquiera podria falsear su IP con X-Forwarded-For y esquivar los limites de intentos.
+
+        // Una cuenta dada de baja desde el portal pierde la sesion en la siguiente peticion.
+        $middleware->appendToGroup('web', EnsureCuentaActiva::class);
 
         $middleware->alias([
             'two-factor.verified' => EnsureTwoFactorIsVerified::class,

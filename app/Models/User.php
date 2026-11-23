@@ -74,6 +74,7 @@ class User extends Authenticatable
             // must not be enough to derive a user's TOTP codes.
             'google2fa_secret' => 'encrypted',
             'sso_vinculado_at' => 'datetime',
+            'desactivado_at' => 'datetime',
             'areas_adicionales' => 'array',
         ];
     }
