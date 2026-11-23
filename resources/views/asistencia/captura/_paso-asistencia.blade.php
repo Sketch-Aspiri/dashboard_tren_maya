@@ -56,7 +56,7 @@
                                 @endforeach
                             </select>
                             <select :name="`registros[${p.id}][turno]`" :aria-label="`Turno de ${p.nombre}`" x-model="p.turno"
-                                    class="min-h-[40px] w-32 rounded-md border-gray-300 text-xs shadow-sm focus:border-brand-teal focus:ring-brand-teal">
+                                    class="min-h-[40px] w-44 rounded-md border-gray-300 text-xs shadow-sm focus:border-brand-teal focus:ring-brand-teal">
                                 @foreach ($estado['turnos'] as $opcion)
                                     <option value="{{ $opcion['valor'] }}">{{ $opcion['etiqueta'] }}</option>
                                 @endforeach
