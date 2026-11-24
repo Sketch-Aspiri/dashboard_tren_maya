@@ -12,6 +12,8 @@ use App\Models\HorarioPeriodo;
 use App\Models\HorarioSolicitud;
 use App\Models\HorarioTurno;
 use App\Models\InventarioEstacion;
+use App\Models\PtarHallazgo;
+use App\Models\PtarRegistro;
 use App\Models\RegistroDiario;
 use App\Models\SolicitudInsumo;
 use App\Models\SolicitudPapeleria;
@@ -82,6 +84,8 @@ final class Areas
         SolicitudInsumo::class => 'recursos-materiales',
         SolicitudPapeleria::class => 'recursos-materiales',
         InventarioEstacion::class => 'recursos-materiales',
+        PtarRegistro::class => 'recursos-materiales',
+        PtarHallazgo::class => 'recursos-materiales',
     ];
 
     /**

@@ -46,6 +46,14 @@ Schedule::command('asistencia:recordar-pendientes')
     ->withoutOverlapping()
     ->onOneServer();
 
+// El día configurado de cada mes, recordatorio al celular de las estaciones que aún no envían el registro de la PTAR.
+// Una vez por estación y mes; sin el puente configurado no hace nada.
+Schedule::command('ptar:recordar-pendientes')
+    ->monthlyOn((int) config('ptar.recordatorio_dia', 5), (string) config('ecosistema.avisos.ptar_hora', '09:00'))
+    ->timezone('America/Cancun')
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Cada lunes deja listo el consolidado de horarios de la semana para enviarlo a Coordinación (se descarga en /horarios/consolidados).
 Schedule::command('horarios:consolidado-semanal')
     ->weeklyOn(1, (string) config('horarios.consolidado_hora', '07:00'))

@@ -5,6 +5,7 @@ namespace App\Services\Ecosistema;
 use App\Jobs\EnviarActividadTickets;
 use App\Models\Estacion;
 use App\Models\Factura;
+use App\Models\PtarHallazgo;
 use App\Models\SolicitudInsumo;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
@@ -88,6 +89,32 @@ final class ActividadesEcosistema
             route('asistencia.captura.index', [], false),
             $estacion,
         );
+    }
+
+    /** Un hallazgo de la PTAR se manda a Tickets (a petición de la Zona) → actividad para la estación. */
+    public function ptarHallazgo(PtarHallazgo $hallazgo): void
+    {
+        $hallazgo->loadMissing('planta.estacion:id,nombre,codigo');
+        $estacion = $hallazgo->planta->estacion;
+        $nombre = $this->limpio((string) ($estacion->nombre ?? 'Una estación'), 40);
+        $texto = $this->limpio((string) $hallazgo->descripcion, 500);
+        $propuesta = $this->limpio((string) $hallazgo->propuesta, 300);
+
+        $this->enviar(
+            'ptar_hallazgo',
+            'dashboard:ptar_hallazgo:'.$hallazgo->id,
+            $estacion->codigo ?? null,
+            'PTAR '.$nombre.': '.($hallazgo->tipo === PtarHallazgo::PROPUESTA ? 'propuesta' : 'problemática'),
+            $texto.($propuesta !== '' ? ' Propuesta: '.$propuesta : '').' Atiéndelo y registra el avance en el Dashboard.',
+            route('ptar.hallazgos.index', [], false),
+            $hallazgo,
+        );
+    }
+
+    /** ¿Se puede mandar el evento a Tickets? (puente configurado y evento habilitado) */
+    public function disponible(string $evento): bool
+    {
+        return $this->puente->activo() && $this->habilitado($evento);
     }
 
     /**

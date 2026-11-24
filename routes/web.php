@@ -41,6 +41,10 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PersonalImportacionController;
 use App\Http\Controllers\FotoPerfilController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PtarConsolidadoController;
+use App\Http\Controllers\PtarController;
+use App\Http\Controllers\PtarHallazgoController;
+use App\Http\Controllers\PtarOficioController;
 use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\Secciones\AdministrarMenuController;
 use App\Http\Controllers\Secciones\MenuGrupoController;
@@ -421,6 +425,31 @@ Route::middleware(['auth', 'verified', 'two-factor.verified'])->group(function (
             Route::put('/{solicitud}', [SolicitudInsumoController::class, 'update'])->whereNumber('solicitud')->name('update');
             Route::post('/{solicitud}/enviar', [SolicitudInsumoController::class, 'enviar'])->whereNumber('solicitud')->name('enviar');
             Route::post('/{solicitud}/revisar', [SolicitudInsumoController::class, 'revisar'])->whereNumber('solicitud')->name('revisar');
+        });
+    });
+
+    // PTAR (plantas de tratamiento de aguas residuales): cada estación captura su registro mensual y la Zona
+    // lo revisa (ver app/Policies/PtarRegistroPolicy.php).
+    Route::prefix('ptar')->name('ptar.')->group(function () {
+        Route::get('/', [PtarController::class, 'index'])->name('index');
+        Route::get('/descargar', [PtarConsolidadoController::class, 'descargar'])->middleware('throttle:insumos-export')->name('descargar');
+        Route::get('/hallazgos', [PtarHallazgoController::class, 'index'])->name('hallazgos.index');
+        Route::get('/oficio', [PtarOficioController::class, 'create'])->name('oficio.create');
+        Route::post('/oficio', [PtarOficioController::class, 'store'])->middleware('throttle:insumos-export')->name('oficio.store');
+        Route::get('/estaciones/{estacion}', [PtarController::class, 'estacion'])->whereNumber('estacion')->name('estacion');
+        Route::get('/{registro}', [PtarController::class, 'show'])->whereNumber('registro')->name('show');
+        Route::get('/{registro}/evidencias/{evidencia}', [PtarController::class, 'evidencia'])
+            ->whereNumber(['registro', 'evidencia'])->middleware('throttle:insumos-export')->name('evidencia');
+
+        Route::middleware('throttle:insumos-write')->group(function () {
+            Route::post('/hallazgos', [PtarHallazgoController::class, 'store'])->name('hallazgos.store');
+            Route::put('/hallazgos/{hallazgo}', [PtarHallazgoController::class, 'update'])->whereNumber('hallazgo')->name('hallazgos.update');
+            Route::post('/hallazgos/{hallazgo}/tickets', [PtarHallazgoController::class, 'tickets'])->whereNumber('hallazgo')->name('hallazgos.tickets');
+            Route::put('/{registro}', [PtarController::class, 'guardar'])->whereNumber('registro')->name('guardar');
+            Route::post('/{registro}/evidencias', [PtarController::class, 'agregarEvidencia'])->whereNumber('registro')->name('evidencias.store');
+            Route::delete('/{registro}/evidencias/{evidencia}', [PtarController::class, 'quitarEvidencia'])->whereNumber(['registro', 'evidencia'])->name('evidencias.destroy');
+            Route::post('/{registro}/enviar', [PtarController::class, 'enviar'])->whereNumber('registro')->name('enviar');
+            Route::post('/{registro}/revisar', [PtarController::class, 'revisar'])->whereNumber('registro')->name('revisar');
         });
     });
 

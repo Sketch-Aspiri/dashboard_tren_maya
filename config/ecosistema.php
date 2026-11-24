@@ -87,7 +87,7 @@ return [
     // eligen qué eventos se mandan; el EQUIPO que recibe cada uno se configura en Tickets (config/ecosistema.php de
     // Tickets): sin equipo allá, no se crea nada. Necesitan el puente.
     'actividades' => [
-        'eventos' => array_values(array_filter(array_map('trim', explode(',', (string) env('ECOSISTEMA_ACT_EVENTOS', 'insumos_observada,insumos_devuelta,factura_cancelada,asistencia_pendiente'))))),
+        'eventos' => array_values(array_filter(array_map('trim', explode(',', (string) env('ECOSISTEMA_ACT_EVENTOS', 'insumos_observada,insumos_devuelta,factura_cancelada,asistencia_pendiente,ptar_hallazgo'))))),
         // Hora límite (America/Cancun, lunes a viernes) para abrir la actividad de las estaciones sin asistencia.
         'asistencia_hora' => env('ECOSISTEMA_ACT_ASISTENCIA_HORA', '12:00'),
     ],
@@ -98,6 +98,8 @@ return [
         'asistencia_hora' => env('ECOSISTEMA_AVISO_ASISTENCIA_HORA', '10:00'),
         // Hora (America/Cancun, todos los días) del aviso "hoy cumple años".
         'cumpleanos_hora' => env('ECOSISTEMA_AVISO_CUMPLEANOS_HORA', '08:00'),
+        // Hora (America/Cancun) del recordatorio mensual del registro de PTAR (día en config/ptar.php).
+        'ptar_hora' => env('ECOSISTEMA_AVISO_PTAR_HORA', '09:00'),
     ],
 
 ];

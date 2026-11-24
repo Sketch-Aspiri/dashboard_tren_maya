@@ -8,6 +8,7 @@ use App\Models\Estacion;
 use App\Models\HorarioConsolidado;
 use App\Models\HorarioPeriodo;
 use App\Models\HorarioSolicitud;
+use App\Models\PtarRegistro;
 use App\Models\SolicitudInsumo;
 use App\Models\User;
 use App\Models\VacacionPeriodo;
@@ -156,6 +157,46 @@ final class AvisosEcosistema
             $autorizada ? __('Cambio de vacaciones autorizado') : __('Cambio de vacaciones rechazado'),
             $autorizada ? __('Se autorizaron :n cambio(s) de vacaciones.', ['n' => $cantidad]) : __('No se autorizaron :n cambio(s) de vacaciones.', ['n' => $cantidad]),
             route('vacaciones.solicitudes.index', [], false),
+        );
+    }
+
+    /** La estación envió su registro de PTAR → Jefe de Zona y Edificio (no a quien lo envió). */
+    public function ptarEnviada(PtarRegistro $registro, User $envio): void
+    {
+        $this->enviar(
+            fn () => $this->jefesDeZona()->merge($this->deEdificio())->reject(fn (User $u) => $u->is($envio))->values(),
+            'ptar',
+            __('Registro de PTAR enviado'),
+            __(':estacion envió su registro de PTAR de :mes.', ['estacion' => $this->limpio((string) ($registro->estacion->nombre ?? __('Una estación')), 40), 'mes' => Carbon::create((int) $registro->anio, (int) $registro->mes, 1)->locale('es')->translatedFormat('F Y')]),
+            route('ptar.show', $registro, false),
+        );
+    }
+
+    /** El registro de PTAR del mes sigue sin enviarse → personas de esa estación. */
+    public function ptarPendiente(Estacion $estacion, bool $observado): void
+    {
+        $this->enviar(
+            fn () => $this->deEstacion((int) $estacion->id, Areas::deGrupo('recursos-materiales')),
+            'ptar',
+            $observado ? __('Registro de PTAR con observaciones') : __('Registro de PTAR pendiente'),
+            $observado
+                ? __(':estacion: la Zona devolvió el registro de PTAR; corrígelo y vuelve a enviarlo.', ['estacion' => $this->limpio((string) $estacion->nombre, 40)])
+                : __(':estacion: falta enviar el registro mensual de la PTAR.', ['estacion' => $this->limpio((string) $estacion->nombre, 40)]),
+            route('ptar.estacion', ['estacion' => $estacion->id], false),
+        );
+    }
+
+    /** La Zona aprobó o devolvió el registro de PTAR → personas de esa estación. */
+    public function ptarRevisada(PtarRegistro $registro): void
+    {
+        $aprobada = $registro->estado === PtarRegistro::APROBADA;
+
+        $this->enviar(
+            fn () => $this->deEstacion((int) $registro->estacion_id, Areas::deGrupo('recursos-materiales')),
+            'ptar',
+            $aprobada ? __('Registro de PTAR aprobado') : __('Registro de PTAR observado'),
+            $aprobada ? __('Tu registro de PTAR de :mes fue aprobado.', ['mes' => Carbon::create((int) $registro->anio, (int) $registro->mes, 1)->locale('es')->translatedFormat('F Y')]) : __('Tu registro de PTAR tiene observaciones de Zona.'),
+            route('ptar.show', $registro, false),
         );
     }
 

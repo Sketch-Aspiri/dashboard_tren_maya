@@ -10,7 +10,7 @@ use Illuminate\Notifications\Notification;
  */
 final class AvisoDashboard extends Notification
 {
-    public const MODULOS = ['insumos', 'asistencia', 'horarios', 'vacaciones', 'cumpleanos', 'otro'];
+    public const MODULOS = ['insumos', 'asistencia', 'horarios', 'vacaciones', 'cumpleanos', 'ptar', 'otro'];
 
     public function __construct(
         private readonly string $modulo,
