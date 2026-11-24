@@ -59,12 +59,11 @@ return [
         [
             'slug' => 'recursos-materiales',
             'nombre' => 'Recursos materiales',
-            'patrones' => ['insumos.*', 'papeleria.*', 'agua.*', 'ptar.*'],
+            'patrones' => ['insumos.*', 'papeleria.*', 'agua.*'],
             'items' => [
                 ['label' => 'Solicitud de insumos', 'ruta' => 'insumos.index', 'patron' => 'insumos.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
                 ['label' => 'Solicitud de papelería', 'ruta' => 'papeleria.index', 'patron' => 'papeleria.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
                 ['label' => 'Registro de agua', 'ruta' => 'agua.index', 'patron' => 'agua.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
-                ['label' => 'PTAR', 'ruta' => 'ptar.index', 'patron' => 'ptar.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
             ],
             'secciones' => [
                 'Escaleras eléctricas',
@@ -119,8 +118,10 @@ return [
         [
             'slug' => 'otros',
             'nombre' => 'Otros',
-            'patrones' => [],
-            'items' => [],
+            'patrones' => ['ptar.*'],
+            'items' => [
+                ['label' => 'Reporte de Estatus PTAR', 'ruta' => 'ptar.index', 'patron' => 'ptar.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
+            ],
             'secciones' => [
                 'Manuales y reglamentos',
                 'Esquemas de vías',
