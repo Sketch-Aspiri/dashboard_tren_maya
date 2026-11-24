@@ -6,7 +6,7 @@
 
 <x-app-layout>
     <x-slot name="header">
-        <x-insumos.titulo :titulo="__('Oficio mensual de PTAR')" :seccion="__('PTAR')"
+        <x-insumos.titulo :titulo="__('Oficio mensual de PTAR')" :seccion="__('PTAR')" :grupo="__('Otros')"
                           :detalle="__('Word con las problemáticas y propuestas abiertas')"
                           :volver="route('ptar.hallazgos.index')" :volver-texto="__('Hallazgos')" />
     </x-slot>

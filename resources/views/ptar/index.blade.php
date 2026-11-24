@@ -17,7 +17,7 @@
 
 <x-app-layout>
     <x-slot name="header">
-        <x-insumos.titulo :titulo="__('Reporte de Estatus PTAR').' — '.$nombresMes[$mes].' '.$anio" :seccion="__('PTAR')"
+        <x-insumos.titulo :titulo="__('Reporte de Estatus PTAR').' — '.$nombresMes[$mes].' '.$anio" :seccion="__('PTAR')" :grupo="__('Otros')"
                           :detalle="trans_choice(':n de :t planta envió su registro|:n de :t plantas enviaron su registro', $enviados, ['n' => $enviados, 't' => $total])" />
     </x-slot>
 

@@ -1,4 +1,4 @@
-@props(['ruta', 'anio', 'mes'])
+@props(['ruta', 'anio', 'mes', 'parametros' => []])
 
 {{-- Selector de mes: flechas al mes anterior/siguiente y lista para saltar a
      otro. Al elegir un mes se aplica solo, sin botón aparte. --}}
@@ -10,8 +10,8 @@
     $id = 'periodo-'.\Illuminate\Support\Str::random(4);
 @endphp
 
-<form method="GET" action="{{ route($ruta) }}" {{ $attributes->merge(['class' => 'flex items-end gap-2']) }}>
-    <a href="{{ route($ruta, $anterior) }}" class="{{ $flecha }}" aria-label="{{ __('Mes anterior') }}: {{ $meses[$anterior['mes']] }} {{ $anterior['anio'] }}"><span aria-hidden="true">‹</span></a>
+<form method="GET" action="{{ route($ruta, $parametros) }}" {{ $attributes->merge(['class' => 'flex items-end gap-2']) }}>
+    <a href="{{ route($ruta, $parametros + $anterior) }}" class="{{ $flecha }}" aria-label="{{ __('Mes anterior') }}: {{ $meses[$anterior['mes']] }} {{ $anterior['anio'] }}"><span aria-hidden="true">‹</span></a>
     <div>
         <label for="{{ $id }}-mes" class="sr-only">{{ __('Mes') }}</label>
         <select id="{{ $id }}-mes" name="mes" class="ins-campo h-11 w-36" onchange="this.form.submit()">
@@ -24,6 +24,6 @@
         <label for="{{ $id }}-anio" class="sr-only">{{ __('Año') }}</label>
         <input id="{{ $id }}-anio" name="anio" type="number" class="ins-campo h-11 w-24" value="{{ $anio }}" min="2000" max="2100" onchange="this.form.submit()">
     </div>
-    <a href="{{ route($ruta, $siguiente) }}" class="{{ $flecha }}" aria-label="{{ __('Mes siguiente') }}: {{ $meses[$siguiente['mes']] }} {{ $siguiente['anio'] }}"><span aria-hidden="true">›</span></a>
+    <a href="{{ route($ruta, $parametros + $siguiente) }}" class="{{ $flecha }}" aria-label="{{ __('Mes siguiente') }}: {{ $meses[$siguiente['mes']] }} {{ $siguiente['anio'] }}"><span aria-hidden="true">›</span></a>
     <noscript><button type="submit" class="ins-btn-neutro">{{ __('Ver mes') }}</button></noscript>
 </form>

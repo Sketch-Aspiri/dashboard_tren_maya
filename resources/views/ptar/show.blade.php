@@ -18,7 +18,7 @@
 <x-app-layout>
     <x-slot name="header">
         <x-insumos.titulo :titulo="$registro->estacion->nombre.' — '.$nombresMes[$registro->mes].' '.$registro->anio"
-                          :detalle="__('PTAR')" :seccion="__('PTAR')"
+                          :detalle="__('PTAR')" :seccion="__('PTAR')" :grupo="__('Otros')"
                           :volver="$puedeEditar ? null : route('ptar.index', ['anio' => $registro->anio, 'mes' => $registro->mes])"
                           :volver-texto="__('PTAR del mes')" />
     </x-slot>

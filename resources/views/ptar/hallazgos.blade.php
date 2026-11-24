@@ -12,7 +12,7 @@
 
 <x-app-layout>
     <x-slot name="header">
-        <x-insumos.titulo :titulo="__('Hallazgos de PTAR')" :seccion="__('PTAR')"
+        <x-insumos.titulo :titulo="__('Hallazgos de PTAR')" :seccion="__('PTAR')" :grupo="__('Otros')"
                           :detalle="trans_choice(':n hallazgo|:n hallazgos', $hallazgos->count(), ['n' => $hallazgos->count()])"
                           :volver="route('ptar.index')" :volver-texto="__('PTAR del mes')" />
     </x-slot>

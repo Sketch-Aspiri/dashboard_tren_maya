@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AfluenciaController;
 use App\Http\Controllers\AguaConsolidadoController;
 use App\Http\Controllers\AguaController;
 use App\Http\Controllers\AsistenciaCapturaController;
@@ -526,6 +527,16 @@ Route::middleware(['auth', 'verified', 'two-factor.verified', 'solo-personal'])-
             Route::post('/{registro}/enviar', [AguaController::class, 'enviar'])->whereNumber('registro')->name('enviar');
             Route::post('/{registro}/revisar', [AguaController::class, 'revisar'])->whereNumber('registro')->name('revisar');
         });
+    });
+
+    // Flujo de pasajeros (abordan y boletos vendidos por día): cada estación captura la suya y la Zona ve el
+    // tablero y descarga el Excel (ver app/Policies/AfluenciaDiariaPolicy.php).
+    Route::prefix('afluencia')->name('afluencia.')->group(function () {
+        Route::get('/', [AfluenciaController::class, 'index'])->name('index');
+        Route::get('/descargar', [AfluenciaController::class, 'descargar'])->middleware('throttle:insumos-export')->name('descargar');
+        Route::get('/estaciones/{estacion}', [AfluenciaController::class, 'estacion'])->whereNumber('estacion')->name('estacion');
+        Route::put('/estaciones/{estacion}', [AfluenciaController::class, 'guardar'])->whereNumber('estacion')
+            ->middleware('throttle:insumos-write')->name('guardar');
     });
 
     // Gestión de usuarios: Administrador-only account management panel

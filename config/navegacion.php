@@ -85,10 +85,11 @@ return [
         [
             'slug' => 'recursos-financieros',
             'nombre' => 'Recursos financieros',
-            'patrones' => [],
-            'items' => [],
+            'patrones' => ['afluencia.*'],
+            'items' => [
+                ['label' => 'Flujo de pasajeros', 'ruta' => 'afluencia.index', 'patron' => 'afluencia.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
+            ],
             'secciones' => [
-                'Flujo de pasajeros',
                 'Gasto energético',
                 'Drive comprobaciones Diesel',
                 'Drive comprobaciones agua purificada',

@@ -1,4 +1,4 @@
-@props(['titulo', 'detalle' => null, 'volver' => null, 'volverTexto' => null, 'seccion' => null])
+@props(['titulo', 'detalle' => null, 'volver' => null, 'volverTexto' => null, 'seccion' => null, 'grupo' => null])
 
 {{-- Encabezado de las vistas de insumos: de dónde vienes (enlace de regreso),
      el título y, si aplica, una línea de detalle. --}}
@@ -9,7 +9,7 @@
                 <span aria-hidden="true">←</span> {{ $volverTexto ?? __('Volver') }}
             </a>
         @else
-            {{ __('Recursos materiales') }} · {{ $seccion ?? __('Fondo rotatorio') }}
+            {{ $grupo ?? __('Recursos materiales') }} · {{ $seccion ?? __('Fondo rotatorio') }}
         @endif
     </p>
     <h2 class="mt-0.5 truncate font-heading text-xl font-semibold leading-tight text-brand-green">{{ $titulo }}</h2>
