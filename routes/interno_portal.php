@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Interno\PortalCalendarioController;
 use App\Http\Controllers\Interno\PortalCatalogoController;
 use App\Http\Controllers\Interno\PortalCuentasController;
 use App\Http\Controllers\Interno\PortalFotoController;
@@ -17,3 +18,7 @@ Route::post('cuentas', [PortalCuentasController::class, 'store'])->name('cuentas
 Route::get('avatar', [PortalFotoController::class, 'show'])->name('avatar.show');
 Route::put('avatar', [PortalFotoController::class, 'update'])->name('avatar.update');
 Route::delete('avatar', [PortalFotoController::class, 'destroy'])->name('avatar.destroy');
+
+// Capas del calendario oficial del portal (solo lectura, por rango de fechas).
+Route::get('calendario/cumpleanos', [PortalCalendarioController::class, 'cumpleanos'])->name('calendario.cumpleanos');
+Route::get('calendario/vacaciones', [PortalCalendarioController::class, 'vacaciones'])->name('calendario.vacaciones');
