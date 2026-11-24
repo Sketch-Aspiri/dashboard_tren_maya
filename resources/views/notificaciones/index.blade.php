@@ -1,6 +1,6 @@
 @php
     /** @var \Illuminate\Pagination\LengthAwarePaginator $notificaciones */
-    $modulos = ['insumos' => __('Insumos'), 'asistencia' => __('Asistencia'), 'horarios' => __('Horarios'), 'vacaciones' => __('Vacaciones'), 'cumpleanos' => __('Cumpleaños'), 'ptar' => __('PTAR'), 'otro' => __('Otros')];
+    $modulos = ['insumos' => __('Insumos'), 'asistencia' => __('Asistencia'), 'horarios' => __('Horarios'), 'vacaciones' => __('Vacaciones'), 'agua' => __('Agua'), 'cumpleanos' => __('Cumpleaños'), 'ptar' => __('PTAR'), 'otro' => __('Otros')];
     $enlaceFiltro = fn (array $cambios) => route('notificaciones.index', array_filter(array_merge(['estado' => $estado, 'modulo' => $modulo], $cambios), fn ($v) => $v !== null && $v !== 'todas'));
 @endphp
 

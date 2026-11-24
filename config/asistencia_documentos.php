@@ -48,6 +48,19 @@ return [
     'conversion_timeout' => 55,
 
     /*
+     | Oficios de comisión que suben las estaciones y se anexan al final del
+     | control de asistencia (estación y zona), como páginas de imagen. PDF y Word
+     | se rasterizan con Ghostscript (`gs`).
+     */
+    'oficios_comision' => [
+        'max_kb' => 10240,
+        'max_paginas' => 20,
+        'max_lado_px' => 2000,
+        'dpi' => 150,
+        'gs_path' => env('INSUMOS_GS_PATH', 'gs'),
+    ],
+
+    /*
      | Firma digital que se importa al generar el oficio (PNG o JPG). Se
      | reescala y se guarda como PNG en el disco privado.
      */

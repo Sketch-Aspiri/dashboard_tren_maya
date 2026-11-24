@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Models\AguaCompra;
+use App\Models\AguaRegistro;
 use App\Models\ComisionadoFuera;
 use App\Models\ComisionadoVisitante;
 use App\Models\DocumentoAsistencia;
@@ -83,6 +85,8 @@ final class Areas
         VacacionSolicitud::class => 'rrhh',
         SolicitudInsumo::class => 'recursos-materiales',
         SolicitudPapeleria::class => 'recursos-materiales',
+        AguaRegistro::class => 'recursos-materiales',
+        AguaCompra::class => 'recursos-materiales',
         InventarioEstacion::class => 'recursos-materiales',
         PtarRegistro::class => 'recursos-materiales',
         PtarHallazgo::class => 'recursos-materiales',

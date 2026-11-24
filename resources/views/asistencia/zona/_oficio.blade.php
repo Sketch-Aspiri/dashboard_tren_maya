@@ -43,6 +43,15 @@
         </div>
     @endif
 
+    <p class="text-sm text-gray-600">
+        @if ($oficioZona['anexos']->isEmpty())
+            {{ __('Oficios de comisión: ninguna estación tiene oficios vigentes cargados; el control saldrá sin anexos.') }}
+        @else
+            {{ __('Se anexarán al final los oficios de comisión vigentes:') }}
+            <span class="font-medium">{{ $oficioZona['anexos']->map(fn ($n, $estacion) => $estacion.' ('.$n.')')->implode(', ') }}</span>.
+        @endif
+    </p>
+
     @if ($oficioZona['pendientes']->isNotEmpty())
         <div class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="status">
             <p class="font-medium">{{ __('Aún faltan por capturar:') }}</p>

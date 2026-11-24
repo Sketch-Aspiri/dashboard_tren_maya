@@ -74,6 +74,7 @@ class User extends Authenticatable
             // must not be enough to derive a user's TOTP codes.
             'google2fa_secret' => 'encrypted',
             'sso_vinculado_at' => 'datetime',
+            'desactivado_at' => 'datetime',
             'areas_adicionales' => 'array',
         ];
     }
@@ -151,6 +152,24 @@ class User extends Authenticatable
     public function estacion(): BelongsTo
     {
         return $this->belongsTo(Estacion::class);
+    }
+
+    /**
+     * Estación a nombre de la que captura esta cuenta: la suya si es Estación, "Edificio Zonal Este" si es Edificio.
+     */
+    public function estacionPropiaId(): ?int
+    {
+        if ($this->hasRole(Roles::ESTACION)) {
+            return $this->estacion_id;
+        }
+
+        return $this->hasRole(Roles::EDIFICIO) ? Estacion::edificioId() : null;
+    }
+
+    /** Ficha de la persona (solo cuentas con rol Personal). */
+    public function empleado(): BelongsTo
+    {
+        return $this->belongsTo(Empleado::class);
     }
 
     /**

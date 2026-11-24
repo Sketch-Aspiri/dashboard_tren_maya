@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\EstatusAsistencia;
 use App\Enums\TipoPlaza;
+use App\Enums\TurnoAsistencia;
 use App\Http\Resources\ComisionadoFueraCapturaResource;
 use App\Http\Resources\ComisionadoVisitanteCapturaResource;
 use App\Models\ComisionadoFuera;
@@ -50,6 +51,7 @@ final class CapturaAsistenciaEstado
         array $oficio,
     ): array {
         $continuidades = $this->continuidades($roster, $fecha);
+        $turnos = $this->ultimosTurnos($roster, $fecha);
 
         return [
             'fecha' => $fecha->toDateString(),
@@ -63,10 +65,15 @@ final class CapturaAsistenciaEstado
                 'etiqueta' => $estatus->label(),
                 'oficio' => $estatus->etiquetaOficio(),
             ], EstatusAsistencia::cases()),
+            'turnos' => array_map(fn (TurnoAsistencia $turno) => [
+                'valor' => $turno->value,
+                'etiqueta' => $turno->label(),
+            ], TurnoAsistencia::cases()),
             'personas' => $roster->map(fn (Empleado $empleado) => $this->persona(
                 $empleado,
                 $registrosPrevios[$empleado->id] ?? null,
                 $continuidades[$empleado->id] ?? null,
+                $turnos[$empleado->id] ?? TurnoAsistencia::Primer->value,
             ))->values()->all(),
             'fuera' => $fuera->map(fn (ComisionadoFuera $c) => $this->filaFuera($c))->values()->all(),
             'visitantes' => $visitantes->map(fn (ComisionadoVisitante $v) => $this->filaVisitante($v))->values()->all(),
@@ -106,7 +113,7 @@ final class CapturaAsistenciaEstado
      * @param  array<string, mixed>|null  $continuidad
      * @return array<string, mixed>
      */
-    private function persona(Empleado $empleado, ?array $previo, ?array $continuidad): array
+    private function persona(Empleado $empleado, ?array $previo, ?array $continuidad, string $ultimoTurno): array
     {
         $registro = $empleado->registrosDiarios->first();
 
@@ -123,11 +130,30 @@ final class CapturaAsistenciaEstado
             'destacada' => FilaPersonal::esDirectivo($empleado->puesto),
             // Nobody defaults to "Presente": each person is picked explicitly.
             'estatus' => (string) ($previo['estatus'] ?? $registro?->estatus?->value ?? ''),
+            'turno' => (string) ($previo['turno'] ?? $registro?->turno?->value ?? $ultimoTurno),
             'fecha_inicio' => (string) ($previo['fecha_inicio'] ?? $registro?->fecha_inicio?->toDateString() ?? ''),
             'fecha_fin' => (string) ($previo['fecha_fin'] ?? $registro?->fecha_fin?->toDateString() ?? ''),
             'notas' => (string) ($previo['notas'] ?? $registro?->notas ?? ''),
             'continuidad' => $registro === null ? $continuidad : null,
         ];
+    }
+
+    /**
+     * Turno del registro más reciente anterior a $fecha de cada persona (se propone al capturar; primer turno si no hay).
+     *
+     * @param  Collection<int, Empleado>  $roster
+     * @return array<int, string>
+     */
+    private function ultimosTurnos(Collection $roster, CarbonInterface $fecha): array
+    {
+        return RegistroDiario::query()
+            ->whereIn('empleado_id', $roster->pluck('id'))
+            ->whereDate('fecha', '<', $fecha)
+            ->orderBy('fecha')
+            ->get(['empleado_id', 'turno'])
+            ->keyBy('empleado_id') // ordenado por fecha: gana el más reciente
+            ->map(fn (RegistroDiario $registro) => $registro->turno->value)
+            ->all();
     }
 
     /**

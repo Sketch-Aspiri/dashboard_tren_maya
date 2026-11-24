@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\EstatusAsistencia;
+use App\Enums\TurnoAsistencia;
 use App\Models\Empleado;
 use App\Models\Estacion;
 use App\Models\RegistroDiario;
@@ -25,6 +26,7 @@ class RegistroDiarioFactory extends Factory
             'estacion_id' => Estacion::factory(),
             'fecha' => now()->toDateString(),
             'estatus' => EstatusAsistencia::Presente->value,
+            'turno' => TurnoAsistencia::Primer->value,
             'fecha_inicio' => null,
             'fecha_fin' => null,
             'notas' => null,

@@ -48,6 +48,8 @@
         </div>
     @endif
 
+    @include('asistencia.captura._oficios-comision')
+
     @if (! $puedeGenerarOficio)
         <p class="text-sm text-gray-500">{{ __('Solo puedes generar el oficio de hoy para tu estación.') }}</p>
     @elseif (! $oficio['capturada'])

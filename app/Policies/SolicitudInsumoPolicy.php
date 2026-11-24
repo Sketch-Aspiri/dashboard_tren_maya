@@ -10,8 +10,8 @@ use App\Support\Roles;
 /**
  * Autorización de "Recursos materiales" -> Solicitud de insumos. "Estación"
  * captura/envía solo la de su estación y solo mientras está en borrador u
- * observada; "Jefe de Zona", "Administrador" y "Edificio" ven todas; solo Jefe de Zona
- * y Administrador revisan, aprueban y consolidan.
+ * observada; "Jefe de Zona", "Administrador" y "Edificio" ven todas; Edificio captura la de
+ * "Edificio Zonal Este" y, junto con la Jefatura, revisa y aprueba todas (también la suya); consolidar es de la Jefatura.
  */
 class SolicitudInsumoPolicy
 {
@@ -40,8 +40,10 @@ class SolicitudInsumoPolicy
      */
     public function update(User $user, SolicitudInsumo $solicitud): bool
     {
-        return $user->hasRole(Roles::ESTACION)
-            && $user->estacion_id === $solicitud->estacion_id
+        $propia = $user->estacionPropiaId();
+
+        return $propia !== null
+            && $propia === $solicitud->estacion_id
             && $solicitud->esEditablePorEstacion();
     }
 
@@ -51,12 +53,12 @@ class SolicitudInsumoPolicy
      */
     public function review(User $user, SolicitudInsumo $solicitud): bool
     {
-        return $user->hasAnyRole(Roles::JEFATURA)
+        return $user->hasAnyRole(Roles::ZONA)
             && in_array($solicitud->estado, [SolicitudInsumo::ENVIADA, SolicitudInsumo::OBSERVADA, SolicitudInsumo::APROBADA], true);
     }
 
     /**
-     * Consolidado y catálogo: solo la Zona.
+     * Consolidado y envío a Coordinación: solo la Jefatura (Edificio revisa, no consolida).
      */
     public function consolidate(User $user): bool
     {

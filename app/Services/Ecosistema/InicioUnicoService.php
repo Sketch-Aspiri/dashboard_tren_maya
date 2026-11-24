@@ -207,7 +207,7 @@ final class InicioUnicoService
     {
         $user = $request->user();
 
-        if (! $user instanceof User || $user->roles()->doesntExist()) {
+        if (! $user instanceof User || $user->desactivado_at !== null || $user->roles()->doesntExist()) {
             return null;
         }
 
@@ -222,7 +222,7 @@ final class InicioUnicoService
     {
         $user = User::query()->whereRaw('LOWER(email) = ?', [mb_strtolower($email)])->first();
 
-        return $user && $user->roles()->exists() ? $user : null;
+        return $user && $user->desactivado_at === null && $user->roles()->exists() ? $user : null;
     }
 
     public function iniciar(Request $request, User $user, bool $mfa, string $origen): void

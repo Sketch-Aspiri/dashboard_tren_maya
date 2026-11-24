@@ -42,7 +42,7 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        if (! Auth::attempt([...$this->only('email', 'password'), 'desactivado_at' => null], $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             // No causer: the credentials didn't resolve to an authenticated

@@ -210,4 +210,91 @@ class PortalPuenteTest extends TestCase
         $this->assertSame(['dos@ejemplo.test'], array_column($siguiente->json('cuentas'), 'email'));
         $this->assertNull($siguiente->json('siguiente'));
     }
+
+    private function cambiar(string $portalUserId, array $datos, array $cabeceras = []): TestResponse
+    {
+        $ruta = '/interno/portal/cuentas/'.$portalUserId;
+        $cuerpo = (string) json_encode($datos);
+
+        return $this->call('PUT', $ruta, [], [], [], $this->transformHeadersToServerVars(
+            ($cabeceras ?: $this->firmado('PUT', $ruta, $cuerpo)) + ['CONTENT_TYPE' => 'application/json', 'Accept' => 'application/json'],
+        ), $cuerpo);
+    }
+
+    private function aprovisionada(array $cambios = []): User
+    {
+        $datos = $this->datos($cambios);
+        $this->crear($datos)->assertOk();
+
+        return User::query()->where('portal_user_id', $datos['portal_user_id'])->firstOrFail();
+    }
+
+    public function test_el_portal_da_de_baja_y_reactiva_una_cuenta_y_cierra_sus_sesiones(): void
+    {
+        $user = $this->aprovisionada(['email' => 'baja@ejemplo.test', 'role' => 'jefe_zona']);
+        $this->aprovisionada(['email' => 'admin@ejemplo.test', 'role' => 'administrador']);
+
+        $this->cambiar($user->portal_user_id, ['estado' => 'inactivo'])->assertOk()->assertJsonPath('estado', 'actualizada');
+        $this->assertNotNull($user->fresh()->desactivado_at);
+        $this->obtener('/interno/portal/cuentas', ['limite' => 500])->assertJsonFragment(['email' => 'baja@ejemplo.test', 'estado' => 'inactive']);
+
+        $this->cambiar($user->portal_user_id, ['estado' => 'activo'])->assertOk();
+        $this->assertNull($user->fresh()->desactivado_at);
+    }
+
+    public function test_una_cuenta_dada_de_baja_no_puede_iniciar_sesion_ni_conserva_la_sesion(): void
+    {
+        $user = $this->aprovisionada(['email' => 'baja@ejemplo.test', 'role' => 'jefe_zona']);
+        $this->aprovisionada(['email' => 'admin@ejemplo.test', 'role' => 'administrador']);
+        $this->cambiar($user->portal_user_id, ['estado' => 'inactivo'])->assertOk();
+
+        $this->post('/login', ['email' => 'baja@ejemplo.test', 'password' => 'Clave-Segura-2026!'])->assertSessionHasErrors('email');
+        $this->assertGuest();
+
+        $this->actingAs($user->fresh())->get('/')->assertRedirect(route('login'));
+        $this->assertGuest();
+    }
+
+    public function test_el_portal_cambia_rol_y_estacion(): void
+    {
+        $user = $this->aprovisionada(['email' => 'rol@ejemplo.test', 'role' => 'jefe_zona']);
+        $estacion = Estacion::factory()->create();
+
+        $this->cambiar($user->portal_user_id, ['role' => 'estacion', 'estacion_id' => $estacion->id, 'area' => 'rh'])->assertOk();
+
+        $user->refresh();
+        $this->assertTrue($user->hasRole(Roles::ESTACION));
+        $this->assertFalse($user->hasRole(Roles::JEFE_ZONA));
+        $this->assertSame($estacion->id, $user->estacion_id);
+        $this->cambiar($user->portal_user_id, ['role' => 'estacion'])->assertUnprocessable();
+    }
+
+    public function test_no_se_puede_dar_de_baja_ni_degradar_al_ultimo_administrador(): void
+    {
+        $admin = $this->aprovisionada(['email' => 'admin@ejemplo.test', 'role' => 'administrador']);
+
+        $this->cambiar($admin->portal_user_id, ['estado' => 'inactivo'])->assertStatus(409);
+        $this->cambiar($admin->portal_user_id, ['role' => 'jefe_zona'])->assertStatus(409);
+        $this->assertNull($admin->fresh()->desactivado_at);
+        $this->assertTrue($admin->fresh()->hasRole(Roles::ADMINISTRADOR));
+    }
+
+    public function test_un_id_desconocido_es_404_y_nunca_se_busca_por_correo(): void
+    {
+        $local = User::factory()->create(['email' => 'local@ejemplo.test']);
+
+        $this->cambiar((string) Str::uuid(), ['estado' => 'inactivo'])->assertNotFound();
+        $this->cambiar('no-es-uuid', ['estado' => 'inactivo'])->assertNotFound();
+        $this->assertNull($local->fresh()->desactivado_at);
+    }
+
+    public function test_los_cambios_exigen_la_firma_del_portal(): void
+    {
+        $user = $this->aprovisionada(['email' => 'firma@ejemplo.test']);
+        $ruta = '/interno/portal/cuentas/'.$user->portal_user_id;
+        $cuerpo = (string) json_encode(['estado' => 'inactivo']);
+
+        $this->cambiar($user->portal_user_id, ['estado' => 'inactivo'], $this->firmado('PUT', $ruta, $cuerpo, secreto: 'otro-secreto-de-al-menos-treinta-y-dos-caracteres'))->assertUnauthorized();
+        $this->assertNull($user->fresh()->desactivado_at);
+    }
 }

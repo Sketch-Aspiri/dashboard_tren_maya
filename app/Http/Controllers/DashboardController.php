@@ -7,7 +7,9 @@ use App\Services\Asistente\ModeloLenguaje;
 use App\Services\DashboardService;
 use App\Services\Ecosistema\TicketsPendientes;
 use App\Services\InicioEstacionService;
+use App\Support\Roles;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
@@ -19,11 +21,15 @@ class DashboardController extends Controller
      * Dashboard del Jefe de Zona: indicadores, secciones actualizadas
      * recientemente y el asistente de preguntas (si la IA está configurada).
      */
-    public function index(Request $request, ModeloLenguaje $modelo, InicioEstacionService $inicio, TicketsPendientes $tickets): View
+    public function index(Request $request, ModeloLenguaje $modelo, InicioEstacionService $inicio, TicketsPendientes $tickets): View|RedirectResponse
     {
         // Every login flow lands on the dashboard route. A station account
         // has no zone dashboard (its Gate stays closed): it gets its own home
         // with its approved sections and today's attendance status.
+        if ($request->user()->hasRole(Roles::PERSONAL)) {
+            return redirect()->route('vacaciones.mi.show');
+        }
+
         if (Gate::allows('view-inicio-estacion')) {
             return view('dashboard.estacion', [
                 'inicio' => $inicio->para($request->user()),

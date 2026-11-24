@@ -39,7 +39,9 @@ return [
                 ['label' => 'Asistencia Zona Oriente', 'ruta' => 'asistencia.zona.index', 'patron' => 'asistencia.zona.*', 'roles' => Roles::ZONA],
                 ['label' => 'Captura de asistencia', 'ruta' => 'asistencia.captura.index', 'patron' => 'asistencia.captura.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
                 ['label' => 'Rol de horarios', 'ruta' => 'horarios.index', 'patron' => 'horarios.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
-                ['label' => 'Rol de vacaciones', 'ruta' => 'vacaciones.index', 'patron' => 'vacaciones.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
+                ['label' => 'Rol de vacaciones', 'ruta' => 'vacaciones.index', 'patron' => 'vacaciones.*', 'excepto' => 'vacaciones.mi.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
+                ['label' => 'Mis vacaciones', 'ruta' => 'vacaciones.mi.show', 'patron' => 'vacaciones.mi.*', 'roles' => [...Roles::ZONA, Roles::ESTACION, Roles::PERSONAL], 'requiere_empleado' => true],
+                ['label' => 'Selección de vacaciones', 'ruta' => 'vacaciones.seleccion.revision', 'patron' => 'vacaciones.seleccion.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
                 ['label' => 'Cumpleaños', 'ruta' => 'cumpleanos.index', 'patron' => 'cumpleanos.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
             ],
             'secciones' => [
@@ -57,10 +59,11 @@ return [
         [
             'slug' => 'recursos-materiales',
             'nombre' => 'Recursos materiales',
-            'patrones' => ['insumos.*', 'papeleria.*', 'ptar.*'],
+            'patrones' => ['insumos.*', 'papeleria.*', 'agua.*', 'ptar.*'],
             'items' => [
                 ['label' => 'Solicitud de insumos', 'ruta' => 'insumos.index', 'patron' => 'insumos.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
                 ['label' => 'Solicitud de papelería', 'ruta' => 'papeleria.index', 'patron' => 'papeleria.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
+                ['label' => 'Registro de agua', 'ruta' => 'agua.index', 'patron' => 'agua.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
                 ['label' => 'PTAR', 'ruta' => 'ptar.index', 'patron' => 'ptar.*', 'roles' => [...Roles::ZONA, Roles::ESTACION]],
             ],
             'secciones' => [

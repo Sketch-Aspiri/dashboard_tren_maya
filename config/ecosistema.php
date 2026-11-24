@@ -21,6 +21,8 @@ return [
 
     // Destino del logo de la barra: el portal central. Independiente del inicio único (ECOSISTEMA_PORTAL_URL).
     'portal_inicio' => rtrim((string) env('ECOSISTEMA_PORTAL_INICIO_URL', 'https://zonaorientetm.tech'), '/'),
+    // Lo que abre el logo: el panel «Mis sistemas» del portal (/inicio), no su portada pública.
+    'portal_panel' => rtrim((string) env('ECOSISTEMA_PORTAL_INICIO_URL', 'https://zonaorientetm.tech'), '/').'/inicio',
 
     // Inicio de sesión único entre los dos sistemas (App\Services\Ecosistema\InicioUnicoService).
     // ECOSISTEMA_SSO_SECRET: el MISMO valor en los .env de ambos sistemas (32+ caracteres aleatorios;
@@ -100,6 +102,10 @@ return [
         'cumpleanos_hora' => env('ECOSISTEMA_AVISO_CUMPLEANOS_HORA', '08:00'),
         // Hora (America/Cancun) del recordatorio mensual del registro de PTAR (día en config/ptar.php).
         'ptar_hora' => env('ECOSISTEMA_AVISO_PTAR_HORA', '09:00'),
+        // Por dónde sale el push: `tickets` (PWA de Tickets, solo cuentas vinculadas) o `portal` (PWA del portal, cuentas
+        // activas del portal). Se cambia a `portal` cuando las personas ya tienen cuenta y dispositivo en el portal;
+        // volver a `tickets` es la reversa inmediata (config:cache).
+        'destino' => env('ECOSISTEMA_AVISOS_DESTINO', 'tickets'),
     ],
 
 ];

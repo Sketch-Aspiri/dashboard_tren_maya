@@ -88,8 +88,8 @@ class CatalogoInsumoTest extends TestCase
         $insumo = CatalogoInsumo::factory()->create();
         $estacion = Estacion::factory()->create();
 
-        foreach (['Estación', 'Edificio'] as $rol) {
-            $this->actingAsTwoFactorVerified($this->userWithRole($rol, ['estacion_id' => $rol === 'Estación' ? $estacion->id : null]));
+        foreach (['Estación'] as $rol) {
+            $this->actingAsTwoFactorVerified($this->userWithRole($rol, ['estacion_id' => $estacion->id]));
 
             $this->get(route('insumos.catalogo.index'))->assertForbidden();
             $this->post(route('insumos.catalogo.store'), ['descripcion' => 'X', 'unidad' => 'Pieza'])->assertForbidden();

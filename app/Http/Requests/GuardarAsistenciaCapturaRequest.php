@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\EstatusAsistencia;
+use App\Enums\TurnoAsistencia;
 use App\Models\Empleado;
 use App\Models\Estacion;
 use App\Models\RegistroDiario;
@@ -55,6 +56,7 @@ class GuardarAsistenciaCapturaRequest extends FormRequest
             'registros' => ['required', 'array', 'min:1'],
             'registros.*.empleado_id' => ['required', 'integer', 'exists:empleados,id'],
             'registros.*.estatus' => ['required', Rule::enum(EstatusAsistencia::class)],
+            'registros.*.turno' => ['nullable', Rule::enum(TurnoAsistencia::class)],
             'registros.*.fecha_inicio' => ['nullable', 'date'],
             'registros.*.fecha_fin' => ['nullable', 'date'],
             'registros.*.notas' => ['nullable', 'string', 'max:1000'],

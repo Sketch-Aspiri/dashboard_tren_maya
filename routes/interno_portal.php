@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('catalogo', PortalCatalogoController::class)->name('catalogo');
 Route::get('cuentas', [PortalCuentasController::class, 'index'])->name('cuentas.index');
 Route::post('cuentas', [PortalCuentasController::class, 'store'])->name('cuentas.store');
+Route::put('cuentas/{portalUserId}', [PortalCuentasController::class, 'update'])->name('cuentas.update');
 
 // Foto de perfil única: el portal la lee (herencia inicial) y la reparte.
 Route::get('avatar', [PortalFotoController::class, 'show'])->name('avatar.show');

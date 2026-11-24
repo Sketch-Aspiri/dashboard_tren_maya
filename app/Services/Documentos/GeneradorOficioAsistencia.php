@@ -55,8 +55,10 @@ final class GeneradorOficioAsistencia
 
     /**
      * Writes the finished .docx to $destino (an absolute path).
+     *
+     * @param  list<string>  $anexos  page images (JPG/PNG) of the commission oficios, appended one per page after the signature
      */
-    public function generar(OficioZonaData $data, MetadatosOficio $meta, string $destino): void
+    public function generar(OficioZonaData $data, MetadatosOficio $meta, string $destino, array $anexos = []): void
     {
         // Names, notes and destinations are user input: escape XML.
         Settings::setOutputEscapingEnabled(true);
@@ -92,8 +94,47 @@ final class GeneradorOficioAsistencia
 
         $this->seccionE($seccion, $data);
         $this->cierre($seccion, $meta);
+        $this->anexos($word, $anexos);
 
         $word->save($destino, 'Word2007');
+    }
+
+    /**
+     * Commission oficios: a new section (no letterhead/footer) with one scanned
+     * page per sheet, each scaled to fit inside the A4 page.
+     *
+     * @param  list<string>  $paginas
+     */
+    private function anexos(PhpWord $word, array $paginas): void
+    {
+        if ($paginas === []) {
+            return;
+        }
+
+        $margen = Converter::inchToTwip(0.4);
+        $seccion = $word->addSection([
+            'paperSize' => 'A4',
+            'breakType' => 'nextPage',
+            'marginLeft' => $margen, 'marginRight' => $margen, 'marginTop' => $margen, 'marginBottom' => $margen,
+            'headerHeight' => 0, 'footerHeight' => 0,
+        ]);
+        // An empty header/footer stops the section from inheriting the letterhead.
+        $seccion->addHeader();
+        $seccion->addFooter();
+
+        $cajaAncho = 595.3 - 2 * 28.8;
+        $cajaAlto = 841.9 - 2 * 28.8 - 14; // a little slack: a full-height image would spill a blank page
+
+        foreach ($paginas as $n => $ruta) {
+            [$w, $h] = getimagesize($ruta);
+            $escala = min($cajaAncho / $w, $cajaAlto / $h);
+
+            if ($n > 0) {
+                $seccion->addPageBreak();
+            }
+
+            $seccion->addImage($ruta, ['width' => round($w * $escala, 1), 'height' => round($h * $escala, 1), 'alignment' => Jc::CENTER]);
+        }
     }
 
     // ---------------------------------------------------------------- page

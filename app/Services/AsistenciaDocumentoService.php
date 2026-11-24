@@ -7,6 +7,7 @@ use App\Enums\TipoDocumentoAsistencia;
 use App\Models\DocumentoAsistencia;
 use App\Models\Empleado;
 use App\Models\Estacion;
+use App\Models\OficioComision;
 use App\Models\User;
 use App\Services\Documentos\AsistenciaDocumentoDataBuilder;
 use App\Services\Documentos\ConvertidorPdf;
@@ -15,6 +16,7 @@ use App\Services\Documentos\GeneradorOficioAsistencia;
 use App\Services\Documentos\ImportadorFirma;
 use App\Services\Documentos\MetadatosOficio;
 use App\Services\Documentos\NumeroOficioService;
+use App\Services\Documentos\OficioZonaData;
 use Carbon\CarbonInterface;
 use Closure;
 use DomainException;
@@ -45,6 +47,7 @@ final class AsistenciaDocumentoService
         private readonly ImportadorFirma $importadorFirma,
         private readonly ConvertidorPdf $convertidor,
         private readonly NumeroOficioService $numeros,
+        private readonly OficiosComisionService $oficios,
     ) {}
 
     /**
@@ -58,6 +61,7 @@ final class AsistenciaDocumentoService
 
         $datosAl = now();
         $data = $this->builder->paraEstacion($estacion, $fecha);
+        $anexos = $this->oficios->vigentes($estacion, $fecha);
 
         return $this->producir(
             TipoDocumentoAsistencia::Estacion,
@@ -67,7 +71,7 @@ final class AsistenciaDocumentoService
             $meta,
             false,
             $actor,
-            fn (string $docx, ?string $firmaPath) => $this->generador->generar($data, $meta->conFirma($firmaPath), $docx),
+            fn (string $docx, ?string $firmaPath) => $this->generarConAnexos($data, $meta->conFirma($firmaPath), $docx, $anexos),
             $firma,
         );
     }
@@ -102,6 +106,7 @@ final class AsistenciaDocumentoService
         );
         $datosAl = now();
         $data = $this->builder->paraZona($fecha);
+        $anexos = $this->oficios->vigentes(null, $fecha);
 
         return $this->producir(
             TipoDocumentoAsistencia::Zona,
@@ -111,9 +116,25 @@ final class AsistenciaDocumentoService
             $meta,
             (bool) $firmante['suplencia'],
             $actor,
-            fn (string $docx, ?string $firmaPath) => $this->generador->generar($data, $meta->conFirma($firmaPath), $docx),
+            fn (string $docx, ?string $firmaPath) => $this->generarConAnexos($data, $meta->conFirma($firmaPath), $docx, $anexos),
             $firma,
         );
+    }
+
+    /**
+     * Writes the .docx with the commission oficios of $anexos appended as the last pages.
+     *
+     * @param  Collection<int, OficioComision>  $anexos
+     */
+    private function generarConAnexos(OficioZonaData $data, MetadatosOficio $meta, string $docx, Collection $anexos): void
+    {
+        $paginas = $this->oficios->paginas($anexos);
+
+        try {
+            $this->generador->generar($data, $meta, $docx, $paginas);
+        } finally {
+            $this->oficios->limpiar($paginas);
+        }
     }
 
     public function documentoDeZona(CarbonInterface $fecha): ?DocumentoAsistencia
@@ -140,6 +161,7 @@ final class AsistenciaDocumentoService
             'desactualizado' => $documento !== null && $this->estaDesactualizado($documento),
             'numero' => $documento?->numero_oficio ?? $this->numeros->sugerirParaZona(),
             'firmante' => $documento?->es_suplencia ? 'subgerente' : 'director',
+            'anexos' => $this->oficios->resumenPorEstacion(null, $fecha),
         ];
     }
 
@@ -180,7 +202,10 @@ final class AsistenciaDocumentoService
             }
         }
 
-        return false;
+        // Commission oficios added or removed afterwards are not in the files either.
+        $cambioOficios = $this->oficios->ultimoCambio($documento->estacion_id);
+
+        return $cambioOficios !== null && $cambioOficios > $datosAl;
     }
 
     /**
@@ -232,6 +257,7 @@ final class AsistenciaDocumentoService
             'numero' => $documento?->numero_oficio ?? $this->numeros->sugerirParaEstacion($estacion, $fecha),
             'firmante_cargo' => $documento?->firmante_cargo ?? $firmante['cargo'],
             'firmante_nombre' => $documento?->firmante_nombre ?? $firmante['nombre'],
+            'oficios_comision' => $this->oficios->listado($estacion),
         ];
     }
 
