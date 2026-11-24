@@ -5,10 +5,10 @@
     /** @var \Illuminate\Support\Collection<int, \App\Models\Estacion> $estaciones */
     /** @var bool $puedeGestionarComisionados */
     $esAdministrador = auth()->user()->can('captureAnyEstacion', \App\Models\RegistroDiario::class);
-    $erroresDelOficio = ['oficio', 'numero_oficio', 'firmante_cargo', 'firmante_nombre', 'iniciales', 'firma'];
+    $erroresDelOficio = ['oficio', 'numero_oficio', 'firmante_cargo', 'firmante_nombre', 'iniciales', 'firma', 'oficios_comision', 'archivos'];
 
     $estadoPantalla = array_merge($estado, [
-        'pasoInicial' => session('paso') ?? ($errors->hasAny($erroresDelOficio) ? 'oficio' : 'asistencia'),
+        'pasoInicial' => session('paso') ?? ($errors->hasAny($erroresDelOficio) || collect($errors->keys())->contains(fn ($k) => str_starts_with($k, 'archivos.')) ? 'oficio' : 'asistencia'),
         'haySinGuardar' => old('registros') !== null,
         'erroresRegistros' => collect($errors->getMessages())
             ->filter(fn ($mensajes, $campo) => str_starts_with($campo, 'registros.'))

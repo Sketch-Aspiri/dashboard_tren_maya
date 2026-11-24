@@ -5,6 +5,7 @@ use App\Http\Controllers\AguaController;
 use App\Http\Controllers\AsistenciaCapturaController;
 use App\Http\Controllers\AsistenciaDocumentoController;
 use App\Http\Controllers\AsistenciaZonaController;
+use App\Http\Controllers\OficioComisionController;
 use App\Http\Controllers\AsistenteController;
 use App\Http\Controllers\CatalogoInsumoController;
 use App\Http\Controllers\CatalogoPapeleriaController;
@@ -142,6 +143,14 @@ Route::middleware(['auth', 'verified', 'two-factor.verified', 'solo-personal'])-
             ->middleware('throttle:60,1')
             ->whereIn('formato', ['docx', 'pdf'])
             ->name('documentos.download');
+
+        // Oficios de comisión que se anexan al final del control (estación y zona).
+        Route::post('/captura/oficios-comision', [OficioComisionController::class, 'store'])
+            ->middleware('throttle:30,1')->name('captura.oficios-comision.store');
+        Route::delete('/oficios-comision/{oficioComision}', [OficioComisionController::class, 'destroy'])
+            ->name('oficios-comision.destroy');
+        Route::get('/oficios-comision/{oficioComision}', [OficioComisionController::class, 'download'])
+            ->middleware('throttle:60,1')->name('oficios-comision.download');
 
         // Etapa 2 — comisionados_visitantes / comisionados_fuera (ver el
         // plan aprobado). Listados inline en la misma pantalla de captura,

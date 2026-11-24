@@ -12,6 +12,8 @@ use App\Services\Asistente\ClienteClaude;
 use App\Services\Asistente\ModeloLenguaje;
 use App\Services\Documentos\ConvertidorPdf;
 use App\Services\Documentos\ConvertidorPdfLibreOffice;
+use App\Services\Documentos\RasterizadorPdf;
+use App\Services\Documentos\RasterizadorPdfGhostscript;
 use App\Services\Documentos\UnidorPdf;
 use App\Services\Documentos\UnidorPdfGhostscript;
 use App\Services\Nube\Contracts\ProveedorNube;
@@ -60,6 +62,11 @@ class AppServiceProvider extends ServiceProvider
         ));
 
         $this->app->singleton(HojaGoogleCliente::class, fn () => new GoogleSheetsCliente(config('asistencia_sheets.credenciales')));
+
+        $this->app->singleton(RasterizadorPdf::class, fn () => new RasterizadorPdfGhostscript(
+            binario: (string) config('asistencia_documentos.oficios_comision.gs_path'),
+            dpi: (int) config('asistencia_documentos.oficios_comision.dpi'),
+        ));
 
         $this->app->singleton(UnidorPdf::class, fn () => new UnidorPdfGhostscript((string) config('insumos.comprobacion.gs_path')));
 
