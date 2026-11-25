@@ -149,7 +149,7 @@
                     <div class="flex flex-wrap items-center gap-2">
                         <button type="button" @click="verPdf()" :disabled="cargando" class="ins-btn-secundario"
                                 x-text="cargando ? '{{ __('Generando…') }}' : (pdfUrl ? '{{ __('Actualizar vista previa') }}' : '{{ __('Vista previa del PDF') }}')"></button>
-                        <button type="submit" class="ins-btn-primario">{{ __('Descargar PDF') }}</button>
+                        <button type="submit" class="ins-btn-primario" data-sin-carga>{{ __('Descargar PDF') }}</button>
                     </div>
                     <p x-show="error" x-cloak x-text="error" class="ins-aviso-error" role="alert"></p>
                     <iframe x-show="pdfUrl" x-cloak :src="pdfUrl" title="{{ __('Comprobación del mes en PDF') }}" class="h-[80vh] w-full rounded-md border border-gray-300 bg-white"></iframe>

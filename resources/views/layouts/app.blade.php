@@ -86,6 +86,8 @@
 
         <x-temayin-asistente />
 
+        <x-pantalla-carga />
+
         @stack('scripts')
     </body>
 </html>

@@ -1,3 +1,4 @@
+import { durante } from '../pantalla-carga.js';
 import { armarOficio, lineasFuera, lineasVisitante } from './oficio';
 
 /** Estatus que no llevan periodo en el oficio. */
@@ -274,7 +275,7 @@ export function capturaAsistencia(inicial) {
         /** Guarda en el servidor y devuelve la fila, o null si falló. */
         async enviar(metodo, url, datos, form) {
             try {
-                const respuesta = await window.axios({ method: metodo, url, data: this.cuerpo(datos), headers: this.cabeceras() });
+                const respuesta = await durante(window.axios({ method: metodo, url, data: this.cuerpo(datos), headers: this.cabeceras() }));
 
                 return respuesta.data.data;
             } catch (error) {
@@ -382,7 +383,7 @@ export function capturaAsistencia(inicial) {
             this.confirmando = null;
 
             try {
-                await window.axios({ method: 'delete', url, headers: this.cabeceras() });
+                await durante(window.axios({ method: 'delete', url, headers: this.cabeceras() }));
                 alTerminar();
                 this.alCambiarComisionados(null);
                 this.avisar('Registro quitado.');
@@ -415,12 +416,15 @@ export function capturaAsistencia(inicial) {
         async traerTodos() {
             this.trayendo = true;
 
-            for (const comision of this.fueraAnterioresDisponibles) {
-                await this.traerFuera(comision);
-            }
-            for (const visitante of this.visitantesAnterioresDisponibles) {
-                await this.traerVisitante(visitante);
-            }
+            // Una sola espera para toda la tanda: la pantalla de carga no parpadea entre persona y persona.
+            await durante((async () => {
+                for (const comision of this.fueraAnterioresDisponibles) {
+                    await this.traerFuera(comision);
+                }
+                for (const visitante of this.visitantesAnterioresDisponibles) {
+                    await this.traerVisitante(visitante);
+                }
+            })());
 
             this.trayendo = false;
         },

@@ -122,7 +122,7 @@
             this.reiniciar();
             this.cargando = true;
             try {
-                const respuesta = await fetch(@js(route('secciones.origenes.inspeccionar', $seccion)), {
+                const respuesta = await window.PantallaCarga.durante(fetch(@js(route('secciones.origenes.inspeccionar', $seccion)), {
                     method: 'POST',
                     credentials: 'same-origin',
                     headers: {
@@ -131,7 +131,7 @@
                         'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
                     },
                     body: JSON.stringify({ cuenta_id: this.cuenta || null, enlace: this.enlace }),
-                });
+                }));
                 const cuerpo = await respuesta.json().catch(() => ({}));
                 if (! respuesta.ok) {
                     const errores = cuerpo.errors || {};

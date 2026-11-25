@@ -14,11 +14,11 @@
             if (!this.columna) { return; }
             this.cargando = true;
             try {
-                const respuesta = await fetch(@js(route('secciones.tablas.estaciones.previsualizar', [$seccion, $tablaActiva])), {
+                const respuesta = await window.PantallaCarga.durante(fetch(@js(route('secciones.tablas.estaciones.previsualizar', [$seccion, $tablaActiva])), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content },
                     body: JSON.stringify({ columna: this.columna, sobrescribir: this.sobrescribir }),
-                });
+                }));
                 const cuerpo = await respuesta.json();
                 if (!respuesta.ok) { throw new Error(cuerpo?.message ?? @js(__('No se pudo calcular la vista previa.'))); }
                 this.previa = cuerpo.data;

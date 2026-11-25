@@ -1,3 +1,5 @@
+import { mostrar } from './pantalla-carga.js';
+
 /**
  * Componentes Alpine de las secciones dinámicas (tablas + documentos +
  * cargas por arrastre). Se registran desde app.js con registrarSecciones().
@@ -104,6 +106,7 @@ function zonaArrastre(url) {
             }
             if (peticion.status >= 200 && peticion.status < 300 && cuerpo?.success) {
                 if (cuerpo.data.redirigir) {
+                    mostrar();
                     window.location.href = cuerpo.data.redirigir;
                     return;
                 }

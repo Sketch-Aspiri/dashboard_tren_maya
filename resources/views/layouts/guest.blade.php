@@ -32,5 +32,7 @@
                 {{ __('Dashboard - Zona Oriente') }} &middot; {{ __('Acceso interno, uso exclusivo vía VPN') }}
             </p>
         </div>
+
+        <x-pantalla-carga />
     </body>
 </html>

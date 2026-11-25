@@ -255,3 +255,34 @@
 
 /* El logotipo es verde oscuro: en modo oscuro va sobre una placa clara. */
 .dark .logo-placa { background-color: #f2f7f5; border-radius: 0.5rem; padding: 0.25rem 0.5rem; }
+
+/* Pantalla de carga (resources/js/pantalla-carga.js). Mismo bloque en Portal, Dashboard y Tickets. Colores fijos:
+   se ve igual en modo claro y oscuro. */
+.pantalla-carga { display: none; position: fixed; inset: 0; z-index: 100; align-items: center; justify-content: center; padding: 1.5rem; cursor: progress; }
+.pantalla-carga[data-estado] { display: flex; }
+.pantalla-carga-contenido { display: flex; flex-direction: column; align-items: center; gap: 1.25rem; visibility: hidden; }
+.pantalla-carga[data-estado="visible"] { background: rgb(4 61 57 / 0.6); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.pantalla-carga[data-estado="visible"] .pantalla-carga-contenido { visibility: visible; }
+.pantalla-carga-placa { background: #fff; border-radius: 1.25rem; padding: 0.5rem 1rem; box-shadow: 0 20px 45px rgb(0 0 0 / 0.25); }
+.pantalla-carga-placa img { display: block; width: min(15rem, 62vw); height: auto; }
+.pantalla-carga-puntos { display: flex; gap: 0.75rem; }
+.pantalla-carga-puntos span { width: 0.875rem; height: 0.875rem; border-radius: 9999px; background: #fff; animation: pantalla-carga-punto 1.2s ease-in-out infinite; }
+.pantalla-carga-puntos span:nth-child(2) { background: #70c2ad; animation-delay: 0.15s; }
+.pantalla-carga-puntos span:nth-child(3) { animation-delay: 0.3s; }
+.pantalla-carga-cerrar { min-height: 44px; border: 1px solid rgb(255 255 255 / 0.6); border-radius: 0.5rem; padding: 0 1.25rem; color: #fff; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+.pantalla-carga-cerrar[hidden] { display: none; }
+.pantalla-carga-cerrar:hover, .pantalla-carga-cerrar:focus-visible { background: rgb(255 255 255 / 0.15); }
+@keyframes pantalla-carga-punto {
+    0%, 70%, 100% { transform: translateY(0); opacity: 0.45; }
+    35% { transform: translateY(-0.625rem); opacity: 1; }
+}
+@keyframes pantalla-carga-latido {
+    0%, 70%, 100% { opacity: 0.35; }
+    35% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .pantalla-carga-puntos span { animation-name: pantalla-carga-latido; }
+}
+@media print {
+    .pantalla-carga { display: none !important; }
+}

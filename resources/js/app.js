@@ -18,6 +18,7 @@ import { registrarTemayin } from './temayin';
 import { registrarNotificaciones } from './notificaciones';
 import { registrarCambiosSinGuardar } from './cambios-sin-guardar';
 import { registrarFlotante } from './flotante';
+import { durante, mostrar, ocultar, registrar as registrarPantalla } from './pantalla-carga';
 
 window.Alpine = Alpine;
 window.Chart = Chart;
@@ -68,6 +69,7 @@ function navBuscador(items) {
         irAlPrimero() {
             const primero = this.resultados[0];
             if (primero) {
+                mostrar();
                 window.location.href = primero.href;
             }
         },
@@ -114,5 +116,9 @@ registrarNotificaciones(Alpine);
 
 registrarCambiosSinGuardar(document, window);
 registrarFlotante(document.querySelector('[data-flotante]'));
+
+// Pantalla de carga: window.PantallaCarga la usan también los scripts escritos en las vistas.
+window.PantallaCarga = { mostrar, ocultar, durante };
+registrarPantalla(document, window);
 
 Alpine.start();

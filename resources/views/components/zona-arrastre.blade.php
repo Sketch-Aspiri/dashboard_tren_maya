@@ -93,7 +93,7 @@
                     </li>
                 </template>
             </ul>
-            <button type="button" @click="window.location.reload()" class="mt-2 inline-flex min-h-[44px] items-center text-sm font-semibold text-brand-teal underline">{{ __('Ver los cambios') }}</button>
+            <button type="button" @click="window.PantallaCarga?.mostrar(); window.location.reload()" class="mt-2 inline-flex min-h-[44px] items-center text-sm font-semibold text-brand-teal underline">{{ __('Ver los cambios') }}</button>
         </div>
     </form>
 </div>

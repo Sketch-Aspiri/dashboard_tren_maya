@@ -26,7 +26,7 @@
                 <p class="ins-ayuda">{{ __('Se toman los hallazgos abiertos y en proceso. Ciérralos o edítalos en Hallazgos antes de generar.') }}</p>
             </section>
 
-            <form method="POST" action="{{ route('ptar.oficio.store') }}" class="ins-card ins-card-pad space-y-4">
+            <form method="POST" action="{{ route('ptar.oficio.store') }}" class="ins-card ins-card-pad space-y-4" data-sin-carga>
                 @csrf
                 <div>
                     <label for="leyenda" class="ins-etiqueta">{{ __('Leyenda del año') }}</label>

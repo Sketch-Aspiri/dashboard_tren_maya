@@ -25,7 +25,7 @@
                         try {
                             const datos = new FormData(this.$refs.forma);
                             datos.append('ver', '1');
-                            const respuesta = await fetch(url, { method: 'POST', body: datos, headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+                            const respuesta = await window.PantallaCarga.durante(fetch(url, { method: 'POST', body: datos, headers: { Accept: 'application/json' }, credentials: 'same-origin' }));
                             if (! respuesta.ok) {
                                 const cuerpo = await respuesta.json().catch(() => ({}));
                                 throw new Error(cuerpo.message || '{{ __('No se pudo generar el PDF.') }}');

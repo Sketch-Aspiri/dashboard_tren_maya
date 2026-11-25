@@ -7,10 +7,10 @@
             this.abierto = true; this.cargando = true; this.error = null; this.nombre = nombre; this.url = url;
             if (hoja === null) { this.datos = null; }
             try {
-                const respuesta = await fetch(hoja === null ? url : url + (url.includes('?') ? '&' : '?') + 'hoja=' + hoja, {
+                const respuesta = await window.PantallaCarga.durante(fetch(hoja === null ? url : url + (url.includes('?') ? '&' : '?') + 'hoja=' + hoja, {
                     headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                     credentials: 'same-origin',
-                });
+                }));
                 const cuerpo = await respuesta.json();
                 if (!respuesta.ok || !cuerpo.success) { throw new Error('fallo'); }
                 this.datos = cuerpo.data;
