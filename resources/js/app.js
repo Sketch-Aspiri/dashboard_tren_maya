@@ -16,6 +16,8 @@ import { capturaAsistencia } from './asistencia/captura';
 import { ajustarGraficas, selectorTema } from './tema';
 import { registrarTemayin } from './temayin';
 import { registrarNotificaciones } from './notificaciones';
+import { registrarCambiosSinGuardar } from './cambios-sin-guardar';
+import { registrarFlotante } from './flotante';
 
 window.Alpine = Alpine;
 window.Chart = Chart;
@@ -109,5 +111,8 @@ registrarAsistente(Alpine);
 Alpine.data('selectorTema', selectorTema);
 registrarTemayin(Alpine);
 registrarNotificaciones(Alpine);
+
+registrarCambiosSinGuardar(document, window);
+registrarFlotante(document.querySelector('[data-flotante]'));
 
 Alpine.start();

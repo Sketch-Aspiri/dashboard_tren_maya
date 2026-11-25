@@ -7,6 +7,8 @@ use App\Services\Asistente\ModeloLenguaje;
 use App\Services\DashboardService;
 use App\Services\Ecosistema\TicketsPendientes;
 use App\Services\InicioEstacionService;
+use App\Services\Pendientes\PendientesEstacion;
+use App\Services\Pendientes\PendientesZona;
 use App\Support\Roles;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -21,8 +23,14 @@ class DashboardController extends Controller
      * Dashboard del Jefe de Zona: indicadores, secciones actualizadas
      * recientemente y el asistente de preguntas (si la IA está configurada).
      */
-    public function index(Request $request, ModeloLenguaje $modelo, InicioEstacionService $inicio, TicketsPendientes $tickets): View|RedirectResponse
-    {
+    public function index(
+        Request $request,
+        ModeloLenguaje $modelo,
+        InicioEstacionService $inicio,
+        TicketsPendientes $tickets,
+        PendientesEstacion $pendientesEstacion,
+        PendientesZona $pendientesZona,
+    ): View|RedirectResponse {
         // Every login flow lands on the dashboard route. A station account
         // has no zone dashboard (its Gate stays closed): it gets its own home
         // with its approved sections and today's attendance status.
@@ -33,6 +41,7 @@ class DashboardController extends Controller
         if (Gate::allows('view-inicio-estacion')) {
             return view('dashboard.estacion', [
                 'inicio' => $inicio->para($request->user()),
+                'pendientes' => $pendientesEstacion->para($request->user()),
                 'pendientesTickets' => $tickets->para($request->user()),
             ]);
         }
@@ -47,6 +56,7 @@ class DashboardController extends Controller
             'asistencia' => $verAsistencia ? $this->dashboard->asistenciaHoy() : null,
             'insumos' => $verInsumos ? $this->dashboard->insumosDelMes() : null,
             'recientes' => $this->dashboard->seccionesRecientes(),
+            'porRevisar' => $pendientesZona->para($request->user()),
             'asistenteDisponible' => $modelo->disponible() && Gate::allows('usar-asistente'),
             'pendientesTickets' => $tickets->para($request->user()),
         ]);

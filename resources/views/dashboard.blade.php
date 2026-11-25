@@ -2,6 +2,7 @@
     /** @var list<array<string, mixed>> $kpis */
     /** @var \Illuminate\Support\Collection<int, array<string, mixed>>|null $asistencia */
     /** @var array<string, int>|null $insumos */
+    /** @var \Illuminate\Support\Collection<int, array<string, mixed>> $porRevisar */
     $ahora = now('America/Cancun')->locale('es');
     $saludo = $ahora->hour < 12 ? __('Buenos días') : ($ahora->hour < 19 ? __('Buenas tardes') : __('Buenas noches'));
     $nombreCorto = \Illuminate\Support\Str::of(Auth::user()->name)->explode(' ')->first();
@@ -61,12 +62,14 @@
                 </div>
             </section>
 
+            @include('dashboard._por-revisar')
+
             {{-- Indicadores --}}
             <section aria-labelledby="titulo-indicadores">
                 <h3 id="titulo-indicadores" class="mb-3 font-heading text-sm font-semibold uppercase tracking-wide text-gray-600">
                     {{ __('Indicadores clave') }}
                 </h3>
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     @foreach ($kpis as $kpi)
                         <x-kpi-card :label="$kpi['label']" :value="$kpi['value']" :hint="$kpi['hint']"
                                     :href="$kpi['href'] ?? null" :icono="$kpi['icono'] ?? null" :tono="$kpi['tono'] ?? null" />

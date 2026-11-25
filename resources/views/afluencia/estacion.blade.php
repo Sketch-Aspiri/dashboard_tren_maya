@@ -29,7 +29,7 @@
 
             <x-insumos.periodo ruta="afluencia.estacion" :anio="$anio" :mes="$mes" :parametros="['estacion' => $estacion->id]" />
 
-            <form method="POST" action="{{ route('afluencia.guardar', $estacion) }}" class="space-y-4">
+            <form method="POST" action="{{ route('afluencia.guardar', $estacion) }}" class="space-y-4" data-aviso-cambios="{{ $errors->any() ? '1' : '' }}">
                 @csrf
                 @method('PUT')
                 <input type="hidden" name="anio" value="{{ $anio }}">

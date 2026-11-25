@@ -40,30 +40,54 @@ class AfluenciaService
         return $clave === $actual ? $hoy['dia'] : CarbonImmutable::create($anio, $mes, 1)->daysInMonth;
     }
 
+    /** Días del mes que ya vencieron (hasta ayer): el día en curso todavía no cuenta como faltante. */
+    public function diasVencidos(int $anio, int $mes): int
+    {
+        $hoy = $this->mesActual();
+        $esteMes = $anio === $hoy['anio'] && $mes === $hoy['mes'];
+
+        return $esteMes ? $hoy['dia'] - 1 : $this->diasEsperados($anio, $mes);
+    }
+
     /**
-     * Totales del mes por estación.
+     * Días sin captura hasta ayer, en el mes al que pertenece ayer (el día 1 revisa el mes anterior).
      *
-     * @return Collection<int, array{estacion: Estacion, abordan: int, boletos: int, capturados: int, faltan: int}>
+     * @return array{anio: int, mes: int, faltan: int}
+     */
+    public function faltantesHastaAyer(Estacion $estacion): array
+    {
+        $ayer = CarbonImmutable::now('America/Cancun')->subDay();
+        $capturados = AfluenciaDiaria::query()->where('estacion_id', $estacion->id)
+            ->whereDate('fecha', '>=', $ayer->startOfMonth()->toDateString())
+            ->whereDate('fecha', '<=', $ayer->toDateString())
+            ->count();
+
+        return ['anio' => $ayer->year, 'mes' => $ayer->month, 'faltan' => max(0, $ayer->day - $capturados)];
+    }
+
+    /**
+     * Totales del mes por estación. Sin ningún dato, el total es null (no cero).
+     *
+     * @return Collection<int, array{estacion: Estacion, abordan: int|null, boletos: int|null, capturados: int, faltan: int}>
      */
     public function tablero(int $anio, int $mes): Collection
     {
+        $vencidos = $this->diasVencidos($anio, $mes);
         $totales = AfluenciaDiaria::query()
             ->whereYear('fecha', $anio)->whereMonth('fecha', $mes)
-            ->selectRaw('estacion_id, SUM(COALESCE(abordan, 0)) as abordan, SUM(COALESCE(boletos, 0)) as boletos, COUNT(*) as dias')
+            ->selectRaw('estacion_id, SUM(abordan) as abordan, SUM(boletos) as boletos, COUNT(*) as dias, SUM(DAY(fecha) <= ?) as dias_vencidos', [$vencidos])
             ->groupBy('estacion_id')
             ->get()->keyBy('estacion_id');
-        $esperados = $this->diasEsperados($anio, $mes);
 
-        return $this->estaciones()->map(function (Estacion $estacion) use ($totales, $esperados): array {
+        return $this->estaciones()->map(function (Estacion $estacion) use ($totales, $vencidos): array {
             $t = $totales->get($estacion->id);
-            $capturados = (int) ($t->dias ?? 0);
 
             return [
                 'estacion' => $estacion,
-                'abordan' => (int) ($t->abordan ?? 0),
-                'boletos' => (int) ($t->boletos ?? 0),
-                'capturados' => $capturados,
-                'faltan' => max(0, $esperados - $capturados),
+                'abordan' => $t?->abordan === null ? null : (int) $t->abordan,
+                'boletos' => $t?->boletos === null ? null : (int) $t->boletos,
+                'capturados' => (int) ($t->dias ?? 0),
+                'faltan' => max(0, $vencidos - (int) ($t->dias_vencidos ?? 0)),
             ];
         });
     }

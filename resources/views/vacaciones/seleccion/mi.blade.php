@@ -17,6 +17,9 @@
 
     <div class="py-6 sm:py-8">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+            @can('viewAny', \App\Models\VacacionPeriodo::class)
+                <x-vacaciones.nav activo="mias" />
+            @endcan
             <x-insumos.avisos />
             @error('plan') <p class="ins-aviso-error">{{ $message }}</p> @enderror
 

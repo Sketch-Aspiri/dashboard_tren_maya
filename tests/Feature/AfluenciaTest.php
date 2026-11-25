@@ -159,6 +159,44 @@ class AfluenciaTest extends TestCase
         $this->assertSame($hoy->day - 1, $fila['faltan']);
     }
 
+    public function test_board_does_not_count_today_as_missing(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-11-03 12:00', 'America/Cancun'));
+        foreach (['2026-11-01', '2026-11-02'] as $fecha) {
+            AfluenciaDiaria::query()->create(['estacion_id' => $this->tulum->id, 'fecha' => $fecha, 'abordan' => 10, 'boletos' => 4]);
+        }
+        // Capturar hoy no compensa un dia vencido que falte.
+        AfluenciaDiaria::query()->create(['estacion_id' => $this->kohunlich->id, 'fecha' => '2026-11-03', 'abordan' => 1, 'boletos' => 1]);
+
+        $tablero = app(AfluenciaService::class)->tablero(2026, 11)->keyBy(fn ($f) => $f['estacion']->id);
+
+        $this->assertSame(0, $tablero[$this->tulum->id]['faltan']);
+        $this->assertSame(2, $tablero[$this->kohunlich->id]['faltan']);
+        $this->assertSame(1, $tablero[$this->kohunlich->id]['capturados']);
+    }
+
+    public function test_board_shows_a_dash_instead_of_zero_where_nothing_was_captured(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-11-03 12:00', 'America/Cancun'));
+        AfluenciaDiaria::query()->create(['estacion_id' => $this->tulum->id, 'fecha' => '2026-11-01', 'abordan' => 0, 'boletos' => null]);
+
+        $tablero = app(AfluenciaService::class)->tablero(2026, 11)->keyBy(fn ($f) => $f['estacion']->id);
+
+        $this->assertSame(0, $tablero[$this->tulum->id]['abordan']);
+        $this->assertNull($tablero[$this->tulum->id]['boletos']);
+        $this->assertNull($tablero[$this->kohunlich->id]['abordan']);
+
+        $this->con('Jefe de Zona');
+        $this->get(route('afluencia.index'))->assertOk()->assertSee('—')->assertSee('hasta ayer');
+    }
+
+    public function test_capture_form_warns_about_unsaved_changes(): void
+    {
+        $this->con('Estación', ['estacion_id' => $this->tulum->id]);
+
+        $this->get(route('afluencia.estacion', $this->tulum))->assertOk()->assertSee('data-aviso-cambios', false);
+    }
+
     public function test_importer_finds_blocks_by_header_maps_nicolas_bravo_and_is_idempotent(): void
     {
         $libro = new Spreadsheet;

@@ -99,6 +99,7 @@
                       data-sucio="{{ old('partidas') !== null || $solicitud->partidas->isEmpty() ? '1' : '0' }}"
                       data-filas='@json($filasIniciales)' data-catalogo='@json($catalogo)' data-avisos='@json($avisosPorDescripcion)'
                       @input="sucio = true"
+                      data-aviso-cambios="{{ old('partidas') !== null ? '1' : '' }}"
                       class="space-y-6">
                     @csrf
                     @method('PUT')
@@ -266,10 +267,11 @@
                                 agregar() {
                                     this.filas.push({ cantidad: '', unidad: 'Pieza', descripcion: '', justificacion: '', partida_id: null, ficha_nombre: null, uid: ++this.contador, catalogo_insumo_id: null, precio: null, iva: null });
                                     this.sucio = true;
+                                    this.$root.dataset.avisoCambios = '1';
                                     this.$nextTick(() => document.getElementById(`p-${this.filas.length - 1}-descripcion`)?.focus());
                                 },
                                 quitar(i) {
-                                    if (this.filas.length > 1) { this.filas.splice(i, 1); this.sucio = true; }
+                                    if (this.filas.length > 1) { this.filas.splice(i, 1); this.sucio = true; this.$root.dataset.avisoCambios = '1'; }
                                 },
                                 elegir(i) {
                                     const hallado = this.catalogo.find(c => c.descripcion === this.filas[i].descripcion);
@@ -312,7 +314,7 @@
                 @endpush
             @else
                 {{-- Vista de solo lectura o revisión de la Zona. --}}
-                <form method="POST" action="{{ route('insumos.revisar', $solicitud) }}" class="space-y-6">
+                <form method="POST" action="{{ route('insumos.revisar', $solicitud) }}" class="space-y-6" @if ($puedeRevisar) data-aviso-cambios="{{ old('partidas') !== null ? '1' : '' }}" @endif>
                     @csrf
 
                     <datalist id="lista-proveedores">

@@ -5,8 +5,6 @@ namespace App\Services;
 use App\Enums\EmpleadoEstatus;
 use App\Models\Empleado;
 use App\Models\Seccion;
-use App\Models\SeccionArchivo;
-use App\Models\SeccionFila;
 use App\Models\SolicitudInsumo;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -50,11 +48,6 @@ final class DashboardService
             ];
         }
 
-        $totalSecciones = Seccion::query()->count();
-        $conInformacion = Seccion::query()
-            ->where(fn ($consulta) => $consulta->whereHas('filas')->orWhereHas('archivos'))
-            ->count();
-
         return [
             ...$kpis,
             [
@@ -63,22 +56,6 @@ final class DashboardService
                 'hint' => __('RR.HH. — Personal con estatus activo.'),
                 'href' => route('agenda.personal.index'),
                 'icono' => 'personal',
-                'tono' => null,
-            ],
-            [
-                'label' => __('Secciones con información'),
-                'value' => "{$conInformacion}/{$totalSecciones}",
-                'hint' => __('Secciones del menú con al menos un registro o documento.'),
-                'href' => null,
-                'icono' => 'secciones',
-                'tono' => null,
-            ],
-            [
-                'label' => __('Registros y documentos'),
-                'value' => number_format(SeccionFila::query()->count()).' / '.number_format(SeccionArchivo::query()->count()),
-                'hint' => __('Total de filas capturadas / documentos guardados.'),
-                'href' => null,
-                'icono' => 'documentos',
                 'tono' => null,
             ],
         ];

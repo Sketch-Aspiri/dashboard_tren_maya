@@ -19,18 +19,8 @@
                 <p class="relative mt-1 text-sm text-white/80">{{ Auth::user()->estacion?->nombre ?? __('Zona Oriente') }}@if ($inicio['area']) · {{ $inicio['area'] }}@endif</p>
             </section>
 
-            @if ($inicio['asistencia'])
-                <a href="{{ route('asistencia.captura.index') }}"
-                   class="block rounded-xl border border-brand-green/10 bg-white p-5 shadow-sm shadow-brand-green/5 hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">
-                    <p class="font-heading text-base font-semibold text-brand-green">{{ __('Captura de asistencia de hoy') }}</p>
-                    <p class="mt-1 text-sm {{ $inicio['asistencia']['capturado'] ? 'text-brand-teal' : 'text-amber-700' }}">
-                        @if ($inicio['asistencia']['capturado'])
-                            {{ __('Capturada') }} ({{ $inicio['asistencia']['total_capturado'] }}/{{ $inicio['asistencia']['total_roster'] }})
-                        @else
-                            {{ __('Pendiente') }} ({{ $inicio['asistencia']['total_capturado'] }}/{{ $inicio['asistencia']['total_roster'] }})
-                        @endif
-                    </p>
-                </a>
+            @if ($pendientes->isNotEmpty())
+                @include('dashboard._mis-pendientes')
             @endif
 
             @foreach ($inicio['accesos'] as $acceso)

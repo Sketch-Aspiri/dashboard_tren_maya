@@ -123,8 +123,13 @@
                     </x-slot>
 
                     <x-slot name="content">
+                        @php($titulos = \App\Support\MenuNavegacion::titulos($grupo['items']))
                         @foreach ($grupo['items'] as $item)
                             @continue($item['oculto'])
+                            @isset($titulos[$loop->index])
+                                <p data-menu-titulo="{{ $titulos[$loop->index][0] }}" @click.stop
+                                   class="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">{{ $titulos[$loop->index][1] }}</p>
+                            @endisset
                             <x-dropdown-link :href="$item['href']" :aria-current="$item['activo'] ? 'page' : null"
                                              style="padding-inline-start: {{ 1 + $item['nivel'] * 1.25 }}rem"
                                              class="{{ $item['activo'] ? 'border-s-4 border-brand-teal bg-brand-mist font-semibold !text-brand-green' : 'border-s-4 border-transparent font-medium' }}">
@@ -165,8 +170,13 @@
                         </svg>
                     </button>
                     <div x-show="abierto" x-cloak class="ms-4 border-s border-brand-green/15 py-1 ps-2">
+                        @php($titulos = \App\Support\MenuNavegacion::titulos($grupo['items']))
                         @foreach ($grupo['items'] as $item)
                             @continue($item['oculto'])
+                            @isset($titulos[$loop->index])
+                                <p data-menu-titulo="{{ $titulos[$loop->index][0] }}" @click.stop
+                                   class="ps-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">{{ $titulos[$loop->index][1] }}</p>
+                            @endisset
                             <x-responsive-nav-link :href="$item['href']" :active="$item['activo']" class="text-sm"
                                                    style="margin-inline-start: {{ $item['nivel'] * 1 }}rem">
                                 @if ($item['nivel'] > 0)<span class="me-1 text-gray-400" aria-hidden="true">↳</span>@endif{{ $item['label'] }}

@@ -6,6 +6,7 @@
     $pestanas = [
         ['rol', __('Rol de vacaciones'), route('vacaciones.index'), true],
         ['solicitudes', $esZona ? __('Solicitudes de cambio') : __('Mis solicitudes'), route('vacaciones.solicitudes.index'), true],
+        ['mias', __('Mis vacaciones'), route('vacaciones.mi.show'), auth()->user()?->empleado_id !== null],
         ['importar', __('Subir rol'), route('vacaciones.importar.create'), $esZona],
         ['seleccion', __('Selección :anio', ['anio' => config('vacaciones.anio_seleccion')]), route('vacaciones.seleccion.revision'), true],
         ['calendario', __('Calendario'), route('vacaciones.seleccion.calendario'), auth()->user()?->can('viewAny', \App\Models\VacacionPlan::class)],

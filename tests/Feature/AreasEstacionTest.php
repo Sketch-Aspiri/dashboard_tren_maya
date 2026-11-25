@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Notifications\AvisoDashboard;
 use App\Services\Ecosistema\AvisosEcosistema;
 use App\Services\InicioEstacionService;
+use App\Services\Pendientes\PendientesEstacion;
 use App\Support\Areas;
 use App\Support\Roles;
 use Database\Seeders\EquipoSeeder;
@@ -137,7 +138,7 @@ class AreasEstacionTest extends TestCase
         $inicio = app(InicioEstacionService::class)->para($rm);
 
         $this->assertSame('Recursos Materiales', $inicio['area']);
-        $this->assertNull($inicio['asistencia']);
+        $this->assertNotContains('asistencia', app(PendientesEstacion::class)->para($rm)->pluck('clave')->all());
         $this->assertContains(route('insumos.index'), array_column($inicio['accesos'], 'ruta'));
         $this->assertNotContains(route('horarios.index'), array_column($inicio['accesos'], 'ruta'));
     }

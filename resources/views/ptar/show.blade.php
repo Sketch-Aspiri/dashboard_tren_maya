@@ -56,7 +56,7 @@
             </div>
 
             @if ($puedeEditar)
-                <form method="POST" action="{{ route('ptar.guardar', $registro) }}" class="space-y-6">
+                <form method="POST" action="{{ route('ptar.guardar', $registro) }}" class="space-y-6" data-aviso-cambios="{{ $errors->any() ? '1' : '' }}">
                     @csrf
                     @method('PUT')
             @endif

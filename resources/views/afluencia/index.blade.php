@@ -2,14 +2,15 @@
     /** @var int $anio */
     /** @var int $mes */
     /** @var bool $puedeConsolidar */
-    /** @var \Illuminate\Support\Collection<int, array{estacion: \App\Models\Estacion, abordan: int, boletos: int, capturados: int, faltan: int}> $tablero */
+    /** @var \Illuminate\Support\Collection<int, array{estacion: \App\Models\Estacion, abordan: int|null, boletos: int|null, capturados: int, faltan: int}> $tablero */
     $nombresMes = [
         1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril', 5 => 'Mayo', 6 => 'Junio',
         7 => 'Julio', 8 => 'Agosto', 9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre',
     ];
-    $n = fn ($v) => number_format((int) $v);
-    $abordan = $tablero->sum('abordan');
-    $boletos = $tablero->sum('boletos');
+    $n = fn ($v) => $v === null ? '—' : number_format((int) $v);
+    $total = fn (string $campo) => $tablero->whereNotNull($campo)->isEmpty() ? null : $tablero->sum($campo);
+    $abordan = $total('abordan');
+    $boletos = $total('boletos');
     $conFaltantes = $tablero->filter(fn ($f) => $f['faltan'] > 0)->count();
     $maximo = max(1, (int) $tablero->max('abordan'));
 @endphp
@@ -35,8 +36,8 @@
             <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
                 <x-kpi-card :label="__('Abordan en el mes')" :value="$n($abordan)" :hint="__('Suma de todas las estaciones.')" />
                 <x-kpi-card :label="__('Boletos vendidos')" :value="$n($boletos)" :hint="__('Suma de todas las estaciones.')" />
-                <x-kpi-card :label="__('Estaciones al corriente')" :value="($tablero->count() - $conFaltantes).' / '.$tablero->count()" :hint="__('Con todos los días capturados hasta hoy.')" />
-                <x-kpi-card :label="__('Con días sin captura')" :value="$conFaltantes" :tono="$conFaltantes > 0 ? 'alerta' : null" :hint="__('Estaciones a las que les faltan días.')" />
+                <x-kpi-card :label="__('Estaciones al corriente')" :value="($tablero->count() - $conFaltantes).' / '.$tablero->count()" :hint="__('Con todos los días capturados hasta ayer.')" />
+                <x-kpi-card :label="__('Con días sin captura')" :value="$conFaltantes" :tono="$conFaltantes > 0 ? 'alerta' : null" :hint="__('Estaciones a las que les faltan días hasta ayer.')" />
             </div>
 
             <div class="ins-tabla-marco">
@@ -74,7 +75,7 @@
                     </tbody>
                 </table>
             </div>
-            <p class="ins-ayuda">{{ __('Un día vacío es un día sin captura, no un cero. La barra compara los abordajes de cada estación con la mayor.') }}</p>
+            <p class="ins-ayuda">{{ __('Un día vacío es un día sin captura, no un cero; «—» indica que no hay ningún dato. El día de hoy no cuenta como faltante. La barra compara los abordajes de cada estación con la mayor.') }}</p>
         </div>
     </div>
 </x-app-layout>

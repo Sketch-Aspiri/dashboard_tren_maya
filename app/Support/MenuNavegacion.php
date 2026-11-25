@@ -62,6 +62,7 @@ class MenuNavegacion
                         'nivel' => 0,
                         'oculto' => false,
                         'busqueda' => $item['label'],
+                        'modulo' => true,
                     ]);
 
                 if ($puedeVerSecciones) {
@@ -83,6 +84,35 @@ class MenuNavegacion
             })
             ->filter(fn (array $grupo) => $grupo['items'] !== [])
             ->values();
+    }
+
+    /**
+     * Encabezados "Módulos" y "Documentos" de un desplegable, indexados por la posición del primer enlace de
+     * cada bloque. Solo cuando el grupo mezcla ambas cosas.
+     *
+     * @param  array<int, array<string, mixed>>  $items
+     * @return array<int, array{0: string, 1: string}>
+     */
+    public static function titulos(array $items): array
+    {
+        $primerDocumento = null;
+        $primerModulo = null;
+
+        foreach (array_values($items) as $posicion => $item) {
+            if ($item['oculto']) {
+                continue;
+            }
+
+            if ($item['modulo'] ?? false) {
+                $primerModulo ??= $posicion;
+            } else {
+                $primerDocumento ??= $posicion;
+            }
+        }
+
+        return $primerModulo === null || $primerDocumento === null
+            ? []
+            : [$primerModulo => ['modulos', __('Módulos')], $primerDocumento => ['documentos', __('Documentos')]];
     }
 
     /**

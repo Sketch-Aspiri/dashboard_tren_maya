@@ -6,13 +6,11 @@
     $usuarioTemayin = auth()->user();
     $temayin = app(\App\Support\Temayin::class);
     $faqsTemayin = $usuarioTemayin ? $temayin->preguntas($usuarioTemayin) : [];
-    // Sube el botón donde hay una barra de acciones fija abajo.
-    $desfaseTemayin = request()->routeIs('insumos.show', 'insumos.estacion', 'insumos.cotizaciones.create', 'insumos.cotizaciones.edit', 'asistencia.captura.*')
-        ? 'bottom-28 sm:bottom-24' : 'bottom-4';
 @endphp
 
 @if ($usuarioTemayin && $faqsTemayin !== [])
-    <div x-data="temayin" data-faqs="{{ json_encode($faqsTemayin, JSON_UNESCAPED_UNICODE) }}" class="fixed right-4 z-50 {{ $desfaseTemayin }}">
+    {{-- resources/js/flotante.js lo sube cuando una barra de acciones o el pie ocupan su esquina. --}}
+    <div x-data="temayin" data-faqs="{{ json_encode($faqsTemayin, JSON_UNESCAPED_UNICODE) }}" data-flotante class="fixed bottom-4 right-4 z-50">
         <section x-ref="panel" x-show="open" x-cloak tabindex="-1" id="temayin-panel" role="dialog" aria-label="{{ __('Temayin') }}"
                  x-on:keydown.escape.window="close"
                  class="mb-3 flex max-h-[70vh] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-xl border border-brand-green/10 bg-white shadow-xl focus:outline-none">

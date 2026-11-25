@@ -8,23 +8,19 @@ use App\Models\User;
 use App\Services\Secciones\VisibilidadSecciones;
 use App\Support\Areas;
 use App\Support\Roles;
-use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 /**
  * Datos de la pantalla de inicio de una cuenta Estación: sus secciones
- * aprobadas (con cuántas filas y documentos suyos tiene cada una) y si ya
- * capturó la asistencia de hoy.
+ * aprobadas (con cuántas filas y documentos suyos tiene cada una). Lo que le
+ * toca capturar lo arma PendientesEstacion.
  */
 final class InicioEstacionService
 {
-    public function __construct(
-        private readonly VisibilidadSecciones $visibilidad,
-        private readonly AsistenciaCapturaService $asistencia,
-    ) {}
+    public function __construct(private readonly VisibilidadSecciones $visibilidad) {}
 
     /**
-     * @return array{secciones: Collection<int, array{grupo: MenuGrupo, secciones: Collection<int, Seccion>}>, asistencia: array{total_roster: int, total_capturado: int, capturado: bool}|null}
+     * @return array{secciones: Collection<int, array{grupo: MenuGrupo, secciones: Collection<int, Seccion>}>, area: string|null, accesos: list<array{etiqueta: string, ruta: string}>}
      */
     public function para(User $usuario): array
     {
@@ -50,7 +46,6 @@ final class InicioEstacionService
 
         return [
             'secciones' => $porGrupo,
-            'asistencia' => $usuario->puedeUsarArea(Areas::deGrupo('rrhh')) ? $this->asistenciaDeHoy($usuario) : null,
             'area' => $this->areaDe($usuario),
             'accesos' => $this->accesosDeArea($usuario),
         ];
@@ -81,24 +76,5 @@ final class InicioEstacionService
             ->map(fn (array $item) => ['etiqueta' => __($item['label']), 'ruta' => route($item['ruta'])])
             ->values()
             ->all();
-    }
-
-    /**
-     * @return array{total_roster: int, total_capturado: int, capturado: bool}|null
-     */
-    private function asistenciaDeHoy(User $usuario): ?array
-    {
-        if ($usuario->estacion_id === null) {
-            return null;
-        }
-
-        $resumen = $this->asistencia->resumenDelDia(CarbonImmutable::today())
-            ->first(fn (array $fila) => $fila['estacion']->id === $usuario->estacion_id);
-
-        return $resumen === null ? null : [
-            'total_roster' => $resumen['total_roster'],
-            'total_capturado' => $resumen['total_capturado'],
-            'capturado' => $resumen['capturado'],
-        ];
     }
 }

@@ -101,7 +101,7 @@ final class Temayin
             'buscar' => [
                 'publico' => 'todos',
                 'q' => __('No encuentro una sección, ¿cómo la busco?'),
-                'a' => __('Escribe parte del nombre en «Buscar en el menú…» (arriba a la derecha; en celular, dentro del menú). No importan los acentos: «vacaciones» encuentra «Rol de vacaciones».'),
+                'a' => __('Escribe parte del nombre en «Buscar en el menú…» (arriba a la derecha; en celular, dentro del menú). No importan los acentos: «vacaciones» encuentra «Vacaciones».'),
             ],
             'personal' => [
                 'publico' => 'personal',
