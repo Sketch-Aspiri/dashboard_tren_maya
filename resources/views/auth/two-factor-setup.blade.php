@@ -1,4 +1,6 @@
 <x-guest-layout>
+    <h1 class="mb-4 font-heading text-xl font-bold text-brand-green sm:text-2xl">{{ __('Activa la verificación en dos pasos') }}</h1>
+
     <div class="mb-4 text-sm text-gray-600">
         {{ __('La autenticación en dos pasos es obligatoria. Escanea este código con tu aplicación de autenticación (Google Authenticator, Authy, etc.) y confirma con el código de 6 dígitos.') }}
     </div>

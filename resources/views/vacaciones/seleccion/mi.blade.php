@@ -10,7 +10,7 @@
     <x-slot name="header">
         <div class="min-w-0">
             <p class="text-xs font-semibold uppercase tracking-wide text-brand-teal">{{ __('RR.HH.') }}</p>
-            <h2 class="mt-0.5 truncate font-heading text-xl font-semibold leading-tight text-brand-green">{{ __('Mis vacaciones :anio', ['anio' => $anio]) }}</h2>
+            <h1 class="mt-0.5 truncate font-heading text-xl font-semibold leading-tight text-brand-green">{{ __('Mis vacaciones :anio', ['anio' => $anio]) }}</h1>
             <p class="mt-0.5 truncate text-sm text-gray-500">{{ $plan->estacion?->nombre }}</p>
         </div>
     </x-slot>

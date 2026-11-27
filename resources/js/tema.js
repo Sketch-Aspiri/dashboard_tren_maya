@@ -48,6 +48,7 @@ export function selectorTema() {
     return {
         tema: leer(),
         init() {
+            window.addEventListener('tema-cambiado', () => (this.tema = leer()));
             consultaOscuro.addEventListener('change', () => {
                 if (this.tema === 'sistema') {
                     aplicar('sistema');

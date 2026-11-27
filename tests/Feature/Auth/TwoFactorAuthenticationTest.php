@@ -186,10 +186,7 @@ class TwoFactorAuthenticationTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors(['one_time_password']);
-        $this->assertStringContainsString(
-            'seconds',
-            session('errors')->get('one_time_password')[0],
-        );
+        $this->assertMatchesRegularExpression('/seconds|segundos/', session('errors')->get('one_time_password')[0]);
     }
 
     public function test_unenrolled_user_reaches_the_dashboard_when_two_factor_is_switched_off(): void

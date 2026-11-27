@@ -29,9 +29,9 @@
 
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-heading text-xl font-semibold leading-tight text-brand-green sm:text-2xl">
+        <h1 class="font-heading text-xl font-semibold leading-tight text-brand-green sm:text-2xl">
             {{ __('Dashboard') }}
-        </h2>
+        </h1>
     </x-slot>
 
     <div class="py-6 sm:py-8">

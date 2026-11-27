@@ -35,7 +35,7 @@
             <x-primary-button>{{ __('Save') }}</x-primary-button>
 
             @if (session('status') === 'password-updated')
-                <p
+                <p data-aviso
                     x-data="{ show: true }"
                     x-show="show"
                     x-transition

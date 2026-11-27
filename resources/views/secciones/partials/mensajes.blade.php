@@ -1,5 +1,5 @@
 @if (session('status'))
-    <div class="rounded-md border border-brand-teal/20 bg-brand-mist p-4 text-sm text-brand-green" role="status">
+    <div data-aviso class="rounded-md border border-brand-teal/20 bg-brand-mist p-4 text-sm text-brand-green">
         {{ session('status') }}
     </div>
 @endif

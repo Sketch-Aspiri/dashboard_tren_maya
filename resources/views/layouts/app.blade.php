@@ -5,7 +5,14 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Dashboard - Zona Oriente') }}</title>
+@php
+    // Título propio de cada pantalla: la ranura "title" o el primer <h1> de la cabecera o del contenido.
+    $tituloPagina = trim((string) ($title ?? ''));
+    if ($tituloPagina === '' && preg_match('~<h1\b[^>]*>(.*?)</h1>~s', (string) ($header ?? '').(string) ($slot ?? ''), $coincidencia)) {
+        $tituloPagina = trim(preg_replace('/\s+/', ' ', html_entity_decode(strip_tags($coincidencia[1]), ENT_QUOTES | ENT_HTML5)));
+    }
+@endphp
+        <title>{{ $tituloPagina !== '' ? $tituloPagina.' · ' : '' }}{{ config('app.name', 'Dashboard - Zona Oriente') }}</title>
 
         <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
 
@@ -53,6 +60,8 @@
         {{-- "open": estado del menú de hamburguesa, compartido con la barra
              (layouts/navigation.blade.php). Mientras está abierto se oculta
              el encabezado y el contenido: solo se ven las opciones del menú. --}}
+        <x-saltar-contenido />
+
         <div class="min-h-screen bg-brand-mist" x-data="{ open: false }"
              @resize.window="if (window.innerWidth >= 1280) open = false">
             @include('layouts.navigation')
@@ -77,7 +86,7 @@
             @endisset
 
             <!-- Page Content -->
-            <main x-show="! open">
+            <main id="contenido" tabindex="-1" x-show="! open">
                 {{ $slot }}
             </main>
 
@@ -86,6 +95,7 @@
 
         <x-temayin-asistente />
 
+        <x-accesibilidad-base />
         <x-pantalla-carga />
 
         @stack('scripts')

@@ -67,7 +67,7 @@
                 <span x-text="mensaje"></span>
                 <span x-text="progreso + '%'"></span>
             </div>
-            <div class="mt-1 h-2 overflow-hidden rounded-full bg-brand-mist" role="progressbar" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="progreso">
+            <div class="mt-1 h-2 overflow-hidden rounded-full bg-brand-mist" role="progressbar" aria-label="{{ __('Avance de la subida') }}" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="progreso">
                 <div class="h-full rounded-full bg-brand-teal transition-all" :style="`width: ${progreso}%`"></div>
             </div>
         </div>

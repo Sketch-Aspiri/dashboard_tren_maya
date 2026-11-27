@@ -14,6 +14,9 @@ import { registrarSecciones } from './secciones';
 import { hojaCalculo } from './hoja/componente';
 import { capturaAsistencia } from './asistencia/captura';
 import { ajustarGraficas, selectorTema } from './tema';
+import { registrarAccesibilidad } from './accesibilidad';
+import { iniciarAccesibilidad } from './accesibilidad-base';
+import '../css/accesibilidad.css';
 import { registrarTemayin } from './temayin';
 import { registrarNotificaciones } from './notificaciones';
 import { registrarCambiosSinGuardar } from './cambios-sin-guardar';
@@ -111,6 +114,7 @@ Alpine.data('hojaCalculo', hojaCalculo);
 Alpine.data('capturaAsistencia', capturaAsistencia);
 registrarAsistente(Alpine);
 Alpine.data('selectorTema', selectorTema);
+registrarAccesibilidad(Alpine);
 registrarTemayin(Alpine);
 registrarNotificaciones(Alpine);
 
@@ -122,3 +126,4 @@ window.PantallaCarga = { mostrar, ocultar, durante };
 registrarPantalla(document, window);
 
 Alpine.start();
+iniciarAccesibilidad(document, window);

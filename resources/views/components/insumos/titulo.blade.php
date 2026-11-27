@@ -12,7 +12,7 @@
             {{ $grupo ?? __('Recursos materiales') }} · {{ $seccion ?? __('Fondo rotatorio') }}
         @endif
     </p>
-    <h2 class="mt-0.5 truncate font-heading text-xl font-semibold leading-tight text-brand-green">{{ $titulo }}</h2>
+    <h1 class="mt-0.5 truncate font-heading text-xl font-semibold leading-tight text-brand-green">{{ $titulo }}</h1>
     @if ($detalle)
         <p class="mt-0.5 truncate text-sm text-gray-500">{{ $detalle }}</p>
     @endif

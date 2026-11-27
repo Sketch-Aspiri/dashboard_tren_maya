@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-heading text-xl font-semibold leading-tight text-brand-green">{{ __('Estado de sincronización') }}</h2>
+        <h1 class="font-heading text-xl font-semibold leading-tight text-brand-green">{{ __('Estado de sincronización') }}</h1>
     </x-slot>
 
     <div class="py-6 sm:py-10">

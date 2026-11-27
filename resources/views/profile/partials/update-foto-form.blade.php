@@ -15,7 +15,7 @@
                 <x-input-error :messages="$errors->get('foto')" />
                 <x-primary-button>{{ __('Guardar foto') }}</x-primary-button>
                 @if (session('status') === 'foto-updated')
-                    <p class="text-sm text-gray-600">{{ __('Foto actualizada.') }}</p>
+                    <p data-aviso class="text-sm text-gray-600">{{ __('Foto actualizada.') }}</p>
                 @endif
             </form>
 

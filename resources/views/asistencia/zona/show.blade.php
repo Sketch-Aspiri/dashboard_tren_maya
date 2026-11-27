@@ -8,9 +8,9 @@
 
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-heading text-xl font-semibold text-brand-green leading-tight">
+        <h1 class="font-heading text-xl font-semibold text-brand-green leading-tight">
             {{ __('Asistencia Zona Oriente') }} — {{ $estacion->nombre }}
-        </h2>
+        </h1>
     </x-slot>
 
     <div class="py-8 sm:py-12">

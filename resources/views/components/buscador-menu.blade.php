@@ -17,6 +17,7 @@
                   @input="abierto = true"
                   @keydown.escape="abierto = false; query = ''"
                   @keydown.enter.prevent="irAlPrimero()" />
+    <p role="status" class="sr-only" x-text="abierto && query.trim() !== '' ? '{{ __('Resultados:') }} ' + resultados.length : ''"></p>
     <ul x-show="abierto && resultados.length > 0" x-cloak
         class="absolute z-50 mt-1 w-full rounded-md border border-brand-green/10 bg-white py-1 shadow-lg">
         <template x-for="item in resultados" :key="item.href">

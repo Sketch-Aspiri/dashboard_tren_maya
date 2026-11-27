@@ -2,7 +2,7 @@
      layouts/app.blade.php; Blade comparte ese scope con este @include.
      Cada grupo trae sus items con 'label', 'href' y 'activo' (ver
      App\Support\MenuNavegacion). --}}
-<nav class="relative z-40 bg-white shadow-sm" aria-label="{{ __('Navegación principal') }}">
+<nav class="relative z-40 bg-white shadow-sm" @keydown.escape="if (open) { open = false; $refs.hamburguesa.focus() }" aria-label="{{ __('Navegación principal') }}">
     {{-- Nivel 1: identidad (logo + nombre del sistema) y cuenta. Es la única
          fila visible por debajo de xl; ahí la hamburguesa reemplaza al nivel 2. --}}
     <div class="border-b border-brand-green/10">
@@ -22,6 +22,7 @@
             <div class="hidden xl:flex xl:items-center xl:gap-2">
                 <x-ecosistema-selector />
                 <x-selector-tema />
+                <x-panel-accesibilidad><x-selector-tema variante="segmentos" /></x-panel-accesibilidad>
                 <x-campana-notificaciones />
                 <x-dropdown align="right" width="w-56">
                     <x-slot name="trigger">
@@ -81,7 +82,7 @@
             <!-- Hamburger -->
             <div class="-me-2 flex items-center gap-1 xl:hidden">
                 <x-campana-notificaciones />
-                <button type="button" @click="open = ! open"
+                <button type="button" x-ref="hamburguesa" @click="open = ! open"
                         :aria-expanded="open.toString()"
                         aria-label="{{ __('Abrir menú de navegación') }}"
                         class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 text-brand-green transition duration-150 ease-in-out hover:bg-brand-mist focus:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">
@@ -99,7 +100,7 @@
          en los 1216px útiles de 1280 sin compresión ni saltos de línea. Sin
          overflow-hidden aquí: los desplegables salen hacia abajo. --}}
     <div class="hidden bg-brand-green xl:block">
-        <div class="mx-auto flex max-w-screen-2xl items-center gap-1 px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto flex max-w-screen-2xl flex-wrap items-center gap-1 px-4 sm:px-6 lg:px-8">
                 <a href="{{ route('dashboard') }}"
                    @if (request()->routeIs('dashboard')) aria-current="page" @endif
                    class="{{ request()->routeIs('dashboard') ? 'border-brand-mint bg-white/10 font-semibold text-white' : 'border-transparent font-medium text-white/85 hover:bg-white/10 hover:text-white' }} inline-flex h-12 shrink-0 items-center whitespace-nowrap border-b-4 px-4 text-sm transition duration-150 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white">
@@ -196,6 +197,7 @@
             </div>
 
             <x-selector-tema variante="segmentos" class="mt-3 px-4" />
+            <x-panel-accesibilidad variante="texto" class="mt-3 px-4" />
 
             <div class="mt-3 space-y-1">
                 @can('create', \App\Models\Seccion::class)

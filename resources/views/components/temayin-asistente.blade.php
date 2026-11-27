@@ -29,7 +29,7 @@
                 <p class="rounded-lg bg-brand-mist px-3 py-2 text-gray-800">{{ __('¡Hola! Soy Temayin. Elige una pregunta y te explico cómo funciona el sistema.') }}</p>
 
                 <div x-show="hasNoActive">
-                    <h2 class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">{{ __('Preguntas frecuentes') }}</h2>
+                    <h2 class="mb-2 text-[0.6875rem] font-semibold uppercase tracking-wide text-gray-500">{{ __('Preguntas frecuentes') }}</h2>
                     <ul class="space-y-2">
                         @foreach ($faqsTemayin as $id => $faq)
                             <li>

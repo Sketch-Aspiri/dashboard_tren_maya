@@ -34,15 +34,15 @@
 
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-heading text-xl font-semibold text-brand-green leading-tight">
+        <h1 class="font-heading text-xl font-semibold text-brand-green leading-tight">
             {{ __('Control de Asistencia Diaria') }} — {{ $estacion->nombre }}
-        </h2>
+        </h1>
     </x-slot>
 
     <div x-data="capturaAsistencia(@js($estadoPantalla))" x-init="iniciar()" @beforeunload.window="alSalir($event)" class="py-6">
         <div class="mx-auto max-w-[1760px] space-y-4 px-4 sm:px-6 lg:px-8">
             @if (session('status'))
-                <div class="rounded-md border border-brand-green/20 bg-brand-mist px-4 py-3 text-sm text-brand-green-dark" role="status">
+                <div data-aviso class="rounded-md border border-brand-green/20 bg-brand-mist px-4 py-3 text-sm text-brand-green-dark">
                     {{ session('status') }}
                 </div>
             @endif
@@ -83,7 +83,7 @@
                                 <span x-show="sucio" x-cloak class="font-medium text-amber-700">{{ __('Cambios sin guardar') }}</span>
                                 <span x-show="!sucio && pendientes === 0" x-cloak class="font-medium text-brand-green">{{ __('Todo guardado') }}</span>
                             </div>
-                            <div class="mt-1 h-2 overflow-hidden rounded-full bg-gray-100" role="progressbar" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="avance">
+                            <div class="mt-1 h-2 overflow-hidden rounded-full bg-gray-100" role="progressbar" aria-label="{{ __('Avance de la captura') }}" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="avance">
                                 <div class="h-full rounded-full bg-brand-green transition-all" :style="`width: ${avance}%`"></div>
                             </div>
                         </div>

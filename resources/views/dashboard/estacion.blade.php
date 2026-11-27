@@ -1,8 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-heading text-xl font-semibold leading-tight text-brand-green sm:text-2xl">
+        <h1 class="font-heading text-xl font-semibold leading-tight text-brand-green sm:text-2xl">
             {{ Auth::user()->estacion?->nombre ?? __('Inicio') }}
-        </h2>
+        </h1>
     </x-slot>
 
     <div class="py-8 sm:py-12">

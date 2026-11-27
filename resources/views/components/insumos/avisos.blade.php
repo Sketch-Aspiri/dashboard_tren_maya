@@ -1,7 +1,7 @@
 {{-- Mensaje de éxito de la última acción y errores de validación, igual en
      todas las vistas de insumos. --}}
 @if (session('status'))
-    <div class="ins-aviso-ok" role="status">
+    <div data-aviso class="ins-aviso-ok">
         <span aria-hidden="true" class="mt-0.5 font-bold">✓</span>
         <p>{{ session('status') }}</p>
     </div>

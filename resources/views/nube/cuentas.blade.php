@@ -1,19 +1,19 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-heading text-xl font-semibold text-brand-green leading-tight">
+        <h1 class="font-heading text-xl font-semibold text-brand-green leading-tight">
             {{ __('Conexiones de nube') }}
-        </h2>
+        </h1>
     </x-slot>
 
     <div class="py-8 sm:py-12">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             @if (session('status'))
-                <div role="status" class="rounded-md border border-brand-teal/20 bg-brand-mist p-4 text-sm text-brand-green">
+                <div data-aviso role="status" class="rounded-md border border-brand-teal/20 bg-brand-mist p-4 text-sm text-brand-green">
                     {{ session('status') }}
                 </div>
             @endif
             @if (session('error'))
-                <div role="alert" class="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                <div data-aviso role="alert" class="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800">
                     {{ session('error') }}
                 </div>
             @endif

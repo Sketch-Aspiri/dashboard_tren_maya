@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <p class="text-xs font-medium uppercase tracking-wide text-gray-500">{{ $seccion->grupo->nombre }} · {{ $seccion->nombre }}@if ($seccion->tablas()->count() > 1) · {{ $tablaActiva->nombre }}@endif</p>
-        <h2 class="font-heading text-xl font-semibold leading-tight text-brand-green">{{ __('Columnas de la tabla') }}</h2>
+        <h1 class="font-heading text-xl font-semibold leading-tight text-brand-green">{{ __('Columnas de la tabla') }}</h1>
     </x-slot>
 
     <div class="py-6 sm:py-10">

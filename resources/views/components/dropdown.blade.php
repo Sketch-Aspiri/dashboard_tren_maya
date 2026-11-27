@@ -13,8 +13,10 @@ $width = match ($width) {
 };
 @endphp
 
-<div {{ $attributes->merge(['class' => 'relative']) }} x-data="{ open: false }" @click.outside="open = false" @close.stop="open = false">
-    <div class="{{ $triggerClasses }}" @click="open = ! open">
+<div {{ $attributes->merge(['class' => 'relative']) }} x-data="{ open: false }" @click.outside="open = false" @close.stop="open = false"
+     @keydown.escape="if (open) { $event.stopPropagation(); open = false; $refs.disparador.querySelector('button')?.focus() }"
+     @focusout="if ($event.relatedTarget && ! $el.contains($event.relatedTarget)) open = false">
+    <div x-ref="disparador" class="{{ $triggerClasses }}" @click="open = ! open" x-effect="$el.querySelector('button')?.setAttribute('aria-expanded', open)">
         {{ $trigger }}
     </div>
 

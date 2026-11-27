@@ -1,14 +1,14 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-heading text-xl font-semibold text-brand-green leading-tight">
+        <h1 class="font-heading text-xl font-semibold text-brand-green leading-tight">
             {{ __('RR.HH.') }} — {{ __('Personal') }}
-        </h2>
+        </h1>
     </x-slot>
 
     <div class="py-8 sm:py-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
             @if (session('status'))
-                <div class="rounded-md border border-brand-teal/20 bg-brand-mist p-4 text-sm text-brand-green">
+                <div data-aviso class="rounded-md border border-brand-teal/20 bg-brand-mist p-4 text-sm text-brand-green">
                     {{ session('status') }}
                 </div>
             @endif

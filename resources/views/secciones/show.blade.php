@@ -35,7 +35,7 @@
                 @endif
             @endforeach
         </nav>
-        <h2 class="font-heading text-xl font-semibold leading-tight text-brand-green">{{ $seccion->nombre }}</h2>
+        <h1 class="font-heading text-xl font-semibold leading-tight text-brand-green">{{ $seccion->nombre }}</h1>
     </x-slot>
 
     <div class="py-6 sm:py-10" x-data="{ tab: @js($tab) }">
@@ -140,8 +140,10 @@
             </div>
 
             {{-- Pestañas --}}
-            <div class="border-b border-brand-green/15" role="tablist" aria-label="{{ __('Contenido de la sección') }}">
-                <nav class="-mb-px flex gap-4 overflow-x-auto">
+            <div class="border-b border-brand-green/15">
+                <div class="-mb-px flex gap-4 overflow-x-auto" role="tablist" aria-label="{{ __('Contenido de la sección') }}"
+                     @keydown.right.prevent="($event.target.nextElementSibling ?? $el.firstElementChild).focus(); document.activeElement.click()"
+                     @keydown.left.prevent="($event.target.previousElementSibling ?? $el.lastElementChild).focus(); document.activeElement.click()">
                     @foreach ($soloDocumentos && ! $puedeGestionar ? ['documentos' => __('Documentos').' ('.$documentos->count().')'] : ($soloDocumentos
                         ? [
                             'documentos' => __('Documentos').' ('.$documentos->count().')',
@@ -156,17 +158,17 @@
                             'tabla' => __('Tabla').' ('.$filas->total().')',
                             'documentos' => __('Documentos').' ('.$documentos->count().')',
                         ])) as $clave => $etiqueta)
-                        <button type="button" role="tab" @click="tab = @js($clave)" :aria-selected="(tab === @js($clave)).toString()"
+                        <button type="button" role="tab" id="pestana-{{ $clave }}" aria-controls="panel-{{ $clave }}" :tabindex="tab === @js($clave) ? 0 : -1" @click="tab = @js($clave)" :aria-selected="(tab === @js($clave)).toString()"
                                 :class="tab === @js($clave) ? 'border-brand-teal text-brand-green font-semibold' : 'border-transparent text-gray-600 hover:text-brand-green'"
                                 class="min-h-[44px] whitespace-nowrap border-b-4 px-1 text-sm">
                             {{ $etiqueta }}
                         </button>
                     @endforeach
-                </nav>
+                </div>
             </div>
 
             @unless ($soloDocumentos)
-            <div x-show="tab === 'tabla'" role="tabpanel">
+            <div x-show="tab === 'tabla'" role="tabpanel" id="panel-tabla" aria-labelledby="pestana-tabla">
                 {{-- Una sub-pestaña por tabla de la sección (p. ej. las hojas de un libro de Excel). --}}
                 @if ($tablas->count() > 1)
                     <nav @class(['mb-3 flex flex-wrap gap-2 pb-1', 'sm:hidden' => $modoHoja]) aria-label="{{ __('Tablas de la sección') }}">
@@ -224,16 +226,16 @@
             </div>
             @endunless
 
-            <div x-show="tab === 'documentos'" x-cloak role="tabpanel">
+            <div x-show="tab === 'documentos'" x-cloak role="tabpanel" id="panel-documentos" aria-labelledby="pestana-documentos">
                 @include('secciones.partials.documentos')
             </div>
 
-            <div x-show="tab === 'enlaces'" x-cloak role="tabpanel">
+            <div x-show="tab === 'enlaces'" x-cloak role="tabpanel" id="panel-enlaces" aria-labelledby="pestana-enlaces">
                 @include('secciones.partials.enlaces')
             </div>
 
             @unless ($soloDocumentos)
-            <div x-show="tab === 'cargas'" x-cloak role="tabpanel">
+            <div x-show="tab === 'cargas'" x-cloak role="tabpanel" id="panel-cargas" aria-labelledby="pestana-cargas">
                 @include('secciones.partials.cargas')
             </div>
             @endunless

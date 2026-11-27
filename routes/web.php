@@ -78,6 +78,9 @@ use App\Http\Controllers\VacacionSolicitudController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
+// Aviso de sesión por vencer (accesibilidad): cualquier petición la renueva; esta no hace nada más.
+Route::get('/sesion/viva', fn () => response()->noContent())->middleware('auth')->name('sesion.viva');
+
 // This is a VPN-only, internal dashboard — no public unauthenticated
 // splash page (see CLAUDE.md). Send guests to login and authenticated
 // users straight to the dashboard.

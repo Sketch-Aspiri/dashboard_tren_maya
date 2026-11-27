@@ -85,22 +85,22 @@
                         @foreach ($datos['semanas'] as $semana)
                             <tr>
                                 @foreach ($semana as $dia)
-                                    <td class="h-28 align-top border border-gray-100 p-1 {{ $dia['delMes'] ? '' : 'opacity-40' }} {{ $dia['finDeSemana'] ? 'bg-gray-50' : '' }}">
+                                    <td class="h-28 align-top border border-gray-100 p-1 {{ ! $dia['delMes'] ? 'bg-brand-mist' : ($dia['finDeSemana'] ? 'bg-gray-50' : '') }}">
                                         <div class="mb-1 flex items-center justify-between">
                                             <span class="{{ $dia['hoy'] ? 'rounded bg-brand-green px-1 text-white' : 'text-gray-600' }} font-semibold">{{ $dia['dia'] }}</span>
                                             @if (count($dia['entradas']) > 0)
-                                                <span class="text-[10px] text-gray-500">{{ count($dia['entradas']) }}</span>
+                                                <span class="text-[0.625rem] text-gray-500">{{ count($dia['entradas']) }}</span>
                                             @endif
                                         </div>
                                         @if ($dia['inhabil'])
-                                            <p class="mb-1 truncate text-[10px] italic text-gray-500" title="{{ $dia['inhabil'] }}">{{ $dia['inhabil'] }}</p>
+                                            <p class="mb-1 truncate text-[0.625rem] italic text-gray-500" title="{{ $dia['inhabil'] }}">{{ $dia['inhabil'] }}</p>
                                         @endif
                                         <ul class="space-y-0.5">
                                             @foreach (array_slice($dia['entradas'], 0, 4) as $e)
                                                 <li class="truncate rounded border-l-4 px-1 py-px" style="{{ $chip($e) }}" title="{{ $e['nombre'] }} · {{ $e['estacion'] }} · {{ $e['periodo'] }}">{{ $e['nombre'] }}</li>
                                             @endforeach
                                             @if (count($dia['entradas']) > 4)
-                                                <li class="text-[10px] font-semibold text-gray-600">{{ __('+:n más', ['n' => count($dia['entradas']) - 4]) }}</li>
+                                                <li class="text-[0.625rem] font-semibold text-gray-600">{{ __('+:n más', ['n' => count($dia['entradas']) - 4]) }}</li>
                                             @endif
                                         </ul>
                                     </td>

@@ -1,0 +1,142 @@
+/*
+ * Preferencias de accesibilidad. MISMO ARCHIVO en Portal, Dashboard y Tickets. Las clases en <html> las ponen
+ * public/js/accesibilidad-inicial.js (al cargar) y resources/js/accesibilidad.js (el panel).
+ * Los selectores empiezan por "html." para ganar a las utilidades de Tailwind y a las reglas de modo oscuro.
+ */
+
+/* Tamaño de letra: Tailwind mide en rem, así que crece toda la interfaz. */
+html.a11y-texto-112 { font-size: 112.5%; }
+html.a11y-texto-125 { font-size: 125%; }
+html.a11y-texto-150 { font-size: 150%; }
+
+/* Contraste alto, tema claro. */
+html.a11y-contraste body { color: #000; }
+html.a11y-contraste .text-gray-900,
+html.a11y-contraste .text-gray-800,
+html.a11y-contraste .text-gray-700 { color: #000; }
+html.a11y-contraste .text-gray-600,
+html.a11y-contraste .text-gray-500,
+html.a11y-contraste .text-gray-400 { color: #1f2937; }
+html.a11y-contraste .text-gray-300 { color: #4b5563; }
+html.a11y-contraste .text-brand-green,
+html.a11y-contraste .text-brand-teal { color: #043d39; }
+html.a11y-contraste .text-white\/70,
+html.a11y-contraste .text-white\/75,
+html.a11y-contraste .text-white\/80,
+html.a11y-contraste .text-white\/90 { color: #fff; }
+html.a11y-contraste input,
+html.a11y-contraste select,
+html.a11y-contraste textarea { border-color: #374151; }
+html.a11y-contraste input::placeholder,
+html.a11y-contraste textarea::placeholder { color: #374151; }
+html.a11y-contraste [class*="border-gray-"],
+html.a11y-contraste [class*="border-brand-green/"],
+html.a11y-contraste [class*="border-brand-teal/"],
+html.a11y-contraste [class*="divide-brand-green/"] > * + * { border-color: #4b5563; }
+/* Anillo de foco grueso, también donde se quitó el contorno. */
+html.a11y-contraste :focus-visible { outline: 3px solid #b45309 !important; outline-offset: 2px; }
+
+/* Contraste alto, tema oscuro. */
+html.a11y-contraste.dark {
+    --o-fondo: #000;
+    --o-sup: #000;
+    --o-sup2: #0b1513;
+    --o-sup3: #192b27;
+    --o-borde: rgb(255 255 255 / 0.55);
+    --o-borde2: rgb(255 255 255 / 0.75);
+    --o-texto: #fff;
+    --o-texto2: #fff;
+    --o-texto3: #dbe7e3;
+    --o-marca: #a7f3e0;
+    --o-enlace: #a7f3e0;
+}
+html.a11y-contraste.dark body { color: #fff; }
+html.a11y-contraste.dark .text-gray-900,
+html.a11y-contraste.dark .text-gray-800,
+html.a11y-contraste.dark .text-gray-700 { color: var(--o-texto); }
+html.a11y-contraste.dark .text-gray-600,
+html.a11y-contraste.dark .text-gray-500,
+html.a11y-contraste.dark .text-gray-400,
+html.a11y-contraste.dark .text-gray-300 { color: var(--o-texto3); }
+html.a11y-contraste.dark .text-brand-green,
+html.a11y-contraste.dark .text-brand-teal { color: var(--o-marca); }
+html.a11y-contraste.dark input,
+html.a11y-contraste.dark select,
+html.a11y-contraste.dark textarea,
+html.a11y-contraste.dark [class*="border-gray-"],
+html.a11y-contraste.dark [class*="border-brand-green/"],
+html.a11y-contraste.dark [class*="border-brand-teal/"],
+html.a11y-contraste.dark [class*="divide-brand-green/"] > * + * { border-color: var(--o-borde); }
+html.a11y-contraste.dark input::placeholder,
+html.a11y-contraste.dark textarea::placeholder { color: var(--o-texto3); }
+html.a11y-contraste.dark :focus-visible { outline-color: #fcd34d !important; }
+
+/* Subrayar enlaces de texto (los del menú y los que parecen botón o tarjeta ya se distinguen). */
+html.a11y-subrayado a:not(nav a):not([class*="rounded"]) { text-decoration-line: underline !important; text-underline-offset: 0.2em; }
+
+/* Reducir movimiento: la elección del panel vale aunque el sistema no la pida. */
+html.a11y-sin-movimiento *,
+html.a11y-sin-movimiento *::before,
+html.a11y-sin-movimiento *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+}
+html.a11y-sin-movimiento .reveal { opacity: 1; transform: none; }
+
+/* Lo impreso no cambia de tamaño: los formatos oficiales deben salir iguales. */
+@media print {
+    html.a11y-texto-112,
+    html.a11y-texto-125,
+    html.a11y-texto-150 { font-size: 100%; }
+}
+
+/* ------------------------------------------------------------------------------------------------------------------
+ * Base: se aplica siempre, sin elegir nada en el panel (contraste mínimo WCAG 2.2 AA y piezas de
+ * resources/js/accesibilidad-base.js).
+ * ------------------------------------------------------------------------------------------------------------------ */
+
+/* Texto gris legible también sobre el fondo verde claro. */
+html:not(.dark) .text-gray-400 { color: #5f6875; }
+html:not(.dark) .text-gray-500 { color: #5b6472; }
+
+/* El borde de los campos se distingue del fondo (3:1). */
+html:not(.dark) input:not([type="hidden"]),
+html:not(.dark) select,
+html:not(.dark) textarea { border-color: #7b8794; }
+html.dark input:not([type="hidden"]),
+html.dark select,
+html.dark textarea { border-color: rgb(255 255 255 / 0.45); }
+html input:focus, html select:focus, html textarea:focus { border-color: #1f7460; }
+html.dark input:focus, html.dark select:focus, html.dark textarea:focus { border-color: #6fcab3; }
+html input[aria-invalid="true"], html select[aria-invalid="true"], html textarea[aria-invalid="true"] { border-color: #b91c1c; }
+html.dark input[aria-invalid="true"], html.dark select[aria-invalid="true"], html.dark textarea[aria-invalid="true"] { border-color: #fca5a5; }
+
+/* Anillo de foco visible en oscuro y donde el componente no dibuja ninguno. */
+html.dark [class*="ring-brand-teal"] { --tw-ring-color: #6fcab3; }
+html.dark [class*="ring-red-"] { --tw-ring-color: #fca5a5; }
+a:focus-visible, button:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 2px solid #1f7460; outline-offset: 2px; }
+a[class*="ring-"]:focus-visible, button[class*="ring-"]:focus-visible, summary[class*="ring-"]:focus-visible, [tabindex][class*="ring-"]:focus-visible { outline-color: transparent; }
+html.dark a:focus-visible, html.dark button:focus-visible, html.dark summary:focus-visible, html.dark [tabindex]:focus-visible { outline-color: #6fcab3; }
+.bg-brand-green a:focus-visible, .bg-brand-green button:focus-visible { outline-color: #fff; }
+main:focus { outline: none; }
+
+/* Opción elegida distinguible en oscuro. */
+html.dark [aria-pressed="true"], html.dark [aria-checked="true"], html.dark [role="tab"][aria-selected="true"] { box-shadow: inset 0 0 0 2px #6fcab3; }
+
+/* Resumen de errores del formulario. */
+.a11y-resumen { margin: 0 auto 1rem; max-width: 80rem; border: 2px solid #b91c1c; border-radius: 0.75rem; background: #fef2f2; color: #7f1d1d; padding: 0.75rem 1rem; font-size: 0.875rem; text-align: left; }
+.a11y-resumen p { font-weight: 700; }
+.a11y-resumen ul { margin-top: 0.25rem; list-style: disc; padding-left: 1.25rem; }
+.a11y-resumen a { text-decoration: underline; }
+html.dark .a11y-resumen { border-color: #fca5a5; background: #3b1414; color: #fecaca; }
+
+/* La cabecera fija no tapa el elemento enfocado. */
+html { scroll-padding-top: 4.5rem; scroll-padding-bottom: 5rem; }
+
+@media print {
+    .a11y-resumen { display: none; }
+}

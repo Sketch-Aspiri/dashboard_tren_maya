@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <p class="text-xs font-medium uppercase tracking-wide text-gray-500">{{ $seccion->grupo->nombre }} · {{ $seccion->nombre }}</p>
-        <h2 class="font-heading text-xl font-semibold leading-tight text-brand-green">{{ __('Vista previa de la carga: todas las hojas') }}</h2>
+        <h1 class="font-heading text-xl font-semibold leading-tight text-brand-green">{{ __('Vista previa de la carga: todas las hojas') }}</h1>
     </x-slot>
 
     <div class="py-6 sm:py-10">

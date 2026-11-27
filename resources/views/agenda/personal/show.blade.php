@@ -4,9 +4,9 @@
 
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-heading text-xl font-semibold text-brand-green leading-tight">
+        <h1 class="font-heading text-xl font-semibold text-brand-green leading-tight">
             {{ __('RR.HH.') }} — {{ $empleado->nombre_completo ?? __('(Vacante)') }}
-        </h2>
+        </h1>
     </x-slot>
 
     <div class="py-8 sm:py-12">

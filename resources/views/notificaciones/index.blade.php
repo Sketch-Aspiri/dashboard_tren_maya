@@ -7,7 +7,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="min-w-0">
-            <h2 class="truncate font-heading text-xl font-semibold leading-tight text-brand-green">{{ __('Notificaciones') }}</h2>
+            <h1 class="truncate font-heading text-xl font-semibold leading-tight text-brand-green">{{ __('Notificaciones') }}</h1>
             <p class="mt-0.5 truncate text-sm text-gray-500">{{ __('Avisos de insumos, asistencia y horarios') }}</p>
         </div>
     </x-slot>

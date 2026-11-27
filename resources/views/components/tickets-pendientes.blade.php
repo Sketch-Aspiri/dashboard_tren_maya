@@ -40,7 +40,7 @@
             @if ($pendientes['urgentes'] === [])
                 <p class="mt-4 text-sm text-gray-600">{{ __('No tienes pendientes en Tickets. ¡Todo al día!') }}</p>
             @else
-                <h4 class="mt-5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">{{ __('Lo más urgente') }}</h4>
+                <h4 class="mt-5 text-[0.6875rem] font-semibold uppercase tracking-wide text-gray-500">{{ __('Lo más urgente') }}</h4>
                 <ul class="mt-2 divide-y divide-gray-100">
                     @foreach ($pendientes['urgentes'] as $fila)
                         <li>
