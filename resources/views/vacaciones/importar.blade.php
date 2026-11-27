@@ -72,10 +72,11 @@
 
                     <div class="ins-tabla-marco">
                         <table class="ins-tabla">
+                            <caption class="sr-only">{{ __('Vista previa: personas y días por estación') }}</caption>
                             <thead><tr><th scope="col">{{ __('Estación') }}</th><th scope="col" class="!text-right">{{ __('Personas') }}</th><th scope="col" class="!text-right">{{ __('Días programados') }}</th></tr></thead>
                             <tbody>
                                 @foreach ($resumen['por_estacion'] as $estacion => $d)
-                                    <tr><td class="fuerte">{{ $estacion }}</td><td class="num">{{ $d['personas'] }}</td><td class="num">{{ $d['dias'] }}</td></tr>
+                                    <tr><th scope="row" class="px-3 py-2.5 text-left font-medium text-gray-900 sm:px-4">{{ $estacion }}</th><td class="num">{{ $d['personas'] }}</td><td class="num">{{ $d['dias'] }}</td></tr>
                                 @endforeach
                             </tbody>
                         </table>
@@ -106,17 +107,18 @@
                     <h3 id="hist-titulo" class="ins-titulo">{{ __('Roles publicados') }}</h3>
                     <div class="ins-tabla-marco">
                         <table class="ins-tabla">
+                            <caption class="sr-only">{{ __('Roles publicados') }}</caption>
                             <thead><tr><th scope="col">{{ __('Año') }}</th><th scope="col">{{ __('Versión') }}</th><th scope="col">{{ __('Estado') }}</th><th scope="col">{{ __('Archivo') }}</th><th scope="col">{{ __('Subió') }}</th><th scope="col">{{ __('Publicado') }}</th><th scope="col"><span class="sr-only">{{ __('Descargar') }}</span></th></tr></thead>
                             <tbody>
                                 @foreach ($periodos as $p)
                                     <tr>
-                                        <td class="fuerte">{{ $p->anio }}</td>
+                                        <th scope="row" class="px-3 py-2.5 text-left font-medium text-gray-900 sm:px-4">{{ $p->anio }}</th>
                                         <td>{{ $p->version }}</td>
                                         <td><span class="{{ $p->estado === 'vigente' ? 'ins-chip-ok' : 'ins-chip-neutro' }}">{{ $p->estado === 'vigente' ? __('Vigente') : __('Reemplazado') }}</span></td>
                                         <td>{{ $p->archivo_nombre }}</td>
                                         <td>{{ $p->subidoPor?->name ?? '—' }}</td>
                                         <td>{{ $p->publicado_at?->setTimezone('America/Cancun')->format('d/m/Y H:i') }}</td>
-                                        <td><a href="{{ route('vacaciones.consolidado.descargar', $p) }}" class="text-sm font-semibold text-brand-green hover:underline">{{ __('Descargar Excel') }}</a></td>
+                                        <td><a href="{{ route('vacaciones.consolidado.descargar', $p) }}" class="text-sm font-semibold text-brand-green hover:underline">{{ __('Descargar Excel') }}<span class="sr-only">, {{ __(':anio versión :v', ['anio' => $p->anio, 'v' => $p->version]) }}</span></a></td>
                                     </tr>
                                 @endforeach
                             </tbody>

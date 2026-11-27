@@ -62,6 +62,8 @@
                     </dl>
                     @if ($consolidado['pendiente'] < 0)
                         <p class="mt-3 text-sm font-medium text-red-700">{{ __('Las solicitudes aprobadas exceden el fondo.') }}</p>
+                    @elseif ($usado > 85)
+                        <p class="mt-3 text-sm font-medium text-amber-700">{{ __('El fondo está por agotarse.') }}</p>
                     @endif
                 </section>
             @endif

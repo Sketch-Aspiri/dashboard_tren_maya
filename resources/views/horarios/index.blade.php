@@ -84,9 +84,9 @@
                     <input type="hidden" name="desde" value="{{ $inicio?->toDateString() }}">
                     @if ($editar)<input type="hidden" name="editar" value="1">@endif
                     @if ($esZona)
-                        <div>
+                        <div class="w-full sm:w-auto">
                             <label for="f-estacion" class="ins-etiqueta">{{ __('Estación') }}</label>
-                            <select id="f-estacion" name="estacion" class="ins-campo mt-1 min-w-[12rem]" onchange="this.form.submit()">
+                            <select id="f-estacion" name="estacion" class="ins-campo mt-1 sm:min-w-[12rem]">
                                 <option value="">{{ __('Todas') }}</option>
                                 @foreach ($estaciones as $e)
                                     <option value="{{ $e->id }}" @selected((int) request('estacion') === $e->id)>{{ $e->nombre }}</option>
@@ -94,13 +94,13 @@
                             </select>
                         </div>
                     @endif
-                    <div>
+                    <div class="w-full sm:w-auto">
                         <label for="f-q" class="ins-etiqueta">{{ __('Persona') }}</label>
-                        <input id="f-q" name="q" type="search" maxlength="100" value="{{ request('q') }}" placeholder="{{ __('Nombre o No. de empleado') }}" class="ins-campo mt-1 min-w-[14rem]">
+                        <input id="f-q" name="q" type="search" maxlength="100" value="{{ request('q') }}" placeholder="{{ __('Nombre o No. de empleado') }}" class="ins-campo mt-1 sm:min-w-[14rem]">
                     </div>
                     <button type="submit" class="ins-btn-secundario">{{ __('Buscar') }}</button>
 
-                    <div class="ml-auto flex items-center gap-2">
+                    <div class="ml-auto flex flex-wrap items-center gap-2">
                         <a href="{{ route('horarios.index', $base + ['desde' => $inicio->subWeek()->toDateString()] + $filtros) }}" class="ins-btn-neutro !min-h-[40px] !px-3" aria-label="{{ __('Semana anterior') }}">←</a>
                         <span class="text-sm font-semibold text-gray-900">{{ $dias[0]->locale('es')->translatedFormat('j M') }} – {{ $dias[6]->locale('es')->translatedFormat('j M Y') }}</span>
                         <a href="{{ route('horarios.index', $base + ['desde' => $inicio->addWeek()->toDateString()] + $filtros) }}" class="ins-btn-neutro !min-h-[40px] !px-3" aria-label="{{ __('Semana siguiente') }}">→</a>
@@ -215,12 +215,12 @@
                                 <tbody>
                                     @foreach ($personas as $persona)
                                         <tr>
-                                            <td class="min-w-[13rem]">
-                                                <span class="fuerte">{{ $persona['nombre'] }}</span>
+                                            <th scope="row" class="min-w-[13rem] px-3 py-2.5 text-left align-top font-normal sm:px-4">
+                                                <span class="fuerte font-medium text-gray-900">{{ $persona['nombre'] }}</span>
                                                 <span class="block text-xs text-gray-500">{{ $persona['no_empleado'] }}@if ($persona['puesto']) · {{ $persona['puesto'] }}@endif</span>
                                                 @if ($esZona && $editar)
                                                     <span x-data="{ seguro: false }" class="mt-1 block">
-                                                        <button type="button" x-show="! seguro" @click="seguro = true" class="text-xs font-semibold text-red-700 underline">{{ __('Quitar del horario') }}</button>
+                                                        <button type="button" x-show="! seguro" @click="seguro = true" class="text-xs font-semibold text-red-700 underline">{{ __('Quitar del horario') }}<span class="sr-only">: {{ $persona['nombre'] }}</span></button>
                                                         <span x-show="seguro" x-cloak class="text-xs">
                                                             {{ __('¿Quitar a esta persona de todo el mes?') }}
                                                             <button type="submit" formaction="{{ route('horarios.periodos.personas.quitar', [$periodo, $persona['no_empleado']]) }}" formmethod="POST" formnovalidate class="font-semibold text-red-700 underline">{{ __('Sí, quitar') }}</button> ·
@@ -228,7 +228,7 @@
                                                         </span>
                                                     </span>
                                                 @endif
-                                            </td>
+                                            </th>
                                             @foreach ($dias as $dia)
                                                 @php
                                                     $turno = $persona['celdas'][$dia->toDateString()] ?? null;
@@ -242,6 +242,7 @@
                                                         <div x-data="{ j: @js($turno->jornada), c: @js($turno->comida ?? ''), j0: @js($turno->jornada), c0: @js($turno->comida ?? ''), get sucio() { return this.j.trim() !== this.j0 || this.c.trim() !== this.c0; } }" :data-sucio="sucio ? 1 : 0" class="space-y-1">
                                                             <input type="text" x-model="j" maxlength="255" list="jornadas-sugeridas" class="ins-campo !min-h-[32px] !px-2 !py-1 text-xs" :class="sucio ? '!border-amber-400' : ''" aria-label="{{ __('Jornada de :c', ['c' => $etiquetaCelda]) }}" placeholder="{{ __('Jornada') }}">
                                                             <input type="text" x-model="c" maxlength="100" class="ins-campo !min-h-[32px] !px-2 !py-1 text-xs" aria-label="{{ __('Comida de :c', ['c' => $etiquetaCelda]) }}" placeholder="{{ __('Comida') }}">
+                                                            <p x-show="sucio" x-cloak class="font-semibold text-amber-700">{{ __('Cambiada') }}</p>
                                                             <template x-if="sucio">
                                                                 <span>
                                                                     <input type="hidden" name="turnos[{{ $turno->id }}][jornada]" :value="j">
@@ -256,7 +257,8 @@
                                                             <span class="block text-gray-500">{{ __('Comida') }}: {{ $turno->comida }}</span>
                                                         @endif
                                                         @if ($turno->ajustado())
-                                                            <span class="ins-chip-alerta mt-1" title="{{ __('Oficial') }}: {{ $turno->jornada_oficial }}@if ($turno->editor) · {{ $turno->editor->name }}@endif @if ($turno->editado_at) · {{ $turno->editado_at->setTimezone('America/Cancun')->format('d/m/Y H:i') }}@endif">{{ __('Ajustado') }}</span>
+                                                            <span class="ins-chip-alerta mt-1">{{ __('Ajustado') }}</span>
+                                                            <span class="block text-gray-600">{{ __('Oficial') }}: {{ $turno->jornada_oficial }}@if ($turno->editor) · {{ $turno->editor->name }}@endif @if ($turno->editado_at) · {{ $turno->editado_at->setTimezone('America/Cancun')->format('d/m/Y H:i') }}@endif</span>
                                                         @endif
                                                         @if ($pend)
                                                             <span class="ins-chip-info mt-1">{{ __('Cambio pedido') }}</span>
@@ -277,7 +279,7 @@
                                                                         'jornada' => $turno->jornada,
                                                                         'comida' => $turno->comida,
                                                                     ]))"
-                                                                    aria-label="{{ __('Intercambiar la fecha de :c', ['c' => $etiquetaCelda]) }}">{{ __('Intercambiar fecha') }}</button>
+                                                                    aria-label="{{ __('Intercambiar fecha: :c', ['c' => $etiquetaCelda]) }}">{{ __('Intercambiar fecha') }}</button>
                                                         @endif
                                                     @endif
                                                 </td>

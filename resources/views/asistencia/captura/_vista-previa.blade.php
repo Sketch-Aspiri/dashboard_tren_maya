@@ -22,12 +22,13 @@
                     <div>
                         <p class="of-sub" x-text="`${resumen.letra}   ${resumen.titulo}`"></p>
                         <table class="of-tabla of-resumen">
+                            <caption class="sr-only" x-text="resumen.titulo"></caption>
                             <thead>
                                 <tr>
                                     @foreach (['DESCANSO', 'DIA NO LABORABLE', 'LICENCIAS MEDICAS', 'COMISION', 'AVISO DE INCIDENCIA', 'REPORTE DE AUSENTISMO', 'VACACIONES', 'BAJAS', 'NUEVOS INGRESOS', 'PRESENTE'] as $columna)
-                                        <th>{{ $columna }}</th>
+                                        <th scope="col">{{ $columna }}</th>
                                     @endforeach
-                                    <th x-text="resumen.total"></th>
+                                    <th scope="col" x-text="resumen.total"></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -39,17 +40,18 @@
 
                 <p class="of-sub">d)&nbsp;&nbsp; TOTAL, PLAZAS PERMANENTES, EVENTUALES Y DE OTRAS COORDINACIONES COMISIONADOS</p>
                 <table class="of-tabla of-resumen">
+                    <caption class="sr-only">Total de plazas permanentes, eventuales y de otras coordinaciones comisionadas</caption>
                     <thead>
                         <tr>
                             @foreach (['DESCANSO', 'DIA NO LABORABLE', 'LICENCIAS MEDICAS'] as $columna)
-                                <th rowspan="2">{{ $columna }}</th>
+                                <th scope="col" rowspan="2">{{ $columna }}</th>
                             @endforeach
-                            <th colspan="3">COMISION</th>
+                            <th scope="colgroup" colspan="3">COMISION</th>
                             @foreach (['AVISO DE INCIDENCIA', 'REPORTE DE AUSENTISMO', 'VACACIONES', 'BAJAS', 'NUEVOS INGRESOS', 'PRESENTE', 'TOTAL COMISION'] as $columna)
-                                <th rowspan="2">{{ $columna }}</th>
+                                <th scope="col" rowspan="2">{{ $columna }}</th>
                             @endforeach
                         </tr>
-                        <tr><th>PERMANENTE</th><th>EVENTUAL</th><th>OTRA COORD.</th></tr>
+                        <tr><th scope="col">PERMANENTE</th><th scope="col">EVENTUAL</th><th scope="col">OTRA COORD.</th></tr>
                     </thead>
                     <tbody>
                         <tr><template x-for="(valor, indice) in oficioArmado.comisionados" :key="indice"><td x-text="valor"></td></template></tr>
@@ -57,19 +59,19 @@
                 </table>
 
                 <p class="of-seccion">B. RELACIÓN DEL PERSONAL MILITAR ACTIVO QUE SE ENCUENTRA EN CUALQUIERA DE ESTOS SUPUESTOS.</p>
-                @include('asistencia.captura._vista-previa-lista', ['filas' => 'oficioArmado.militares', 'conDireccion' => false])
+                @include('asistencia.captura._vista-previa-lista', ['filas' => 'oficioArmado.militares', 'conDireccion' => false, 'titulo' => 'B. Personal militar activo'])
 
                 <p class="of-seccion">C. RELACIÓN DEL PERSONAL CIVIL PRESENTE, CON LICENCIA MEDICA, COMISION, AVISO DE INCIDENCIA, REPORTE DE AUSENTISMO, VACACIONES O BAJA.</p>
-                @include('asistencia.captura._vista-previa-lista', ['filas' => 'oficioArmado.permanentes', 'conDireccion' => true])
+                @include('asistencia.captura._vista-previa-lista', ['filas' => 'oficioArmado.permanentes', 'conDireccion' => true, 'titulo' => 'C. Personal civil'])
 
                 <p class="of-seccion">D. RELACIÓN DEL PERSONAL EVENTUAL PRESENTE, CON LICENCIA MEDICA, COMISION, AVISO DE INCIDENCIA, REPORTE DE AUSENTISMO, VACACIONES O BAJA.</p>
-                @include('asistencia.captura._vista-previa-lista', ['filas' => 'oficioArmado.eventuales', 'conDireccion' => true])
+                @include('asistencia.captura._vista-previa-lista', ['filas' => 'oficioArmado.eventuales', 'conDireccion' => true, 'titulo' => 'D. Personal eventual'])
 
                 <p class="of-seccion">E. RELACIÓN DEL PERSONAL COMISIONADO PRESENTE, CON LICENCIA MEDICA, COMISION, AVISO DE INCIDENCIA, REPORTE DE AUSENTISMO, VACACIONES O BAJA.</p>
                 <template x-for="grupo in oficioArmado.seccionE" :key="grupo.titulo">
                     <div>
                         <p class="of-sub of-negrita" x-text="grupo.titulo"></p>
-                        @include('asistencia.captura._vista-previa-lista', ['filas' => 'grupo.filas', 'conDireccion' => true])
+                        @include('asistencia.captura._vista-previa-lista', ['filas' => 'grupo.filas', 'conDireccion' => true, 'titulo' => 'E. Personal comisionado'])
                     </div>
                 </template>
 

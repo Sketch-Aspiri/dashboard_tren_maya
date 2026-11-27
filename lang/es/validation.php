@@ -117,6 +117,12 @@ return [
     'url' => 'El campo :attribute debe ser una URL válida.',
     'uuid' => 'El campo :attribute debe ser un UUID válido.',
 
+    'dimensions' => 'Las medidas de la imagen :attribute no son válidas.',
+
+    'distinct' => 'El campo :attribute tiene un valor repetido.',
+
+    'extensions' => 'El archivo :attribute debe tener una de estas extensiones: :values.',
+
     'custom' => [],
 
     'attributes' => [

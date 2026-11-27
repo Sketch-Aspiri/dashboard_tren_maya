@@ -5,7 +5,7 @@
         {{ __('La autenticación en dos pasos es obligatoria. Escanea este código con tu aplicación de autenticación (Google Authenticator, Authy, etc.) y confirma con el código de 6 dígitos.') }}
     </div>
 
-    <div class="flex justify-center mb-4">
+    <div class="flex justify-center mb-4" role="img" aria-label="{{ __('Código QR para tu aplicación de autenticación. Si no puedes escanearlo, usa la clave escrita debajo.') }}">
         {!! $qrCodeSvg !!}
     </div>
 

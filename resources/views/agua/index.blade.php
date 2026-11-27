@@ -72,7 +72,7 @@
                                 <td class="num">{{ $r ? $r->compras->count() : '—' }}</td>
                                 <td class="num">{{ $r ? $dinero($r->totalComprado()) : '—' }}</td>
                                 <td class="num">{{ $r ? $dinero($r->cuota()) : '—' }}</td>
-                                <td class="num {{ $r && $r->saldo() > 0 ? 'text-amber-700' : '' }}">{{ $r ? $dinero($r->saldo()) : '—' }}</td>
+                                <td class="num {{ $r && $r->saldo() > 0 ? 'text-amber-700' : '' }}">{{ $r ? $dinero($r->saldo()) : '—' }}@if ($r && $r->saldo() != 0)<span class="sr-only"> ({{ $r->saldo() > 0 ? __('reintegro') : __('pendiente de entrega') }})</span>@endif</td>
                                 <td class="num">
                                     @if ($r)
                                         <a href="{{ route('agua.show', $r) }}" class="{{ $porAtender ? 'ins-btn-primario' : 'ins-btn-secundario' }} !min-h-[36px] !px-3"

@@ -5,6 +5,7 @@
 @else
     <div class="overflow-x-auto rounded-xl border border-brand-green/10 bg-white shadow-sm shadow-brand-green/5">
         <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <caption class="sr-only">{{ __('Historial de cargas') }}</caption>
             <thead class="bg-brand-mist">
                 <tr>
                     <th scope="col" class="px-4 py-3 text-left text-xs font-semibold uppercase text-brand-green">{{ __('Fecha') }}</th>
@@ -17,10 +18,10 @@
             <tbody class="divide-y divide-gray-100">
                 @foreach ($cargas as $carga)
                     <tr>
-                        <td class="whitespace-nowrap px-4 py-3 text-gray-700">
+                        <th scope="row" class="whitespace-nowrap px-4 py-3 text-left font-normal text-gray-700">
                             {{ $carga->created_at->format('d/m/Y H:i') }}
                             <span class="block text-xs text-gray-500">{{ $carga->usuario?->name }}</span>
-                        </td>
+                        </th>
                         <td class="px-4 py-3 text-gray-700">
                             {{ $carga->archivo?->nombre_original ?? '—' }}
                             @if ($carga->origen === \App\Models\SeccionImportacion::ORIGEN_IA)
@@ -49,12 +50,12 @@
                         </td>
                         <td class="whitespace-nowrap px-4 py-2 text-right">
                             @if ($puedeGestionar && $carga->isVistaPrevia())
-                                <a href="{{ route('secciones.importaciones.show', [$seccion, $carga]) }}" class="min-h-[36px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Revisar') }}</a>
+                                <a href="{{ route('secciones.importaciones.show', [$seccion, $carga]) }}" class="min-h-[36px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Revisar') }}<span class="sr-only"> {{ __('la carga del :f', ['f' => $carga->created_at->format('d/m/Y H:i')]) }}</span></a>
                             @endif
                             @if ($puedeGestionar && $cargaDeshacible && $cargaDeshacible['carga']->is($carga))
                                 @if ($cargaDeshacible['motivo'] === null)
                                     <x-confirmar-eliminar :action="route('secciones.importaciones.deshacer', [$seccion, $carga])" metodo="POST" tono="neutro"
-                                                          :etiqueta="__('Deshacer')" :confirmar="__('Sí, deshacer')"
+                                                          :etiqueta="__('Deshacer')" :confirmar="__('Sí, deshacer')" :aria-label="__('Deshacer la carga del :f', ['f' => $carga->created_at->format('d/m/Y H:i')])"
                                                           :pregunta="__('¿Deshacer? La tabla vuelve a como estaba antes de esta carga.')" />
                                 @else
                                     <span class="text-xs text-gray-600">{{ $cargaDeshacible['motivo'] }}</span>

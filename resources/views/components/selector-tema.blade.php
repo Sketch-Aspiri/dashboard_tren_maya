@@ -15,9 +15,9 @@
 @if ($variante === 'segmentos')
     <div x-data="selectorTema" {{ $attributes->merge(['class' => 'flex items-center justify-between gap-3']) }}>
         <span class="text-sm font-medium text-gray-700">{{ __('Tema') }}</span>
-        <div class="inline-flex rounded-lg border border-brand-green/15 bg-white p-1" role="radiogroup" aria-label="{{ __('Tema') }}">
+        <div class="inline-flex rounded-lg border border-brand-green/15 bg-white p-1" role="radiogroup" aria-label="{{ __('Tema') }}" @keydown="mover($event)">
             @foreach ($etiquetas as $valor => $texto)
-                <button type="button" role="radio" @click="elegir('{{ $valor }}')" :aria-checked="(tema === '{{ $valor }}').toString()"
+                <button type="button" role="radio" data-tema="{{ $valor }}" @click="elegir('{{ $valor }}')" :aria-checked="(tema === '{{ $valor }}').toString()" :tabindex="tema === '{{ $valor }}' ? 0 : -1"
                         :class="tema === '{{ $valor }}' ? 'bg-brand-green text-white' : 'text-gray-600 hover:bg-brand-mist'"
                         class="inline-flex min-h-[36px] items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
                     <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="{{ $iconos[$valor] }}" /></svg>

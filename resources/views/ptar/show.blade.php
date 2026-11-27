@@ -109,7 +109,7 @@
                         <tbody>
                             @foreach ($registro->equipos as $equipo)
                                 <tr>
-                                    <th scope="row">{{ $equipo->etiquetaEquipo() }}</th>
+                                    <th scope="row" class="px-3 py-2.5 text-left font-medium text-gray-900 sm:px-4">{{ $equipo->etiquetaEquipo() }}</th>
                                     @if ($puedeEditar)
                                         <td>
                                             <label class="sr-only" for="eq-{{ $equipo->equipo }}">{{ __('Estatus de :e', ['e' => $equipo->etiquetaEquipo()]) }}</label>
@@ -159,7 +159,7 @@
                         <tbody>
                             @foreach ($registro->actividades as $actividad)
                                 <tr>
-                                    <th scope="row">{{ $actividad->actividad }}</th>
+                                    <th scope="row" class="px-3 py-2.5 text-left font-medium text-gray-900 sm:px-4">{{ $actividad->actividad }}</th>
                                     @if ($puedeEditar)
                                         <td>
                                             <label class="sr-only" for="ac-{{ $actividad->id }}">{{ __('Fecha de :a', ['a' => $actividad->actividad]) }}</label>
@@ -217,12 +217,12 @@
                                     <img src="{{ route('ptar.evidencia', [$registro, $foto]) }}" alt="{{ $foto->pie ?: $foto->nombre }}" loading="lazy" class="h-40 w-full object-cover">
                                 </a>
                                 <div class="flex items-center justify-between gap-2 p-2 text-sm">
-                                    <span class="truncate text-gray-600">{{ $foto->pie ?: $foto->nombre }}</span>
+                                    <span class="min-w-0 break-words text-gray-600">{{ $foto->pie ?: $foto->nombre }}</span>
                                     @if ($puedeEditar)
                                         <form method="POST" action="{{ route('ptar.evidencias.destroy', [$registro, $foto]) }}" onsubmit="return confirm('{{ __('¿Quitar esta foto?') }}')">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="ins-enlace-peligro !min-h-[36px]">{{ __('Quitar') }}</button>
+                                            <button type="submit" class="ins-enlace-peligro !min-h-[36px]">{{ __('Quitar') }}<span class="sr-only"> {{ __('la foto :f', ['f' => $foto->pie ?: $foto->nombre]) }}</span></button>
                                         </form>
                                     @endif
                                 </div>

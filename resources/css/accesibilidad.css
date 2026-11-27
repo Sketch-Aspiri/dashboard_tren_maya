@@ -24,9 +24,8 @@ html.a11y-contraste .text-white\/70,
 html.a11y-contraste .text-white\/75,
 html.a11y-contraste .text-white\/80,
 html.a11y-contraste .text-white\/90 { color: #fff; }
-html.a11y-contraste input,
-html.a11y-contraste select,
-html.a11y-contraste textarea { border-color: #374151; }
+html.a11y-contraste:not(.dark) body :is(input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]), select:not(.hoja-editor), textarea:not(.hoja-editor)),
+html.a11y-contraste:not(.dark) body :is(input[type="checkbox"], input[type="radio"]):not(:checked) { border-color: #374151; }
 html.a11y-contraste input::placeholder,
 html.a11y-contraste textarea::placeholder { color: #374151; }
 html.a11y-contraste [class*="border-gray-"],
@@ -60,9 +59,8 @@ html.a11y-contraste.dark .text-gray-400,
 html.a11y-contraste.dark .text-gray-300 { color: var(--o-texto3); }
 html.a11y-contraste.dark .text-brand-green,
 html.a11y-contraste.dark .text-brand-teal { color: var(--o-marca); }
-html.a11y-contraste.dark input,
-html.a11y-contraste.dark select,
-html.a11y-contraste.dark textarea,
+html.a11y-contraste.dark body :is(input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]), select:not(.hoja-editor), textarea:not(.hoja-editor)),
+html.a11y-contraste.dark body :is(input[type="checkbox"], input[type="radio"]):not(:checked),
 html.a11y-contraste.dark [class*="border-gray-"],
 html.a11y-contraste.dark [class*="border-brand-green/"],
 html.a11y-contraste.dark [class*="border-brand-teal/"],
@@ -103,17 +101,16 @@ html.a11y-sin-movimiento .reveal { opacity: 1; transform: none; }
 html:not(.dark) .text-gray-400 { color: #5f6875; }
 html:not(.dark) .text-gray-500 { color: #5b6472; }
 
-/* El borde de los campos se distingue del fondo (3:1). */
-html:not(.dark) input:not([type="hidden"]),
-html:not(.dark) select,
-html:not(.dark) textarea { border-color: #7b8794; }
-html.dark input:not([type="hidden"]),
-html.dark select,
-html.dark textarea { border-color: rgb(255 255 255 / 0.45); }
-html input:focus, html select:focus, html textarea:focus { border-color: #1f7460; }
-html.dark input:focus, html.dark select:focus, html.dark textarea:focus { border-color: #6fcab3; }
-html input[aria-invalid="true"], html select[aria-invalid="true"], html textarea[aria-invalid="true"] { border-color: #b91c1c; }
-html.dark input[aria-invalid="true"], html.dark select[aria-invalid="true"], html.dark textarea[aria-invalid="true"] { border-color: #fca5a5; }
+/* El borde de los campos se distingue del fondo (3:1). Los selectores repiten la lista para ganar a las utilidades y
+   a las reglas de modo oscuro de cada sistema sin pisar las casillas marcadas. */
+html:not(.dark) body :is(input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]), select:not(.hoja-editor), textarea:not(.hoja-editor)),
+html:not(.dark) body :is(input[type="checkbox"], input[type="radio"]):not(:checked) { border-color: #7b8794; }
+html.dark body :is(input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]), select:not(.hoja-editor), textarea:not(.hoja-editor)),
+html.dark body :is(input[type="checkbox"], input[type="radio"]):not(:checked) { border-color: rgb(255 255 255 / 0.45); }
+html:not(.dark) body :is(input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]), select:not(.hoja-editor), textarea:not(.hoja-editor)):focus { border-color: #1f7460; }
+html.dark body :is(input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]), select:not(.hoja-editor), textarea:not(.hoja-editor)):focus { border-color: #6fcab3; }
+html:not(.dark) body :is(input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]), select:not(.hoja-editor), textarea:not(.hoja-editor))[aria-invalid="true"] { border-color: #b91c1c; }
+html.dark body :is(input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]), select:not(.hoja-editor), textarea:not(.hoja-editor))[aria-invalid="true"] { border-color: #fca5a5; }
 
 /* Anillo de foco visible en oscuro y donde el componente no dibuja ninguno. */
 html.dark [class*="ring-brand-teal"] { --tw-ring-color: #6fcab3; }
@@ -133,6 +130,9 @@ html.dark [aria-pressed="true"], html.dark [aria-checked="true"], html.dark [rol
 .a11y-resumen ul { margin-top: 0.25rem; list-style: disc; padding-left: 1.25rem; }
 .a11y-resumen a { text-decoration: underline; }
 html.dark .a11y-resumen { border-color: #fca5a5; background: #3b1414; color: #fecaca; }
+
+/* Aviso de sesión: cada botón aparece solo cuando corresponde. */
+dialog[data-a11y-sesion] [hidden] { display: none; }
 
 /* La cabecera fija no tapa el elemento enfocado. */
 html { scroll-padding-top: 4.5rem; scroll-padding-bottom: 5rem; }

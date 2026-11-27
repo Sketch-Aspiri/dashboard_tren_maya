@@ -20,7 +20,7 @@
             <div class="flex flex-wrap items-center gap-2">
                 @foreach ($estados as $e)
                     <a href="{{ route('horarios.solicitudes.index', ['estado' => $e]) }}" @if ($e === $estado) aria-current="page" @endif
-                       class="{{ $e === $estado ? 'ins-chip-marca' : 'ins-chip-neutro' }} hover:underline">{{ __($etiquetas[$e]) }} ({{ $conteos[$e] ?? 0 }})</a>
+                       class="{{ $e === $estado ? 'ins-chip-marca underline' : 'ins-chip-neutro' }} hover:underline">{{ __($etiquetas[$e]) }} ({{ $conteos[$e] ?? 0 }})</a>
                 @endforeach
             </div>
 
@@ -36,13 +36,13 @@
                         <div class="flex flex-wrap items-start gap-2">
                             <form method="POST" action="{{ route('horarios.lotes.autorizar', $s->lote) }}" class="flex flex-wrap items-center gap-2">
                                 @csrf
-                                <input type="text" name="comentario" maxlength="1000" class="ins-campo w-56" placeholder="{{ __('Comentario (opcional)') }}" aria-label="{{ __('Comentario al autorizar el envío') }}">
-                                <button type="submit" class="ins-btn-primario">{{ __('Autorizar todo el envío') }}</button>
+                                <input type="text" name="comentario" maxlength="1000" class="ins-campo w-56" placeholder="{{ __('Comentario (opcional)') }}" aria-label="{{ __('Comentario al autorizar el envío') }}: {{ $s->estacion?->nombre }}, {{ $s->created_at->setTimezone('America/Cancun')->format('d/m/Y H:i') }}">
+                                <button type="submit" class="ins-btn-primario">{{ __('Autorizar todo el envío') }}<span class="sr-only">: {{ $s->estacion?->nombre }}, {{ $s->created_at->setTimezone('America/Cancun')->format('d/m/Y H:i') }}</span></button>
                             </form>
-                            <button type="button" class="ins-btn-peligro" @click="rechazando = ! rechazando" :aria-expanded="rechazando">{{ __('Rechazar todo el envío') }}</button>
+                            <button type="button" class="ins-btn-peligro" @click="rechazando = ! rechazando" :aria-expanded="rechazando">{{ __('Rechazar todo el envío') }}<span class="sr-only">: {{ $s->estacion?->nombre }}, {{ $s->created_at->setTimezone('America/Cancun')->format('d/m/Y H:i') }}</span></button>
                             <form method="POST" action="{{ route('horarios.lotes.rechazar', $s->lote) }}" x-show="rechazando" x-cloak class="flex w-full flex-wrap items-center gap-2">
                                 @csrf
-                                <input type="text" name="comentario" maxlength="1000" required class="ins-campo min-w-[16rem] flex-1" placeholder="{{ __('Explica por qué se rechaza') }}" aria-label="{{ __('Motivo del rechazo del envío') }}">
+                                <input type="text" name="comentario" maxlength="1000" required class="ins-campo min-w-[16rem] flex-1" placeholder="{{ __('Explica por qué se rechaza') }}" aria-label="{{ __('Motivo del rechazo del envío') }}: {{ $s->estacion?->nombre }}, {{ $s->created_at->setTimezone('America/Cancun')->format('d/m/Y H:i') }}">
                                 <button type="submit" class="ins-btn-peligro">{{ __('Confirmar rechazo') }}</button>
                             </form>
                         </div>
@@ -87,14 +87,14 @@
                         <div class="flex flex-wrap items-start gap-2 border-t border-gray-100 pt-3">
                             <form method="POST" action="{{ route('horarios.solicitudes.autorizar', $s) }}" class="flex flex-wrap items-center gap-2">
                                 @csrf
-                                <input type="text" name="comentario" maxlength="1000" class="ins-campo w-56" placeholder="{{ __('Comentario (opcional)') }}" aria-label="{{ __('Comentario al autorizar') }}">
-                                <button type="submit" class="ins-btn-primario">{{ __('Autorizar') }}</button>
+                                <input type="text" name="comentario" maxlength="1000" class="ins-campo w-56" placeholder="{{ __('Comentario (opcional)') }}" aria-label="{{ __('Comentario al autorizar') }}: {{ $s->nombre }}, {{ $s->fecha->format('d/m/Y') }}">
+                                <button type="submit" class="ins-btn-primario">{{ __('Autorizar') }}<span class="sr-only">: {{ $s->nombre }}, {{ $s->fecha->format('d/m/Y') }}</span></button>
                             </form>
-                            <button type="button" class="ins-btn-peligro" @click="rechazando = ! rechazando" :aria-expanded="rechazando">{{ __('Rechazar') }}</button>
+                            <button type="button" class="ins-btn-peligro" @click="rechazando = ! rechazando" :aria-expanded="rechazando">{{ __('Rechazar') }}<span class="sr-only">: {{ $s->nombre }}, {{ $s->fecha->format('d/m/Y') }}</span></button>
                             <form method="POST" action="{{ route('horarios.solicitudes.rechazar', $s) }}" x-show="rechazando" x-cloak class="flex w-full flex-wrap items-center gap-2">
                                 @csrf
-                                <input type="text" name="comentario" maxlength="1000" required class="ins-campo min-w-[16rem] flex-1" placeholder="{{ __('Explica por qué se rechaza') }}" aria-label="{{ __('Motivo del rechazo') }}">
-                                <button type="submit" class="ins-btn-peligro">{{ __('Confirmar rechazo') }}</button>
+                                <input type="text" name="comentario" maxlength="1000" required class="ins-campo min-w-[16rem] flex-1" placeholder="{{ __('Explica por qué se rechaza') }}" aria-label="{{ __('Motivo del rechazo') }}: {{ $s->nombre }}, {{ $s->fecha->format('d/m/Y') }}">
+                                <button type="submit" class="ins-btn-peligro">{{ __('Confirmar rechazo') }}<span class="sr-only">: {{ $s->nombre }}, {{ $s->fecha->format('d/m/Y') }}</span></button>
                             </form>
                         </div>
                     @endcan
@@ -102,7 +102,7 @@
                     @can('cancelar', $s)
                         <form method="POST" action="{{ route('horarios.solicitudes.cancelar', $s) }}" class="border-t border-gray-100 pt-3">
                             @csrf
-                            <button type="submit" class="ins-btn-neutro">{{ __('Cancelar solicitud') }}</button>
+                            <button type="submit" class="ins-btn-neutro">{{ __('Cancelar solicitud') }}<span class="sr-only">: {{ $s->nombre }}, {{ $s->fecha->format('d/m/Y') }}</span></button>
                         </form>
                     @endcan
                 </article>

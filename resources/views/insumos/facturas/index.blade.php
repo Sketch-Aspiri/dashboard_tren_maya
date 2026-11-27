@@ -32,7 +32,7 @@
                                 <span class="{{ $r['ok'] ? 'ins-chip-ok' : 'ins-chip-error' }}">{{ $r['ok'] ? __('Cargada') : __('No cargada') }}</span>
                                 <span class="font-medium text-gray-900">{{ $r['archivo'] }}</span>
                                 <span class="text-gray-600">{{ $r['mensaje'] }}</span>
-                                @if ($r['ok'])<a href="{{ route('insumos.facturas.show', $r['factura_id']) }}" class="ins-enlace !min-h-0 sm:ml-auto">{{ __('Ver') }}</a>@endif
+                                @if ($r['ok'])<a href="{{ route('insumos.facturas.show', $r['factura_id']) }}" class="ins-enlace !min-h-0 sm:ml-auto">{{ __('Ver') }}<span class="sr-only"> {{ $r['archivo'] }}</span></a>@endif
                             </li>
                         @endforeach
                     </ul>
@@ -83,7 +83,7 @@
                        x-text="faltan() > 0 ? faltan() + ' {{ __('XML sin su PDF: no se cargarán hasta que agregues el PDF con el mismo nombre.') }}' : '{{ __('Cada XML tiene su PDF.') }}'"></p>
                     <ul class="mt-2 flex flex-wrap gap-2">
                         <template x-for="n in xml" :key="n">
-                            <li :class="tienePdf(n) ? 'ins-chip-ok' : 'ins-chip-alerta'" x-text="n"></li>
+                            <li :class="tienePdf(n) ? 'ins-chip-ok' : 'ins-chip-alerta'"><span x-text="n"></span><span x-text="tienePdf(n) ? '· {{ __('con PDF') }}' : '· {{ __('falta el PDF') }}'"></span></li>
                         </template>
                     </ul>
                 </div>
@@ -108,7 +108,7 @@
                     <tbody>
                         @forelse ($facturas as $factura)
                             <tr>
-                                <td class="fuerte whitespace-nowrap">{{ $factura->referencia() }}</td>
+                                <th scope="row" class="whitespace-nowrap px-3 py-2.5 text-left font-medium text-gray-900 sm:px-4">{{ $factura->referencia() }}</th>
                                 <td>{{ $factura->emisor_nombre }}</td>
                                 <td>{{ $factura->estacion?->nombre ?? '—' }}</td>
                                 <td class="whitespace-nowrap">{{ $factura->fecha->format('d/m/Y') }}</td>

@@ -82,23 +82,23 @@
                                 </div>
                                 <div class="mt-2 grid grid-cols-2 gap-3 lg:grid-cols-12">
                                     <div class="col-span-2 lg:col-span-6">
-                                        <label :for="`p-${i}-articulo`" class="ins-etiqueta">{{ __('Artículo') }}</label>
+                                        <label :for="`p-${i}-articulo`" class="ins-etiqueta">{{ __('Artículo') }}<span class="sr-only" x-text="', {{ __('artículo') }} ' + (i + 1)"></span></label>
                                         <input :id="`p-${i}-articulo`" type="text" required maxlength="255" list="catalogo-papeleria" class="ins-campo mt-1"
                                                :name="`partidas[${i}][articulo]`" x-model="fila.articulo">
                                     </div>
                                     <div class="lg:col-span-3">
-                                        <label :for="`p-${i}-unidad`" class="ins-etiqueta">{{ __('Unidad de medida') }}</label>
+                                        <label :for="`p-${i}-unidad`" class="ins-etiqueta">{{ __('Unidad de medida') }}<span class="sr-only" x-text="', {{ __('artículo') }} ' + (i + 1)"></span></label>
                                         <select :id="`p-${i}-unidad`" required class="ins-campo mt-1" :name="`partidas[${i}][unidad]`" x-model="fila.unidad">
                                             <template x-for="u in unidades" :key="u"><option :value="u" x-text="u"></option></template>
                                         </select>
                                     </div>
                                     <div class="lg:col-span-3">
-                                        <label :for="`p-${i}-cantidad`" class="ins-etiqueta">{{ __('Cantidad') }}</label>
+                                        <label :for="`p-${i}-cantidad`" class="ins-etiqueta">{{ __('Cantidad') }}<span class="sr-only" x-text="', {{ __('artículo') }} ' + (i + 1)"></span></label>
                                         <input :id="`p-${i}-cantidad`" type="number" inputmode="decimal" step="0.01" min="0.01" required class="ins-campo mt-1"
                                                :name="`partidas[${i}][cantidad]`" x-model="fila.cantidad">
                                     </div>
                                     <div class="col-span-2 lg:col-span-12">
-                                        <label :for="`p-${i}-comentarios`" class="ins-etiqueta">{{ __('Comentarios') }}</label>
+                                        <label :for="`p-${i}-comentarios`" class="ins-etiqueta">{{ __('Comentarios') }}<span class="sr-only" x-text="', {{ __('artículo') }} ' + (i + 1)"></span></label>
                                         <input :id="`p-${i}-comentarios`" type="text" maxlength="2000" class="ins-campo mt-1"
                                                :name="`partidas[${i}][comentarios]`" x-model="fila.comentarios">
                                     </div>
@@ -110,13 +110,13 @@
                     </section>
 
                     <div class="ins-barra-acciones">
-                        <p class="text-sm" :class="sucio ? 'text-amber-700' : 'text-gray-500'" role="status"
+                        <p id="estado-captura" class="text-sm" :class="sucio ? 'text-amber-700' : 'text-gray-500'" role="status"
                            x-text="sucio ? '{{ __('Tienes cambios sin guardar. Guarda antes de enviar.') }}' : '{{ __('Todo guardado. Cuando termines, envía la solicitud a la Zona.') }}'"></p>
                         <div class="flex flex-col-reverse gap-2 sm:flex-row">
                             <button type="submit" class="ins-btn-secundario">{{ __('Guardar borrador') }}</button>
                             @if ($solicitud->partidas->isNotEmpty())
                                 <button type="submit" form="form-enviar" class="ins-btn-primario" :disabled="sucio"
-                                        :title="sucio ? '{{ __('Guarda primero los cambios') }}' : ''">{{ __('Enviar a la Zona') }}</button>
+                                        aria-describedby="estado-captura">{{ __('Enviar a la Zona') }}</button>
                             @endif
                         </div>
                     </div>
@@ -165,7 +165,7 @@
                         <tbody>
                             @forelse ($solicitud->partidas as $partida)
                                 <tr>
-                                    <td>{{ $partida->numero }}</td>
+                                    <th scope="row" class="px-3 py-2.5 text-left font-normal sm:px-4">{{ $partida->numero }}</th>
                                     <td class="fuerte min-w-[14rem]">{{ $partida->articulo }}</td>
                                     <td>{{ $partida->unidad }}</td>
                                     <td class="num">{{ $partida->cantidad + 0 }}</td>

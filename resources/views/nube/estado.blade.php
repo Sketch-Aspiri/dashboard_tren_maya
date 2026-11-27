@@ -22,9 +22,9 @@
                         <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
                             <div class="min-w-0 space-y-0.5">
                                 <p class="flex flex-wrap items-center gap-2 text-sm font-medium text-gray-900">
-                                    <a href="{{ route('secciones.show', $origen->seccion) }}" class="truncate text-brand-teal hover:underline">{{ $origen->seccion->nombre }}</a>
+                                    <a href="{{ route('secciones.show', $origen->seccion) }}" class="break-words text-brand-teal underline">{{ $origen->seccion->nombre }}</a>
                                     <span class="text-gray-500">·</span>
-                                    <span class="truncate">{{ $origen->nombre }}</span>
+                                    <span class="break-words">{{ $origen->nombre }}</span>
                                     <span class="rounded-full px-2 py-0.5 text-xs font-semibold {{ $origen->estado->insignia() }}">{{ __($origen->estado->label()) }}</span>
                                 </p>
                                 <p class="text-xs text-gray-600">
@@ -48,17 +48,17 @@
                             <div class="flex flex-wrap items-center gap-1 lg:justify-end">
                                 <form method="POST" action="{{ route('secciones.origenes.sincronizar', [$origen->seccion, $origen]) }}">
                                     @csrf
-                                    <button type="submit" class="min-h-[44px] rounded-md px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">{{ __('Sincronizar ahora') }}</button>
+                                    <button type="submit" class="min-h-[44px] rounded-md px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">{{ __('Sincronizar ahora') }}<span class="sr-only"> {{ $origen->nombre }}</span></button>
                                 </form>
                                 @if ($origen->mapeos_count > 0)
-                                    <a href="{{ route('secciones.origenes.mapeo.edit', [$origen->seccion, $origen]) }}" class="inline-flex min-h-[44px] items-center rounded-md px-3 text-sm font-medium text-gray-700 hover:bg-gray-100">{{ __('Editar mapeo') }}</a>
+                                    <a href="{{ route('secciones.origenes.mapeo.edit', [$origen->seccion, $origen]) }}" class="inline-flex min-h-[44px] items-center rounded-md px-3 text-sm font-medium text-gray-700 hover:bg-gray-100">{{ __('Editar mapeo') }}<span class="sr-only"> {{ $origen->nombre }}</span></a>
                                 @endif
                             </div>
                         </div>
                         @if ($origen->estado === \App\Enums\EstadoOrigen::PendienteMapeo)
                             <p class="mt-2 rounded-md bg-amber-50 p-2 text-xs text-amber-900" role="status">
                                 {{ __('Falta confirmar el mapeo de columnas de un Excel. Los documentos se sincronizan; las tablas esperan.') }}
-                                <a href="{{ route('secciones.show', [$origen->seccion, 'tab' => 'cargas']) }}" class="font-semibold underline">{{ __('Ir a la sección') }}</a>
+                                <a href="{{ route('secciones.show', [$origen->seccion, 'tab' => 'cargas']) }}" class="font-semibold underline">{{ __('Ir a la sección') }}<span class="sr-only"> {{ $origen->seccion->nombre }}</span></a>
                             </p>
                         @endif
                         @foreach ($retenidos as $retenido)

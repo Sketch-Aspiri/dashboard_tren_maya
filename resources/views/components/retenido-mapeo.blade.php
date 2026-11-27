@@ -16,12 +16,12 @@
         <form method="POST" action="{{ route('secciones.origenes.mapeo.aplicar-retenido', [$origen->seccion, $origen]) }}">
             @csrf
             <input type="hidden" name="mapeo" value="{{ $mapeo->id }}">
-            <button type="submit" class="min-h-[44px] rounded-md bg-amber-700 px-4 text-sm font-semibold text-white hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-500">{{ __('Aplicar') }}</button>
+            <button type="submit" class="min-h-[44px] rounded-md bg-amber-700 px-4 text-sm font-semibold text-white hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-500">{{ __('Aplicar') }}<span class="sr-only"> {{ __('el cambio retenido de :t', ['t' => $mapeo->tabla?->nombre ?? $mapeo->hoja]) }}</span></button>
         </form>
         <form method="POST" action="{{ route('secciones.origenes.mapeo.ignorar-retenido', [$origen->seccion, $origen]) }}">
             @csrf
             <input type="hidden" name="mapeo" value="{{ $mapeo->id }}">
-            <button type="submit" class="min-h-[44px] rounded-md border border-amber-400 bg-white px-4 text-sm font-medium text-amber-900 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500">{{ __('Ignorar') }}</button>
+            <button type="submit" class="min-h-[44px] rounded-md border border-amber-400 bg-white px-4 text-sm font-medium text-amber-900 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500">{{ __('Ignorar') }}<span class="sr-only"> {{ __('el cambio retenido de :t', ['t' => $mapeo->tabla?->nombre ?? $mapeo->hoja]) }}</span></button>
         </form>
     </div>
 </div>

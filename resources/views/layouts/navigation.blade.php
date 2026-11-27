@@ -37,8 +37,8 @@
 
                     <x-slot name="content">
                         <div class="border-b border-gray-100 px-4 py-2">
-                            <p class="truncate text-sm font-medium text-brand-green">{{ Auth::user()->name }}</p>
-                            <p class="truncate text-xs text-gray-600">{{ Auth::user()->email }}</p>
+                            <p class="break-words text-sm font-medium text-brand-green">{{ Auth::user()->name }}</p>
+                            <p class="break-words text-xs text-gray-600">{{ Auth::user()->email }}</p>
                         </div>
                         @can('create', \App\Models\Seccion::class)
                             <x-dropdown-link :href="route('secciones.administrar')">

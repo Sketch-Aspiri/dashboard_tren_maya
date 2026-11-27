@@ -24,7 +24,7 @@
                         <input id="q-catalogo" name="q" type="search" class="ins-campo" value="{{ $termino }}" maxlength="100" placeholder="{{ __('Buscar por descripción…') }}">
                     </div>
                     <label class="flex min-h-[44px] items-center gap-2 text-sm text-gray-700">
-                        <input type="checkbox" name="inactivos" value="1" @checked($verInactivos) class="rounded border-gray-300 text-brand-teal focus:ring-brand-teal" onchange="this.form.submit()">
+                        <input type="checkbox" name="inactivos" value="1" @checked($verInactivos) class="rounded border-gray-300 text-brand-teal focus:ring-brand-teal">
                         {{ __('Mostrar inactivos') }}
                     </label>
                     <button type="submit" class="ins-btn-neutro">{{ __('Buscar') }}</button>
@@ -44,7 +44,7 @@
                             @csrf
                             <h3 id="importar-titulo" class="ins-titulo">{{ __('Cargar desde un ANEXO (.xlsx)') }}</h3>
                             <p class="ins-ayuda mt-1">{{ __('Lee la hoja ZO_Cotización: descripción, unidad, precio unitario y partida presupuestal. Agrega los insumos nuevos y actualiza el precio de los que ya existen.') }}</p>
-                            <label for="archivo" class="sr-only">{{ __('Archivo') }}</label>
+                            <label for="archivo" class="sr-only">{{ __('Archivo ANEXO (.xlsx)') }}</label>
                             <input id="archivo" name="archivo" type="file" required accept=".xlsx" class="ins-archivo mt-4">
                             <div class="mt-6 flex justify-end gap-2">
                                 <button type="button" class="ins-btn-neutro" @click="$refs.importar.close()">{{ __('Cancelar') }}</button>
@@ -111,21 +111,21 @@
                         @forelse ($insumos as $insumo)
                             @php $formId = 'insumo-'.$insumo->id; $sinPartida = blank($insumo->partida_presupuestal); @endphp
                             <tr x-data="{ cambiado: false }" @input="cambiado = true" class="{{ $insumo->activo ? '' : 'opacity-60' }}">
-                                <td><input form="{{ $formId }}" name="descripcion" type="text" required maxlength="255" class="ins-campo min-w-[18rem]" aria-label="{{ __('Descripción') }}" value="{{ $insumo->descripcion }}"></td>
-                                <td><input form="{{ $formId }}" name="unidad" type="text" required maxlength="30" class="ins-campo w-24" aria-label="{{ __('Unidad') }}" value="{{ $insumo->unidad }}"></td>
-                                <td><input form="{{ $formId }}" name="codigo" type="text" maxlength="50" class="ins-campo w-28" aria-label="{{ __('Código') }}" value="{{ $insumo->codigo }}"></td>
-                                <td><input form="{{ $formId }}" name="ultimo_precio" type="number" inputmode="decimal" step="0.01" min="0" class="ins-campo w-28 text-right" aria-label="{{ __('Precio unitario') }}" value="{{ $insumo->ultimo_precio }}"></td>
-                                <td><input form="{{ $formId }}" name="partida_presupuestal" type="text" inputmode="numeric" maxlength="5" pattern="\d{5}" class="ins-campo w-24 {{ $sinPartida ? '!border-amber-400 bg-amber-50' : '' }}" aria-label="{{ __('Partida presupuestal') }}" placeholder="{{ __('Falta') }}" value="{{ $insumo->partida_presupuestal }}"></td>
-                                <td><input form="{{ $formId }}" name="proveedor" type="text" maxlength="255" class="ins-campo w-44" aria-label="{{ __('Proveedor') }}" value="{{ $insumo->proveedor }}"></td>
+                                <td>@unless ($insumo->activo)<span class="ins-chip-neutro mb-1">{{ __('Inactivo') }}</span>@endunless<input form="{{ $formId }}" name="descripcion" type="text" required maxlength="255" class="ins-campo min-w-[18rem]" aria-label="{{ __('Descripción de :d', ['d' => $insumo->descripcion]) }}" value="{{ $insumo->descripcion }}"></td>
+                                <td><input form="{{ $formId }}" name="unidad" type="text" required maxlength="30" class="ins-campo w-24" aria-label="{{ __('Unidad de :d', ['d' => $insumo->descripcion]) }}" value="{{ $insumo->unidad }}"></td>
+                                <td><input form="{{ $formId }}" name="codigo" type="text" maxlength="50" class="ins-campo w-28" aria-label="{{ __('Código de :d', ['d' => $insumo->descripcion]) }}" value="{{ $insumo->codigo }}"></td>
+                                <td><input form="{{ $formId }}" name="ultimo_precio" type="number" inputmode="decimal" step="0.01" min="0" class="ins-campo w-28 text-right" aria-label="{{ __('Precio unitario de :d', ['d' => $insumo->descripcion]) }}" value="{{ $insumo->ultimo_precio }}"></td>
+                                <td><input form="{{ $formId }}" name="partida_presupuestal" type="text" inputmode="numeric" maxlength="5" pattern="\d{5}" class="ins-campo w-24 {{ $sinPartida ? '!border-amber-400 bg-amber-50' : '' }}" aria-label="{{ __('Partida presupuestal de :d', ['d' => $insumo->descripcion]) }}" @if ($sinPartida) aria-describedby="{{ $formId }}-falta" @endif placeholder="{{ __('Falta') }}" value="{{ $insumo->partida_presupuestal }}">@if ($sinPartida)<span id="{{ $formId }}-falta" class="mt-1 block text-xs font-medium text-amber-700">{{ __('Falta partida') }}</span>@endif</td>
+                                <td><input form="{{ $formId }}" name="proveedor" type="text" maxlength="255" class="ins-campo w-44" aria-label="{{ __('Proveedor de :d', ['d' => $insumo->descripcion]) }}" value="{{ $insumo->proveedor }}"></td>
                                 <td class="text-center">
-                                    <input form="{{ $formId }}" type="checkbox" name="activo" value="1" @checked($insumo->activo) aria-label="{{ __('Activo') }}" class="mt-2.5 h-5 w-5 rounded border-gray-300 text-brand-teal focus:ring-brand-teal">
+                                    <input form="{{ $formId }}" type="checkbox" name="activo" value="1" @checked($insumo->activo) aria-label="{{ __('Activo de :d', ['d' => $insumo->descripcion]) }}" class="mt-2.5 h-5 w-5 rounded border-gray-300 text-brand-teal focus:ring-brand-teal">
                                 </td>
                                 <td class="whitespace-nowrap">
                                     <div class="flex items-center justify-end gap-1">
                                         <form id="{{ $formId }}" method="POST" action="{{ route('insumos.catalogo.update', $insumo) }}">
                                             @csrf
                                             @method('PUT')
-                                            <button type="submit" class="ins-btn !min-h-[36px] !px-3" :class="cambiado ? 'bg-brand-green text-white hover:bg-brand-green-dark' : 'text-brand-teal hover:bg-brand-mist'">{{ __('Guardar') }}</button>
+                                            <button type="submit" class="ins-btn !min-h-[36px] !px-3" :class="cambiado ? 'bg-brand-green text-white hover:bg-brand-green-dark' : 'text-brand-teal hover:bg-brand-mist'">{{ __('Guardar') }}<span class="sr-only"> {{ $insumo->descripcion }}</span></button>
                                         </form>
                                         <x-confirmar-eliminar :action="route('insumos.catalogo.destroy', $insumo)" :pregunta="__('¿Eliminar?')" :aria-label="__('Eliminar :d', ['d' => $insumo->descripcion])" />
                                     </div>

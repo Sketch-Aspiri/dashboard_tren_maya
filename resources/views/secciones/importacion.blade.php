@@ -95,6 +95,7 @@
                     </div>
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200 text-sm">
+                            <caption class="sr-only">{{ __('Columnas del documento y destino') }}</caption>
                             <thead class="bg-brand-mist">
                                 <tr>
                                     <th scope="col" class="px-4 py-2 text-left text-xs font-semibold uppercase text-brand-green">{{ __('En el documento') }}</th>
@@ -106,7 +107,7 @@
                             <tbody class="divide-y divide-gray-100">
                                 @foreach ($propuesta['encabezados'] as $indice => $encabezado)
                                     <tr>
-                                        <td class="px-4 py-2 font-medium text-gray-900">{{ $encabezado }}</td>
+                                        <th scope="row" class="px-4 py-2 text-left font-medium text-gray-900">{{ $encabezado }}</th>
                                         <td class="px-4 py-2">
                                             <label class="sr-only" for="mapeo-{{ $indice }}">{{ __('Destino de :col', ['col' => $encabezado]) }}</label>
                                             <select id="mapeo-{{ $indice }}" name="mapeo[{{ $indice }}]" x-model="mapeo[{{ $indice }}]" @change="calcular()"

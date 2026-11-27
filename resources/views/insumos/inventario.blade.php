@@ -31,9 +31,13 @@
                 @if ($estaciones->count() > 1)
                     <div>
                         <label for="estacion-inv" class="ins-etiqueta">{{ __('Estación') }}</label>
-                        <select id="estacion-inv" name="estacion" class="ins-campo mt-1 sm:w-72" onchange="this.form.submit()">
-                            @foreach ($estaciones as $e)<option value="{{ $e->id }}" @selected($estacion && $e->id === $estacion->id)>{{ $e->nombre }}</option>@endforeach
-                        </select>
+                        <div class="mt-1 flex flex-wrap items-center gap-2">
+                            <select id="estacion-inv" name="estacion" class="ins-campo sm:w-72">
+                                @foreach ($estaciones as $e)<option value="{{ $e->id }}" @selected($estacion && $e->id === $estacion->id)>{{ $e->nombre }}</option>@endforeach
+                            </select>
+                            {{-- Va primero en el formulario: Enter conserva el tipo elegido. --}}
+                            <button type="submit" name="tipo" value="{{ $tipo }}" class="ins-btn-secundario">{{ __('Ver estación') }}</button>
+                        </div>
                     </div>
                 @elseif ($estacion)
                     <input type="hidden" name="estacion" value="{{ $estacion->id }}">
@@ -41,15 +45,15 @@
 
                 {{-- Tipo como pestañas con su conteo; un clic filtra. --}}
                 <div class="flex flex-wrap items-center gap-2" role="group" aria-label="{{ __('Tipo') }}">
-                    <button type="submit" name="tipo" value="" class="{{ $tipo === null ? 'ins-btn-primario' : 'ins-btn-neutro' }} !min-h-[40px]" @if ($tipo === null) aria-pressed="true" @endif>
+                    <button type="submit" name="tipo" value="" class="{{ $tipo === null ? 'ins-btn-primario' : 'ins-btn-neutro' }} !min-h-[40px] !whitespace-normal" @if ($tipo === null) aria-pressed="true" @endif>
                         {{ __('Todo') }} <span class="opacity-75">{{ array_sum($conteo) }}</span>
                     </button>
                     @foreach ($etiquetas as $valor => $texto)
-                        <button type="submit" name="tipo" value="{{ $valor }}" class="{{ $tipo === $valor ? 'ins-btn-primario' : 'ins-btn-neutro' }} !min-h-[40px]" @if ($tipo === $valor) aria-pressed="true" @endif>
+                        <button type="submit" name="tipo" value="{{ $valor }}" class="{{ $tipo === $valor ? 'ins-btn-primario' : 'ins-btn-neutro' }} !min-h-[40px] !whitespace-normal" @if ($tipo === $valor) aria-pressed="true" @endif>
                             {{ $texto }} <span class="opacity-75">{{ $conteo[$valor] ?? 0 }}</span>
                         </button>
                     @endforeach
-                    <div class="flex w-full gap-2 sm:ml-auto sm:w-auto" role="search">
+                    <div class="flex w-full flex-wrap gap-2 sm:ml-auto sm:w-auto" role="search">
                         <label for="q-inv" class="sr-only">{{ __('Buscar') }}</label>
                         <input id="q-inv" name="q" type="search" class="ins-campo sm:w-64" value="{{ $q }}" maxlength="100" placeholder="{{ __('Buscar artículo…') }}">
                         <button type="submit" name="tipo" value="{{ $tipo }}" class="ins-btn-neutro">{{ __('Buscar') }}</button>

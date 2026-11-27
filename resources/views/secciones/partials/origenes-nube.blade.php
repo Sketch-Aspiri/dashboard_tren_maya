@@ -44,7 +44,7 @@
                     <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
                         <div class="min-w-0">
                             <p class="flex flex-wrap items-center gap-2 text-sm font-medium text-gray-900">
-                                <span class="truncate">{{ $origen->tipo === 'carpeta' ? __('Carpeta') : __('Archivo') }}: {{ $origen->nombre }}</span>
+                                <span class="break-words">{{ $origen->tipo === 'carpeta' ? __('Carpeta') : __('Archivo') }}: {{ $origen->nombre }}</span>
                                 <span class="rounded-full px-2 py-0.5 text-xs font-semibold {{ $origen->estado->insignia() }}">{{ __($origen->estado->label()) }}</span>
                             </p>
                             <p class="text-xs text-gray-500">
@@ -65,7 +65,7 @@
                                 <p class="mt-1 rounded-md bg-amber-50 p-2 text-xs text-amber-900" role="status">
                                     {{ __('Falta confirmar el mapeo de columnas de un Excel. Los documentos se sincronizan; las tablas esperan.') }}
                                     @if ($cargaPendiente)
-                                        <a href="{{ route('secciones.importaciones.show', [$seccion, $cargaPendiente]) }}" class="font-semibold underline">{{ __('Confirmar mapeo') }}</a>
+                                        <a href="{{ route('secciones.importaciones.show', [$seccion, $cargaPendiente]) }}" class="font-semibold underline">{{ __('Confirmar mapeo') }}<span class="sr-only"> {{ $origen->nombre }}</span></a>
                                     @endif
                                 </p>
                             @endif
@@ -76,33 +76,33 @@
                         <div class="flex flex-wrap items-center gap-1 lg:justify-end">
                             <form method="POST" action="{{ route('secciones.origenes.sincronizar', [$seccion, $origen]) }}">
                                 @csrf
-                                <button type="submit" class="min-h-[44px] rounded-md px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">{{ __('Sincronizar ahora') }}</button>
+                                <button type="submit" class="min-h-[44px] rounded-md px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">{{ __('Sincronizar ahora') }}<span class="sr-only"> {{ $origen->nombre }}</span></button>
                             </form>
                             <form method="POST" action="{{ route('secciones.origenes.update', [$seccion, $origen]) }}">
                                 @csrf
                                 @method('PUT')
                                 <input type="hidden" name="estado" value="{{ $corriendo ? 'pausado' : 'activo' }}">
                                 <button type="submit" class="min-h-[44px] rounded-md px-3 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-teal">
-                                    {{ $corriendo ? __('Pausar') : __('Reanudar') }}
+                                    {{ $corriendo ? __('Pausar') : __('Reanudar') }}<span class="sr-only"> {{ $origen->nombre }}</span>
                                 </button>
                             </form>
                             @if ($resumen['cambio_masivo_retenido'] ?? false)
                                 <x-confirmar-eliminar :action="route('secciones.origenes.update', [$seccion, $origen])" metodo="PUT" tono="neutro"
-                                                      :etiqueta="__('Confirmar archivado')" :confirmar="__('Sí, archivar')"
+                                                      :etiqueta="__('Confirmar archivado')" :aria-label="__('Confirmar archivado').' '.$origen->nombre" :confirmar="__('Sí, archivar')"
                                                       :pregunta="__('La nube no devolvió archivos. Se archivarán todos los documentos de este origen (se pueden restaurar). ¿Continuar?')">
                                     <input type="hidden" name="confirmar_baja_masiva" value="1">
                                 </x-confirmar-eliminar>
                             @endif
                             @if ($origen->mapeos->isNotEmpty())
-                                <a href="{{ route('secciones.origenes.mapeo.edit', [$seccion, $origen]) }}" class="inline-flex min-h-[44px] items-center rounded-md px-3 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-teal">{{ __('Editar mapeo') }}</a>
+                                <a href="{{ route('secciones.origenes.mapeo.edit', [$seccion, $origen]) }}" class="inline-flex min-h-[44px] items-center rounded-md px-3 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-teal">{{ __('Editar mapeo') }}<span class="sr-only"> {{ $origen->nombre }}</span></a>
                             @endif
                             <x-confirmar-eliminar :action="route('secciones.origenes.destroy', [$seccion, $origen])" tono="neutro"
-                                                  :etiqueta="__('Desvincular')" :confirmar="__('Sí, desvincular')"
+                                                  :etiqueta="__('Desvincular')" :aria-label="__('Desvincular').' '.$origen->nombre" :confirmar="__('Sí, desvincular')"
                                                   :pregunta="__('Los documentos y las tablas se conservan como normales (las tablas dejan de ser de solo lectura) y dejan de actualizarse. ¿Continuar?')">
                                 <input type="hidden" name="conservar" value="1">
                             </x-confirmar-eliminar>
                             <x-confirmar-eliminar :action="route('secciones.origenes.destroy', [$seccion, $origen])"
-                                                  :etiqueta="__('Desvincular y archivar')" :confirmar="__('Sí, archivar')"
+                                                  :etiqueta="__('Desvincular y archivar')" :aria-label="__('Desvincular y archivar').' '.$origen->nombre" :confirmar="__('Sí, archivar')"
                                                   :pregunta="__('Se desvincula el origen y sus documentos se archivan (ya no se ven). ¿Continuar?')">
                                 <input type="hidden" name="conservar" value="0">
                             </x-confirmar-eliminar>

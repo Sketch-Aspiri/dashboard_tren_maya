@@ -48,7 +48,7 @@ export function markdownSeguro(texto) {
         const celdas = (fila) => fila.replace(/^\||\|$/g, '').split('|').map((celda) => negritas(celda.trim()));
         const [encabezado, ...cuerpo] = filas;
         html.push('<div class="overflow-x-auto"><table class="min-w-full text-xs"><thead><tr>');
-        celdas(encabezado).forEach((celda) => html.push(`<th class="px-2 py-1 text-left font-semibold">${celda}</th>`));
+        celdas(encabezado).forEach((celda) => html.push(`<th scope="col" class="px-2 py-1 text-left font-semibold">${celda}</th>`));
         html.push('</tr></thead><tbody>');
         cuerpo.forEach((fila) => {
             html.push('<tr class="border-t border-brand-green/10">');

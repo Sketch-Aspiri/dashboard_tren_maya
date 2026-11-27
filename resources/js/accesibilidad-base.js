@@ -8,7 +8,7 @@
  * 4. Zonas con desplazamiento sin nada enfocable: se pueden recorrer con teclado.
  * 5. Sesión: avisa antes de que venza y permite continuar.
  */
-const ENFOCABLES = 'a[href], button:not([disabled]), input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
+const ENFOCABLES = 'iframe, video[controls], audio[controls], [contenteditable="true"], a[href], button:not([disabled]), input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
 const VENTANAS = '[role="dialog"][aria-modal="true"], [role="alertdialog"][aria-modal="true"]';
 const DESPLAZABLES = '.overflow-x-auto, .overflow-y-auto, .overflow-auto, .ins-tabla-marco';
 const AVISO_SESION_MS = 5 * 60 * 1000;
@@ -70,12 +70,16 @@ function marcarErrores(documento, datos) {
     const lista = documento.createElement('ul');
     resumen.append(titulo, lista);
 
+    // Verdadero mientras todos los errores se vean dentro de una ventana abierta por el propio error.
+    let todoEnVentana = true;
+
     errores.forEach(({ campo: clave, mensaje }, i) => {
         const campo = buscarCampo(documento, clave, mensaje);
         const renglon = documento.createElement('li');
         lista.append(renglon);
 
         if (!campo) {
+            todoEnVentana = false;
             renglon.textContent = mensaje;
 
             return;
@@ -101,13 +105,14 @@ function marcarErrores(documento, datos) {
         campo.setAttribute('aria-invalid', 'true');
         const visto = [...(campo.form ?? documento).querySelectorAll('li, p, span')]
             .find((n) => n.children.length === 0 && !n.closest('.a11y-resumen') && limpio(n.textContent) === mensaje);
+        todoEnVentana = todoEnVentana && Boolean(visto && campo.closest('[aria-modal="true"]'));
         const descripcion = visto ?? renglon;
         descripcion.id ||= `a11y-error-${i}`;
         agregarDescripcion(campo, descripcion.id);
     });
 
     const destino = documento.querySelector('#contenido') ?? documento.querySelector('main');
-    if (destino) {
+    if (destino && !todoEnVentana) {
         destino.prepend(resumen);
         resumen.focus();
     }
@@ -245,8 +250,10 @@ function vigilarSesion(documento, ventana, datos) {
 
     if (ventana.PerformanceObserver) {
         new ventana.PerformanceObserver((lista) => {
-            const propias = lista.getEntries().some((e) => ['fetch', 'xmlhttprequest'].includes(e.initiatorType) && e.name.startsWith(ventana.location.origin));
-            if (propias) {
+            const propias = lista.getEntries().some((e) => ['fetch', 'xmlhttprequest'].includes(e.initiatorType)
+                && e.name.startsWith(ventana.location.origin) && !(e.responseStatus >= 400));
+            // Con el plazo ya vencido (equipo suspendido), una consulta no pudo haberla mantenido viva.
+            if (propias && leer() + duracion > Date.now()) {
                 anotar();
             }
         }).observe({ type: 'resource' });
@@ -260,7 +267,17 @@ function vigilarSesion(documento, ventana, datos) {
     seguir.addEventListener('click', async () => {
         let vigente = false;
         try {
-            const respuesta = await ventana.fetch(datos.dataset.sesionUrl, { headers: { Accept: 'application/json' }, credentials: 'same-origin', cache: 'no-store' });
+            const respuesta = await ventana.fetch(datos.dataset.sesionUrl, {
+                headers: {
+                    Accept: 'application/json',
+                    // Evita que quede como "página anterior" de la sesión.
+                    'X-Requested-With': 'XMLHttpRequest',
+                    // Si la sesión se rehízo ("Recordarme"), el token de esta página ya no sirve.
+                    'X-CSRF-TOKEN': documento.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                },
+                credentials: 'same-origin',
+                cache: 'no-store',
+            });
             vigente = respuesta.status === 204;
         } catch {
             return;

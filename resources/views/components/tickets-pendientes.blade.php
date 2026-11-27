@@ -47,7 +47,7 @@
                             <a href="{{ $fila['url'] }}" class="flex min-h-[44px] items-start gap-3 rounded-md py-2 hover:bg-brand-mist focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
                                 <span class="min-w-0 flex-1">
                                     <span class="block text-xs font-semibold text-brand-teal">{{ $fila['folio'] }} · {{ $fila['tipo'] === 'actividad' ? __('Actividad') : __('Ticket') }}</span>
-                                    <span class="block truncate text-sm text-gray-900">{{ $fila['titulo'] }}</span>
+                                    <span class="block break-words text-sm text-gray-900">{{ $fila['titulo'] }}</span>
                                     <span class="block text-xs text-gray-500">{{ $fila['estado'] }} · {{ $fila['prioridad'] }}</span>
                                 </span>
                                 @if ($fila['vence'])

@@ -7,8 +7,8 @@
     <x-slot name="header">
         <div class="min-w-0">
             <p class="text-xs font-semibold uppercase tracking-wide text-brand-teal">{{ __('RR.HH.') }}</p>
-            <h1 class="mt-0.5 truncate font-heading text-xl font-semibold leading-tight text-brand-green">{{ __('Cumpleaños') }}</h1>
-            <p class="mt-0.5 truncate text-sm text-gray-500">{{ __('Personal activo de la zona · :n personas', ['n' => $total]) }}</p>
+            <h1 class="mt-0.5 break-words font-heading text-xl font-semibold leading-tight text-brand-green">{{ __('Cumpleaños') }}</h1>
+            <p class="mt-0.5 break-words text-sm text-gray-500">{{ __('Personal activo de la zona · :n personas', ['n' => $total]) }}</p>
         </div>
     </x-slot>
 
@@ -18,7 +18,7 @@
             <section class="ins-card ins-card-pad space-y-2" aria-labelledby="hoy-titulo">
                 <h3 id="hoy-titulo" class="ins-titulo">{{ __('Hoy') }} · {{ $fechaCorta($hoy->day, $hoy->month) }}</h3>
                 @forelse ($deHoy as $c)
-                    <p class="text-base text-gray-900">🎂 <span class="font-semibold">{{ $c['nombre'] }}</span> <span class="text-sm text-gray-500">· {{ $c['estacion'] ?? '—' }}</span></p>
+                    <p class="text-base text-gray-900"><span aria-hidden="true">🎂</span> <span class="font-semibold">{{ $c['nombre'] }}</span> <span class="text-sm text-gray-500">· {{ $c['estacion'] ?? '—' }}</span></p>
                 @empty
                     <p class="text-sm text-gray-600">{{ __('Hoy no cumple años nadie.') }}</p>
                 @endforelse
@@ -59,12 +59,13 @@
                 <h3 id="mes-titulo" class="ins-titulo">{{ $meses[$mes] }}</h3>
                 <div class="ins-tabla-marco">
                     <table class="ins-tabla">
+                        <caption class="sr-only">{{ __('Cumpleaños de :mes', ['mes' => $meses[$mes]]) }}</caption>
                         <thead><tr><th scope="col">{{ __('Día') }}</th><th scope="col">{{ __('Nombre') }}</th><th scope="col">{{ __('Estación') }}</th></tr></thead>
                         <tbody>
                             @forelse ($delMes as $c)
                                 <tr>
                                     <td class="fuerte">{{ $c['dia'] }}</td>
-                                    <td>{{ $c['nombre'] }}</td>
+                                    <th scope="row" class="px-3 py-2.5 text-left font-normal sm:px-4">{{ $c['nombre'] }}</th>
                                     <td>{{ $c['estacion'] ?? '—' }}</td>
                                 </tr>
                             @empty

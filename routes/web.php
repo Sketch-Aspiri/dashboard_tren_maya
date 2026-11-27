@@ -6,7 +6,6 @@ use App\Http\Controllers\AguaController;
 use App\Http\Controllers\AsistenciaCapturaController;
 use App\Http\Controllers\AsistenciaDocumentoController;
 use App\Http\Controllers\AsistenciaZonaController;
-use App\Http\Controllers\OficioComisionController;
 use App\Http\Controllers\AsistenteController;
 use App\Http\Controllers\CatalogoInsumoController;
 use App\Http\Controllers\CatalogoPapeleriaController;
@@ -41,13 +40,14 @@ use App\Http\Controllers\Nube\NubeCredencialController;
 use App\Http\Controllers\Nube\NubeCuentaController;
 use App\Http\Controllers\Nube\NubeEstadoController;
 use App\Http\Controllers\Nube\NubeOAuthController;
+use App\Http\Controllers\OficioComisionController;
 use App\Http\Controllers\PersonalImportacionController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\PtarConsolidadoController;
 use App\Http\Controllers\PtarController;
 use App\Http\Controllers\PtarHallazgoController;
 use App\Http\Controllers\PtarOficioController;
-use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\Secciones\AdministrarMenuController;
 use App\Http\Controllers\Secciones\MenuGrupoController;
 use App\Http\Controllers\Secciones\SeccionArchivoController;
@@ -75,11 +75,14 @@ use App\Http\Controllers\VacacionController;
 use App\Http\Controllers\VacacionImportacionController;
 use App\Http\Controllers\VacacionRevisionController;
 use App\Http\Controllers\VacacionSolicitudController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 // Aviso de sesión por vencer (accesibilidad): cualquier petición la renueva; esta no hace nada más.
-Route::get('/sesion/viva', fn () => response()->noContent())->middleware('auth')->name('sesion.viva');
+Route::get('/sesion/viva', fn (Request $request) => response()->noContent(
+    hash_equals((string) $request->session()->token(), (string) $request->header('X-CSRF-TOKEN')) ? 204 : 409,
+))->middleware('auth')->name('sesion.viva');
 
 // This is a VPN-only, internal dashboard — no public unauthenticated
 // splash page (see CLAUDE.md). Send guests to login and authenticated

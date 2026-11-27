@@ -102,13 +102,13 @@
                                         <a href="{{ route('asistencia.zona.show', ['estacion' => $fila['estacion']->id, 'fecha' => now()->toDateString()]) }}"
                                            class="-mx-2 block rounded-lg px-2 py-1.5 hover:bg-brand-mist focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
                                             <span class="flex items-center justify-between gap-2 text-sm">
-                                                <span class="truncate font-medium text-gray-900">{{ $fila['estacion']->nombre }}</span>
+                                                <span class="break-words font-medium text-gray-900">{{ $fila['estacion']->nombre }}</span>
                                                 @if ($fila['total_roster'] === 0)
                                                     <span class="shrink-0 text-xs text-gray-500">{{ __('Sin personal') }}</span>
                                                 @elseif ($fila['capturado'])
                                                     <span class="ins-chip-ok shrink-0">{{ __('Capturada') }}</span>
                                                 @else
-                                                    <span class="ins-chip-alerta shrink-0">{{ $fila['total_capturado'] }}/{{ $fila['total_roster'] }}</span>
+                                                    <span class="ins-chip-alerta shrink-0"><span aria-hidden="true">{{ $fila['total_capturado'] }}/{{ $fila['total_roster'] }}</span><span class="sr-only">{{ __('Incompleta: :c de :t', ['c' => $fila['total_capturado'], 't' => $fila['total_roster']]) }}</span></span>
                                                 @endif
                                             </span>
                                             @if ($fila['total_roster'] > 0)
@@ -150,8 +150,8 @@
                                                 <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M4 4a2 2 0 012-2h4.59A2 2 0 0112 2.59L15.41 6A2 2 0 0116 7.41V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" /></svg>
                                             </span>
                                             <span class="min-w-0 flex-1">
-                                                <span class="block truncate text-sm font-medium text-gray-900">{{ $reciente['seccion']->nombre }}</span>
-                                                <span class="block truncate text-xs text-gray-500">{{ $reciente['seccion']->grupo->nombre }}</span>
+                                                <span class="block break-words text-sm font-medium text-gray-900">{{ $reciente['seccion']->nombre }}</span>
+                                                <span class="block break-words text-xs text-gray-500">{{ $reciente['seccion']->grupo->nombre }}</span>
                                             </span>
                                             <span class="shrink-0 text-xs text-gray-500">{{ $reciente['actualizada']->diffForHumans() }}</span>
                                         </a>
@@ -226,7 +226,7 @@
                                     </span>
                                     <span class="min-w-0 flex-1">
                                         <span class="block font-semibold text-brand-green">{{ $acceso['texto'] }}</span>
-                                        <span class="block truncate text-xs text-gray-500">{{ $acceso['detalle'] }}</span>
+                                        <span class="block break-words text-xs text-gray-500">{{ $acceso['detalle'] }}</span>
                                     </span>
                                     <span class="text-gray-400" aria-hidden="true">→</span>
                                 </a>

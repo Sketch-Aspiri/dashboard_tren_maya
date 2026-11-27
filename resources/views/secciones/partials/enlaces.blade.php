@@ -40,21 +40,21 @@
                     <div class="min-w-0">
                         <a href="{{ $enlace->url }}" target="_blank" rel="noopener noreferrer"
                            class="break-words text-sm font-medium text-brand-teal hover:underline">{{ $enlace->titulo }}</a>
-                        <p class="truncate text-xs text-gray-500">{{ $enlace->dominio() }} · {{ $enlace->created_at->format('d/m/Y') }}</p>
+                        <p class="break-words text-xs text-gray-500">{{ $enlace->dominio() }} · {{ $enlace->created_at->format('d/m/Y') }}</p>
                         @if ($enlace->nota)
                             <p class="mt-0.5 text-xs text-gray-600">{{ $enlace->nota }}</p>
                         @endif
                     </div>
                     @if ($puedeGestionar)
                         <div class="flex flex-wrap items-center gap-1">
-                            <button type="button" @click="editando = true" class="min-h-[36px] rounded-md px-2 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Editar') }}</button>
-                            <x-confirmar-eliminar :action="route('secciones.enlaces.destroy', [$seccion, $enlace])" />
+                            <button type="button" @click="editando = true" class="min-h-[36px] rounded-md px-2 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Editar') }}<span class="sr-only"> {{ $enlace->titulo }}</span></button>
+                            <x-confirmar-eliminar :action="route('secciones.enlaces.destroy', [$seccion, $enlace])" :aria-label="__('Eliminar :d', ['d' => $enlace->titulo])" />
                         </div>
                     @endif
                 </div>
 
                 @if ($puedeGestionar)
-                    <form method="POST" action="{{ route('secciones.enlaces.update', [$seccion, $enlace]) }}" x-show="editando" x-cloak class="grid grid-cols-1 gap-3 sm:grid-cols-6">
+                    <form method="POST" action="{{ route('secciones.enlaces.update', [$seccion, $enlace]) }}" x-show="editando" x-cloak class="grid grid-cols-1 gap-3 sm:grid-cols-6" aria-label="{{ __('Editar el enlace :t', ['t' => $enlace->titulo]) }}">
                         @csrf
                         @method('PUT')
                         <div class="sm:col-span-2">

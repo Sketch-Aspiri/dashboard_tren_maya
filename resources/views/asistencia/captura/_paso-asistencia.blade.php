@@ -39,24 +39,25 @@
                     <div class="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                         <div class="min-w-0">
                             <p class="text-sm font-medium text-gray-900" x-text="p.nombre"></p>
-                            <p class="truncate text-xs text-gray-500" x-text="p.puesto"></p>
+                            <p x-show="!p.estatus" x-cloak class="text-xs font-semibold text-amber-700">{{ __('Pendiente de capturar') }}</p>
+                            <p class="break-words text-xs text-gray-500" x-text="p.puesto"></p>
                         </div>
 
-                        <div class="flex flex-wrap items-center gap-1.5 lg:shrink-0">
+                        <div class="flex flex-wrap items-center gap-1.5 lg:shrink-0" role="group" :aria-label="p.nombre">
                             <template x-for="r in rapidos" :key="r.valor">
-                                <button type="button" @click="fijarEstatus(p, r.valor)" x-text="r.texto" :aria-pressed="p.estatus === r.valor"
+                                <button type="button" @click="fijarEstatus(p, r.valor)" :aria-pressed="(p.estatus === r.valor).toString()"
                                         class="min-h-[40px] rounded-md border px-2.5 text-xs font-medium transition"
-                                        :class="p.estatus === r.valor ? 'border-brand-green bg-brand-green text-white' : 'border-gray-300 text-gray-700 hover:bg-brand-mist'"></button>
+                                        :class="p.estatus === r.valor ? 'border-brand-green bg-brand-green text-white' : 'border-gray-300 text-gray-700 hover:bg-brand-mist'"><span x-text="r.texto"></span><span class="sr-only" x-text="`, ${p.nombre}`"></span></button>
                             </template>
                             <select :name="`registros[${p.id}][estatus]`" :aria-label="`Estatus de ${p.nombre}`" x-model="p.estatus" @change="fijarEstatus(p, p.estatus)"
-                                    class="min-h-[40px] w-44 rounded-md border-gray-300 text-xs shadow-sm focus:border-brand-teal focus:ring-brand-teal">
+                                    class="min-h-[40px] w-44 max-w-full rounded-md border-gray-300 text-xs shadow-sm focus:border-brand-teal focus:ring-brand-teal">
                                 <option value="">{{ __('-- Selecciona --') }}</option>
                                 @foreach ($estado['catalogo'] as $opcion)
                                     <option value="{{ $opcion['valor'] }}">{{ $opcion['etiqueta'] }}</option>
                                 @endforeach
                             </select>
                             <select :name="`registros[${p.id}][turno]`" :aria-label="`Turno de ${p.nombre}`" x-model="p.turno"
-                                    class="min-h-[40px] w-44 rounded-md border-gray-300 text-xs shadow-sm focus:border-brand-teal focus:ring-brand-teal">
+                                    class="min-h-[40px] w-44 max-w-full rounded-md border-gray-300 text-xs shadow-sm focus:border-brand-teal focus:ring-brand-teal">
                                 @foreach ($estado['turnos'] as $opcion)
                                     <option value="{{ $opcion['valor'] }}">{{ $opcion['etiqueta'] }}</option>
                                 @endforeach
@@ -69,34 +70,34 @@
                     {{-- Periodo que venía de un día anterior y sigue vigente: sugerencia, nunca automático. --}}
                     <div x-show="puedeContinuar(p)" x-cloak class="mt-2 flex flex-wrap items-center gap-2 rounded-md bg-brand-mist px-3 py-1.5 text-xs text-brand-green-dark">
                         <span x-text="p.continuidad ? `Sigue en ${p.continuidad.etiqueta} hasta el ${p.continuidad.hasta}` : ''"></span>
-                        <button type="button" @click="continuar(p)" class="min-h-[32px] font-semibold underline">{{ __('Continuar') }}</button>
+                        <button type="button" @click="continuar(p)" class="min-h-[32px] font-semibold underline">{{ __('Continuar') }}<span class="sr-only" x-text="` ${p.nombre}`"></span></button>
                     </div>
 
                     {{-- Comisionado a otra área: se imprime en la sección E, no en su lista. --}}
                     <template x-if="comisionDe(p)">
                         <div class="mt-2 flex flex-wrap items-center gap-2 rounded-md bg-amber-50 px-3 py-1.5 text-xs text-amber-900">
                             <span x-text="`Comisionado a ${comisionDe(p).coordinacion_destino || 'otra área'}: sale en la sección ${seccionDe(p)}`"></span>
-                            <button type="button" @click="abrirFuera(comisionDe(p))" class="min-h-[32px] font-semibold underline">{{ __('Ver comisión') }}</button>
+                            <button type="button" @click="abrirFuera(comisionDe(p))" class="min-h-[32px] font-semibold underline">{{ __('Ver comisión') }}<span class="sr-only" x-text="` ${p.nombre}`"></span></button>
                         </div>
                     </template>
 
                     <div x-show="p.estatus === 'comision' && !comisionDe(p) && puedeGestionar" x-cloak class="mt-2 text-xs text-gray-600">
                         {{ __('Seguirá en su lista con estatus COMISIÓN.') }}
-                        <button type="button" @click="abrirFuera(null, p.id)" class="min-h-[32px] font-semibold text-brand-green underline">{{ __('¿Salió a otra área? Pásalo a la sección E') }}</button>
+                        <button type="button" @click="abrirFuera(null, p.id)" class="min-h-[32px] font-semibold text-brand-green underline">{{ __('¿Salió a otra área? Pásalo a la sección E') }}<span class="sr-only" x-text="`: ${p.nombre}`"></span></button>
                     </div>
 
                     <div x-show="usaPeriodo(p)" x-cloak class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-[150px_150px_minmax(0,1fr)]">
-                        <label class="text-xs text-gray-600">{{ __('Desde') }}
+                        <label class="text-xs text-gray-600">{{ __('Desde') }}<span class="sr-only" x-text="`, ${p.nombre}`"></span>
                             <input type="date" :name="`registros[${p.id}][fecha_inicio]`" x-model="p.fecha_inicio" @input="tocar(p)"
                                    class="mt-0.5 block min-h-[40px] w-full rounded-md border-gray-300 text-xs shadow-sm focus:border-brand-teal focus:ring-brand-teal">
                             <span class="text-red-600" x-text="errorDe(p, 'fecha_inicio')"></span>
                         </label>
-                        <label class="text-xs text-gray-600">{{ __('Hasta') }}
+                        <label class="text-xs text-gray-600">{{ __('Hasta') }}<span class="sr-only" x-text="`, ${p.nombre}`"></span>
                             <input type="date" :name="`registros[${p.id}][fecha_fin]`" x-model="p.fecha_fin" @input="tocar(p)" :min="p.fecha_inicio"
                                    class="mt-0.5 block min-h-[40px] w-full rounded-md border-gray-300 text-xs shadow-sm focus:border-brand-teal focus:ring-brand-teal">
                             <span class="text-red-600" x-text="errorDe(p, 'fecha_fin')"></span>
                         </label>
-                        <label class="col-span-2 text-xs text-gray-600 sm:col-span-1">{{ __('Detalle (se imprime junto al estatus)') }}
+                        <label class="col-span-2 text-xs text-gray-600 sm:col-span-1">{{ __('Detalle (se imprime junto al estatus)') }}<span class="sr-only" x-text="`, ${p.nombre}`"></span>
                             <input type="text" maxlength="1000" :name="`registros[${p.id}][notas]`" x-model="p.notas" @input="tocar(p)" :placeholder="pistaDetalle(p)"
                                    class="mt-0.5 block min-h-[40px] w-full rounded-md border-gray-300 text-xs shadow-sm focus:border-brand-teal focus:ring-brand-teal">
                             <span class="text-red-600" x-text="errorDe(p, 'notas')"></span>

@@ -77,7 +77,7 @@
                                 $variacion = $estimado && $cotizado !== null ? ($cotizado - $estimado) / $estimado * 100 : null;
                             @endphp
                             <tr class="{{ $renglon->estatus === 'revisar' ? '!bg-amber-50/70' : '' }}">
-                                <td>{{ $renglon->numero }}</td>
+                                <th scope="row" class="px-3 py-2.5 text-left font-normal sm:px-4">{{ $renglon->numero }}</th>
                                 <td class="min-w-[14rem]"><span class="fuerte">{{ $renglon->descripcion }}</span>@if ($renglon->clave)<span class="block font-mono text-xs text-gray-500">{{ $renglon->clave }}</span>@endif</td>
                                 <td class="min-w-[12rem]">
                                     @if ($partida)
@@ -101,12 +101,12 @@
                                     @if ($renglon->estatus === 'revisar' && $partida && $renglon->precio_unitario !== null)
                                         <form method="POST" action="{{ route('insumos.cotizaciones.aceptar', $renglon) }}">
                                             @csrf
-                                            <button type="submit" class="ins-btn-primario !min-h-[36px] !px-3">{{ __('Aceptar precio') }}</button>
+                                            <button type="submit" class="ins-btn-primario !min-h-[36px] !px-3">{{ __('Aceptar precio') }}<span class="sr-only">, {{ __('renglón :n', ['n' => $renglon->numero]) }}: {{ $renglon->descripcion }}</span></button>
                                         </form>
                                     @elseif ($renglon->estatus === 'actualizado')
                                         <form method="POST" action="{{ route('insumos.cotizaciones.rechazar', $renglon) }}">
                                             @csrf
-                                            <button type="submit" class="ins-enlace-peligro">{{ __('Rechazar') }}</button>
+                                            <button type="submit" class="ins-enlace-peligro">{{ __('Rechazar') }}<span class="sr-only">, {{ __('renglón :n', ['n' => $renglon->numero]) }}: {{ $renglon->descripcion }}</span></button>
                                         </form>
                                     @endif
                                 </td>

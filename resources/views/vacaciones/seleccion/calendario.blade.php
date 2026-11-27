@@ -6,6 +6,18 @@
     $estilo = fn (array $e) => 'background:'.$e['color']['fondo'].';color:'.$e['color']['texto'].';border-color:'.$e['color']['borde'];
     $chip = fn (array $e) => $estilo($e).($e['estado'] === 'enviada' ? ';border-style:dashed' : '');
     $conEntradas = collect($datos['semanas'])->flatten(1)->filter(fn ($d) => $d['delMes'] && $d['entradas'] !== []);
+    // Clave corta y distinta de cada estación: el calendario no depende solo del color.
+    $claves = [];
+    foreach ($datos['estaciones'] as $est) {
+        $palabras = preg_split('/\s+/u', trim((string) $est['nombre']));
+        $base = count($palabras) > 1 ? implode('', array_map(fn ($p) => mb_substr($p, 0, 1), $palabras)) : mb_substr($palabras[0], 0, 3);
+        $largo = 3;
+        $clave = mb_strtoupper($base);
+        while (in_array($clave, $claves, true) && $largo < mb_strlen((string) $est['nombre'])) {
+            $clave = mb_strtoupper(mb_substr(str_replace(' ', '', (string) $est['nombre']), 0, ++$largo));
+        }
+        $claves[$est['nombre']] = $clave;
+    }
 @endphp
 
 <x-app-layout>
@@ -20,7 +32,7 @@
 
             <form method="GET" action="{{ route('vacaciones.seleccion.calendario') }}" class="ins-card ins-card-pad flex flex-wrap items-end gap-3">
                 <input type="hidden" name="mes" value="{{ $mes }}">
-                <div class="min-w-[14rem] flex-1">
+                <div class="min-w-[min(14rem,100%)] flex-1">
                     <label for="q" class="block text-sm font-medium text-gray-700">{{ __('Buscar persona') }}</label>
                     <input id="q" type="search" name="q" value="{{ $filtros['q'] }}" maxlength="100" class="ins-campo w-full" placeholder="{{ __('Nombre o número de empleado') }}">
                 </div>
@@ -65,19 +77,20 @@
             <ul class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-700" aria-label="{{ __('Colores por estación') }}">
                 @foreach ($datos['estaciones'] as $e)
                     <li class="inline-flex items-center gap-1.5">
-                        <span class="inline-block h-3 w-3 rounded-sm border" style="{{ $estilo($e) }}"></span>{{ $e['nombre'] }}
+                        <span class="inline-block h-3 w-3 rounded-sm border" style="{{ $estilo($e) }}" aria-hidden="true"></span><span class="font-semibold">{{ $claves[$e['nombre']] }}</span> {{ $e['nombre'] }}
                     </li>
                 @endforeach
-                <li class="inline-flex items-center gap-1.5"><span class="inline-block h-3 w-3 rounded-sm border border-dashed border-gray-500"></span>{{ __('Borde punteado: por revisar') }}</li>
+                <li class="inline-flex items-center gap-1.5"><span class="inline-block h-3 w-3 rounded-sm border border-dashed border-gray-500" aria-hidden="true"></span>{{ __('Borde punteado y «?»: por revisar') }}</li>
             </ul>
 
             {{-- Cuadrícula (pantallas medianas y grandes) --}}
             <div class="ins-card hidden overflow-x-auto sm:block">
                 <table class="w-full min-w-[56rem] table-fixed border-collapse text-xs">
+                    <caption class="sr-only">{{ __('Vacaciones de :mes por día', ['mes' => $titulo]) }}</caption>
                     <thead>
                         <tr>
                             @foreach ($dias as $i => $d)
-                                <th scope="col" class="border-b border-gray-200 px-2 py-2 text-left font-semibold {{ $i > 4 ? 'text-gray-400' : 'text-gray-700' }}">{{ $d }}</th>
+                                <th scope="col" class="border-b border-gray-200 px-2 py-2 text-left font-semibold {{ $i > 4 ? 'text-gray-600' : 'text-gray-700' }}">{{ $d }}</th>
                             @endforeach
                         </tr>
                     </thead>
@@ -87,17 +100,17 @@
                                 @foreach ($semana as $dia)
                                     <td class="h-28 align-top border border-gray-100 p-1 {{ ! $dia['delMes'] ? 'bg-brand-mist' : ($dia['finDeSemana'] ? 'bg-gray-50' : '') }}">
                                         <div class="mb-1 flex items-center justify-between">
-                                            <span class="{{ $dia['hoy'] ? 'rounded bg-brand-green px-1 text-white' : 'text-gray-600' }} font-semibold">{{ $dia['dia'] }}</span>
+                                            <span class="{{ $dia['hoy'] ? 'rounded bg-brand-green px-1 text-white' : 'text-gray-600' }} font-semibold">{{ $dia['dia'] }}@if ($dia['hoy'])<span class="sr-only"> ({{ __('hoy') }})</span>@endif</span>
                                             @if (count($dia['entradas']) > 0)
-                                                <span class="text-[0.625rem] text-gray-500">{{ count($dia['entradas']) }}</span>
+                                                <span class="text-[0.625rem] text-gray-600"><span aria-hidden="true">{{ count($dia['entradas']) }}</span><span class="sr-only">{{ trans_choice(':n persona|:n personas', count($dia['entradas']), ['n' => count($dia['entradas'])]) }}</span></span>
                                             @endif
                                         </div>
                                         @if ($dia['inhabil'])
-                                            <p class="mb-1 truncate text-[0.625rem] italic text-gray-500" title="{{ $dia['inhabil'] }}">{{ $dia['inhabil'] }}</p>
+                                            <p class="mb-1 break-words text-[0.625rem] italic text-gray-600">{{ $dia['inhabil'] }}</p>
                                         @endif
                                         <ul class="space-y-0.5">
                                             @foreach (array_slice($dia['entradas'], 0, 4) as $e)
-                                                <li class="truncate rounded border-l-4 px-1 py-px" style="{{ $chip($e) }}" title="{{ $e['nombre'] }} · {{ $e['estacion'] }} · {{ $e['periodo'] }}">{{ $e['nombre'] }}</li>
+                                                <li class="break-words rounded border-l-4 px-1 py-px" style="{{ $chip($e) }}"><span class="font-semibold" aria-hidden="true">{{ $claves[$e['estacion']] ?? '' }}@if ($e['estado'] === 'enviada') ?@endif</span> {{ $e['nombre'] }}<span class="sr-only">, {{ $e['estacion'] }}, {{ $e['periodo'] }}, {{ $e['estado'] === 'autorizada' ? __('autorizada') : __('por revisar') }}</span></li>
                                             @endforeach
                                             @if (count($dia['entradas']) > 4)
                                                 <li class="text-[0.625rem] font-semibold text-gray-600">{{ __('+:n más', ['n' => count($dia['entradas']) - 4]) }}</li>
@@ -118,7 +131,7 @@
                         <h4 class="text-sm font-semibold text-gray-900">{{ \Carbon\CarbonImmutable::parse($dia['fecha'])->locale('es')->translatedFormat('l j \d\e F') }}</h4>
                         <ul class="mt-2 space-y-1 text-sm">
                             @foreach ($dia['entradas'] as $e)
-                                <li class="rounded border-l-4 px-2 py-1" style="{{ $chip($e) }}">{{ $e['nombre'] }} <span class="text-xs opacity-80">· {{ $e['estacion'] }}</span></li>
+                                <li class="rounded border-l-4 px-2 py-1" style="{{ $chip($e) }}">{{ $e['nombre'] }} <span class="text-xs">· {{ $e['estacion'] }}@if ($e['estado'] === 'enviada') · {{ __('por revisar') }}@endif</span></li>
                             @endforeach
                         </ul>
                     </section>
@@ -135,11 +148,12 @@
                 @else
                     <div class="ins-tabla-marco">
                         <table class="ins-tabla">
+                            <caption class="sr-only">{{ __('Periodos de :mes', ['mes' => $titulo]) }}</caption>
                             <thead><tr><th scope="col">{{ __('Persona') }}</th><th scope="col">{{ __('Estación') }}</th><th scope="col">{{ __('Periodo') }}</th><th scope="col">{{ __('Días') }}</th><th scope="col">{{ __('Estado') }}</th></tr></thead>
                             <tbody>
                                 @foreach ($datos['personas'] as $p)
                                     <tr>
-                                        <td class="fuerte">{{ $p['nombre'] }}<span class="block text-xs font-normal text-gray-500">{{ $p['numero'] }}</span></td>
+                                        <th scope="row" class="px-3 py-2.5 text-left align-top font-medium text-gray-900 sm:px-4">{{ $p['nombre'] }}<span class="block text-xs font-normal text-gray-500">{{ $p['numero'] }}</span></th>
                                         <td><span class="inline-flex items-center gap-1.5"><span class="inline-block h-3 w-3 rounded-sm border" style="{{ $estilo($p) }}"></span>{{ $p['estacion'] }}</span></td>
                                         <td>{{ $p['periodo'] }}</td>
                                         <td>{{ $p['dias'] }}</td>

@@ -36,7 +36,7 @@
         @isset($parametroTabla['tabla']) <input type="hidden" name="tabla" value="{{ $parametroTabla['tabla'] }}"> @endisset
         <div class="sm:w-72">
             <label for="doc-orden" class="mb-1 block text-xs font-medium text-gray-600">{{ __('Ordenar por') }}</label>
-            <select id="doc-orden" name="doc_orden" onchange="this.form.requestSubmit()"
+            <select id="doc-orden" name="doc_orden"
                     class="min-h-[44px] w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal">
                 @foreach ($ordenesDocumento as $valor => $etiqueta)
                     <option value="{{ $valor }}" @selected($filtros['doc_orden'] === $valor)>{{ $etiqueta }}</option>
@@ -45,7 +45,7 @@
         </div>
         <div class="sm:w-40">
             <label for="doc-tipo" class="mb-1 block text-xs font-medium text-gray-600">{{ __('Tipo de archivo') }}</label>
-            <select id="doc-tipo" name="doc_tipo" onchange="this.form.requestSubmit()"
+            <select id="doc-tipo" name="doc_tipo"
                     class="min-h-[44px] w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal">
                 <option value="">{{ __('Todos') }}</option>
                 @foreach ($tiposDocumento as $extension)
@@ -53,7 +53,7 @@
                 @endforeach
             </select>
         </div>
-        <noscript><button type="submit" class="min-h-[44px] rounded-md bg-brand-green px-4 text-sm font-semibold text-white">{{ __('Aplicar') }}</button></noscript>
+        <button type="submit" class="min-h-[44px] rounded-md bg-brand-green px-4 text-sm font-semibold text-white hover:bg-brand-green-dark">{{ __('Aplicar') }}</button>
         @if ($filtros['doc_orden'] !== 'recientes' || $filtros['doc_tipo'])
             <a href="{{ route('secciones.show', array_filter(['seccion' => $seccion, 'tab' => 'documentos', 'q' => $filtros['q'], 'carpeta' => $carpetaActual ?: null, 'tabla' => $parametroTabla['tabla'] ?? null])) }}"
                class="inline-flex min-h-[44px] items-center rounded-md px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Quitar orden y filtro') }}</a>
@@ -76,24 +76,25 @@
                         {{ $documento->extension }}
                     </span>
                     <div class="min-w-0">
-                        <p class="truncate text-sm font-medium text-gray-900">{{ $documento->nombre_original }}</p>
+                        <p class="break-words text-sm font-medium text-gray-900">{{ $documento->nombre_original }}</p>
                         <p class="text-xs text-gray-500">
                             {{ $documento->tamanoLegible() }} · {{ $documento->created_at->format('d/m/Y H:i') }}
                             @if ($documento->autor) · {{ $documento->autor->name }} @endif
                             @if ($documento->seccion_fila_id) · {{ __('adjunto de un registro') }} @endif
                         </p>
                         @if ($puedeEtiquetar)
-                            <form method="POST" action="{{ route('secciones.archivos.estacion', [$seccion, $documento]) }}" class="mt-1 flex items-center gap-2">
+                            <form method="POST" action="{{ route('secciones.archivos.estacion', [$seccion, $documento]) }}" class="mt-1 flex items-center gap-2" data-aviso-cambios="">
                                 @csrf
                                 @method('PUT')
                                 <label for="estacion-doc-{{ $documento->id }}" class="text-xs text-gray-500">{{ __('Estación') }}</label>
-                                <select id="estacion-doc-{{ $documento->id }}" name="estacion_id" onchange="this.form.submit()"
+                                <select id="estacion-doc-{{ $documento->id }}" name="estacion_id" aria-label="{{ __('Estación de :d', ['d' => $documento->nombre_original]) }}"
                                         class="min-h-[36px] rounded-md border-gray-300 py-1 text-xs shadow-sm focus:border-brand-teal focus:ring-brand-teal">
                                     <option value="">{{ __('Sin estación') }}</option>
                                     @foreach ($estaciones as $estacion)
                                         <option value="{{ $estacion->id }}" @selected($documento->estacion_id === $estacion->id)>{{ $estacion->nombre }}</option>
                                     @endforeach
                                 </select>
+                                <button type="submit" class="min-h-[36px] rounded-md px-2 text-xs font-semibold text-brand-teal hover:bg-brand-mist">{{ __('Guardar') }}<span class="sr-only"> {{ __('estación de :d', ['d' => $documento->nombre_original]) }}</span></button>
                             </form>
                         @endif
                         @if ($documento->esEspejo())
@@ -117,21 +118,21 @@
                     <button type="button"
                             x-data
                             @click="$dispatch('vista-previa', { url: @js(route('secciones.archivos.vista-previa', [$seccion, $documento])), nombre: @js($documento->nombre_original) })"
-                            class="min-h-[36px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Ver') }}</button>
+                            class="min-h-[36px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Ver') }}<span class="sr-only"> {{ $documento->nombre_original }}</span></button>
                     <a href="{{ route('secciones.archivos.show', [$seccion, $documento]) }}"
-                       class="min-h-[36px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Descargar') }}</a>
+                       class="min-h-[36px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Descargar') }}<span class="sr-only"> {{ $documento->nombre_original }}</span></a>
                     @if ($puedeGestionar && $iaDisponible && ! $seccion->solo_documentos && in_array($documento->extension, $extensionesIa, true))
                         <x-confirmar-eliminar :action="route('secciones.archivos.ia', [$seccion, $documento])" metodo="POST" tono="neutro"
-                                              :etiqueta="__('Extraer con IA')" :confirmar="__('Sí, enviar')"
+                                              :etiqueta="__('Extraer con IA')" :confirmar="__('Sí, enviar')" :aria-label="__('Extraer con IA :d', ['d' => $documento->nombre_original])"
                                               :pregunta="__('El documento completo se enviará a Claude (Anthropic) para leer sus tablas. Revisarás el resultado antes de guardarlo. ¿Continuar?')" />
                     @endif
                     @if ($puedeGestionar && ! $documento->seccion_fila_id && ! $documento->esEspejo())
                         @if ($documento->estaVinculadoANube())
                             <form method="POST" action="{{ route('secciones.archivos.nube.sincronizar', [$seccion, $documento]) }}">
                                 @csrf
-                                <button type="submit" class="min-h-[36px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Sincronizar ahora') }}</button>
+                                <button type="submit" class="min-h-[36px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Sincronizar ahora') }}<span class="sr-only"> {{ $documento->nombre_original }}</span></button>
                             </form>
-                            <x-confirmar-eliminar :action="route('secciones.archivos.nube.desvincular', [$seccion, $documento])" :etiqueta="__('Desvincular')" :confirmar="__('Sí, desvincular')" tono="neutro"
+                            <x-confirmar-eliminar :action="route('secciones.archivos.nube.desvincular', [$seccion, $documento])" :etiqueta="__('Desvincular')" :confirmar="__('Sí, desvincular')" tono="neutro" :aria-label="__('Desvincular :d', ['d' => $documento->nombre_original])"
                                                   :pregunta="__('El documento dejará de actualizarse solo. El archivo guardado se conserva. ¿Continuar?')" />
                         @else
                             {{-- Modal fijo al viewport (como el de filas): con muchos documentos un
@@ -140,7 +141,7 @@
                                  @keydown.escape.window="if (abierto) { abierto = false; $nextTick(() => $refs.disparador.focus()) }">
                                 <button type="button" x-ref="disparador" @click="abierto = true; $nextTick(() => $refs.enlace.focus())"
                                         :aria-expanded="abierto.toString()" aria-haspopup="dialog" aria-controls="vincular-{{ $documento->id }}"
-                                        class="min-h-[44px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist sm:min-h-[36px]">{{ __('Vincular a la nube') }}</button>
+                                        class="min-h-[44px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist sm:min-h-[36px]">{{ __('Vincular a la nube') }}<span class="sr-only"> {{ $documento->nombre_original }}</span></button>
                                 <div id="vincular-{{ $documento->id }}" x-show="abierto" x-cloak
                                      class="fixed inset-0 z-50 flex items-end justify-center bg-gray-900/50 p-0 sm:items-center sm:p-4"
                                      role="dialog" aria-modal="true" aria-labelledby="titulo-vincular-{{ $documento->id }}"
@@ -155,7 +156,7 @@
                                             <button type="button" @click="abierto = false; $nextTick(() => $refs.disparador.focus())"
                                                     class="min-h-[44px] min-w-[44px] rounded-md text-gray-500 hover:bg-gray-100" aria-label="{{ __('Cerrar') }}">✕</button>
                                         </div>
-                                        <p class="truncate text-xs text-gray-500" title="{{ $documento->nombre_original }}">{{ $documento->nombre_original }}</p>
+                                        <p class="break-words text-xs text-gray-500">{{ $documento->nombre_original }}</p>
                                         <label for="enlace-{{ $documento->id }}" class="block text-xs font-medium text-gray-600">{{ __('Enlace compartido (Google Drive, OneDrive, SharePoint o Dropbox)') }}</label>
                                         <input x-ref="enlace" id="enlace-{{ $documento->id }}" name="enlace" type="url" required maxlength="2000" placeholder="https://"
                                                class="min-h-[44px] w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal">
@@ -171,7 +172,7 @@
                         @endif
                     @endif
                     @if (auth()->user()->can('eliminarArchivo', [$seccion, $documento]))
-                        <x-confirmar-eliminar :action="route('secciones.archivos.destroy', [$seccion, $documento])" />
+                        <x-confirmar-eliminar :action="route('secciones.archivos.destroy', [$seccion, $documento])" :aria-label="__('Eliminar :d', ['d' => $documento->nombre_original])" />
                     @endif
                 </div>
             </li>

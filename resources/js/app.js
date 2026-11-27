@@ -21,6 +21,7 @@ import { registrarTemayin } from './temayin';
 import { registrarNotificaciones } from './notificaciones';
 import { registrarCambiosSinGuardar } from './cambios-sin-guardar';
 import { registrarFlotante } from './flotante';
+import { siguienteEnLista } from './teclado-lista';
 import { durante, mostrar, ocultar, registrar as registrarPantalla } from './pantalla-carga';
 
 window.Alpine = Alpine;
@@ -68,6 +69,38 @@ function navBuscador(items) {
             return this.items
                 .filter((item) => normalizarTexto(item.label).includes(consulta))
                 .slice(0, 8);
+        },
+        /** Flechas entre el campo y los resultados; Escape cierra y vuelve al campo. */
+        teclas(evento, idCampo) {
+            const campo = document.getElementById(idCampo);
+            if (evento.key === 'Escape') {
+                if (this.abierto && this.query !== '') {
+                    // Escape cierra solo la búsqueda, no el menú que la contiene.
+                    evento.preventDefault();
+                    evento.stopPropagation();
+                }
+                if (evento.target === campo) {
+                    this.query = '';
+                } else {
+                    campo.focus();
+                }
+                this.abierto = false;
+                return;
+            }
+            const enlaces = [...evento.currentTarget.querySelectorAll('ul a')];
+            const destino = siguienteEnLista(evento.key, enlaces.indexOf(evento.target), enlaces.length);
+            if (destino === null) {
+                return;
+            }
+            evento.preventDefault();
+            const enfocar = () => (destino === -1 ? campo : enlaces[destino])?.focus();
+            if (this.abierto) {
+                enfocar();
+            } else {
+                // Con la lista cerrada, primero hay que pintarla.
+                this.abierto = true;
+                this.$nextTick(enfocar);
+            }
         },
         irAlPrimero() {
             const primero = this.resultados[0];

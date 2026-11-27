@@ -18,7 +18,7 @@
 <{{ $etiqueta }} @if ($href) href="{{ $href }}" @endif
     {{ $attributes->merge(['class' => 'group flex flex-col rounded-xl border bg-white p-4 shadow-sm shadow-brand-green/5 sm:p-5 '.$borde.($href ? ' transition hover:border-brand-teal/40 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal' : '')]) }}>
     <div class="flex items-start justify-between gap-3">
-        <p class="text-sm font-medium text-gray-500">{{ $label }}</p>
+        <p class="text-sm font-medium text-gray-500">{{ $label }}@if (in_array($tono, ['alerta', 'peligro'], true))<span class="sr-only"> ({{ __('requiere atención') }})</span>@endif</p>
         @if ($icono && isset($trazos[$icono]))
             <span class="dash-icono" aria-hidden="true">
                 <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="{{ $trazos[$icono] }}" /></svg>

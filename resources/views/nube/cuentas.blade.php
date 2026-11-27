@@ -42,7 +42,7 @@
                         @endif
                     </div>
 
-                    <form method="POST" action="{{ route('nube.credenciales.update', $proveedor->value) }}" class="mt-4 grid gap-4 sm:grid-cols-2" autocomplete="off">
+                    <form method="POST" action="{{ route('nube.credenciales.update', $proveedor->value) }}" class="mt-4 grid gap-4 sm:grid-cols-2" autocomplete="off" aria-labelledby="nube-{{ $proveedor->value }}">
                         @csrf
                         @method('PUT')
 
@@ -81,8 +81,8 @@
                                 <button type="button"
                                         class="inline-flex min-h-[44px] items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-widest text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-teal"
                                         @click="navigator.clipboard.writeText($refs.uri.value).then(() => { copiado = true; setTimeout(() => copiado = false, 2000) })">
-                                    <span x-show="!copiado">{{ __('Copiar') }}</span>
-                                    <span x-show="copiado" x-cloak>{{ __('Copiada') }}</span>
+                                    <span x-show="!copiado">{{ __('Copiar') }}<span class="sr-only"> {{ $proveedor->label() }}</span></span>
+                                    <span x-show="copiado" x-cloak role="status">{{ __('Copiada') }}</span>
                                 </button>
                             </div>
                         </div>
@@ -90,7 +90,7 @@
                         <input type="hidden" name="_proveedor" value="{{ $proveedor->value }}">
 
                         <div class="flex flex-col gap-3 sm:col-span-2 sm:flex-row sm:justify-end">
-                            <x-primary-button class="w-full sm:w-auto">{{ __('Guardar credenciales') }}</x-primary-button>
+                            <x-primary-button class="w-full sm:w-auto">{{ __('Guardar credenciales') }}<span class="sr-only"> {{ $proveedor->label() }}</span></x-primary-button>
                         </div>
                     </form>
 
@@ -100,7 +100,7 @@
                             @if ($estado['configurado'])
                                 <a href="{{ route('nube.conectar', $proveedor->value) }}"
                                    class="inline-flex min-h-[44px] items-center justify-center rounded-md border border-transparent bg-brand-green px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white hover:bg-brand-green-dark focus:outline-none focus:ring-2 focus:ring-brand-teal focus:ring-offset-2">
-                                    {{ __('Conectar cuenta') }}
+                                    {{ __('Conectar cuenta') }}<span class="sr-only"> {{ $proveedor->label() }}</span>
                                 </a>
                             @else
                                 <span class="text-xs text-gray-500">{{ __('Guarda las credenciales para poder conectar una cuenta.') }}</span>
@@ -111,7 +111,7 @@
                             @forelse ($tarjeta['cuentas'] as $cuenta)
                                 <li class="flex flex-wrap items-center justify-between gap-3 py-3">
                                     <div class="min-w-0">
-                                        <p class="truncate text-sm font-medium text-gray-900">{{ $cuenta->cuenta_email }}</p>
+                                        <p class="break-words text-sm font-medium text-gray-900">{{ $cuenta->cuenta_email }}</p>
                                         <p class="text-xs text-gray-500">
                                             {{ $cuenta->cuenta_nombre }}
                                             <span class="ml-1 inline-flex rounded-full px-2 py-0.5 font-semibold {{ $cuenta->estaActiva() ? 'bg-brand-mist text-brand-green' : 'bg-amber-100 text-amber-800' }}">{{ $cuenta->estado->label() }}</span>
@@ -122,13 +122,13 @@
                                     </div>
                                     <div class="flex items-center gap-2">
                                         @unless ($cuenta->estaActiva())
-                                            <a href="{{ route('nube.conectar', $proveedor->value) }}" class="inline-flex min-h-[44px] items-center px-3 text-sm font-medium text-brand-teal hover:text-brand-green-dark">{{ __('Reconectar') }}</a>
+                                            <a href="{{ route('nube.conectar', $proveedor->value) }}" class="inline-flex min-h-[44px] items-center px-3 text-sm font-medium text-brand-teal hover:text-brand-green-dark">{{ __('Reconectar') }}<span class="sr-only"> {{ $cuenta->cuenta_email }}</span></a>
                                         @endunless
                                         <form method="POST" action="{{ route('nube.cuentas.destroy', $cuenta) }}"
                                               onsubmit="return confirm('{{ __('¿Desconectar esta cuenta? Los orígenes que la usan quedarán en pausa.') }}')">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="inline-flex min-h-[44px] items-center px-3 text-sm font-medium text-red-600 hover:text-red-800">{{ __('Desconectar') }}</button>
+                                            <button type="submit" class="inline-flex min-h-[44px] items-center px-3 text-sm font-medium text-red-600 hover:text-red-800">{{ __('Desconectar') }}<span class="sr-only"> {{ $cuenta->cuenta_email }}</span></button>
                                         </form>
                                     </div>
                                 </li>

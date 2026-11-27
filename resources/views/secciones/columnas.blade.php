@@ -36,13 +36,14 @@
                                         <button type="submit" @disabled(($direccion === 'arriba' && $loop->parent->first) || ($direccion === 'abajo' && $loop->parent->last)) class="min-h-[44px] min-w-[44px] rounded-md text-gray-600 hover:bg-gray-100 disabled:opacity-30" aria-label="{{ __('Mover :nombre hacia :dir', ['nombre' => $columna->nombre, 'dir' => $direccion]) }}"><span aria-hidden="true">{{ $flecha }}</span></button>
                                     </form>
                                 @endforeach
-                                <button type="button" @click="editando = true" class="min-h-[36px] rounded-md px-2 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Editar') }}</button>
+                                <button type="button" @click="editando = true" class="min-h-[36px] rounded-md px-2 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Editar') }}<span class="sr-only"> {{ $columna->nombre }}</span></button>
                                 <x-confirmar-eliminar :action="route('secciones.columnas.destroy', [$seccion, $columna])"
-                                                      :pregunta="__('¿Eliminar la columna y sus valores?')" />
+                                                      :pregunta="__('¿Eliminar la columna y sus valores?')"
+                                                      :aria-label="__('Eliminar la columna :c', ['c' => $columna->nombre])" />
                             </div>
                         </div>
 
-                        <form method="POST" action="{{ route('secciones.columnas.update', [$seccion, $columna]) }}" x-show="editando" x-cloak class="space-y-3">
+                        <form method="POST" action="{{ route('secciones.columnas.update', [$seccion, $columna]) }}" x-show="editando" x-cloak class="space-y-3" aria-label="{{ __('Editar la columna :c', ['c' => $columna->nombre]) }}">
                             @csrf
                             @method('PUT')
                             @include('secciones.partials.campos-columna', ['columna' => $columna, 'prefijo' => 'col-'.$columna->id])

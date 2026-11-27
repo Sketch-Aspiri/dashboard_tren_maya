@@ -136,12 +136,12 @@
                         <tbody>
                             @forelse ($registro->compras as $compra)
                                 <tr>
-                                    <td class="whitespace-nowrap">{{ $compra->fecha?->format('d/m/Y') ?? '—' }}</td>
+                                    <th scope="row" class="whitespace-nowrap px-3 py-2.5 text-left font-normal sm:px-4">{{ $compra->fecha?->format('d/m/Y') ?? '—' }}</th>
                                     <td class="num">{{ $compra->garrafones }}</td>
                                     <td class="num">{{ $dinero($compra->monto) }}</td>
                                     <td>
                                         @if ($compra->comprobante_ruta)
-                                            <a href="{{ route('agua.comprobante', [$registro, $compra]) }}" target="_blank" rel="noopener" class="ins-enlace">{{ __('Ver comprobante') }}</a>
+                                            <a href="{{ route('agua.comprobante', [$registro, $compra]) }}" target="_blank" rel="noopener" class="ins-enlace">{{ __('Ver comprobante') }}<span class="sr-only"> {{ __('de la compra :n del :f', ['n' => $loop->iteration, 'f' => $compra->fecha?->format('d/m/Y') ?? '—']) }}</span></a>
                                         @else
                                             <span class="text-gray-400">{{ $compra->origen === 'importacion' ? __('Importado') : '—' }}</span>
                                         @endif
@@ -152,7 +152,7 @@
                                             <form method="POST" action="{{ route('agua.compras.destroy', [$registro, $compra]) }}" onsubmit="return confirm('{{ __('¿Quitar esta compra?') }}')">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="ins-enlace-peligro !min-h-[36px]">{{ __('Quitar') }}</button>
+                                                <button type="submit" class="ins-enlace-peligro !min-h-[36px]">{{ __('Quitar') }}<span class="sr-only"> {{ __('de la compra :n del :f', ['n' => $loop->iteration, 'f' => $compra->fecha?->format('d/m/Y') ?? '—']) }}</span></button>
                                             </form>
                                         </td>
                                     @endif

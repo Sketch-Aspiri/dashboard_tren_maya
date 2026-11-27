@@ -74,7 +74,7 @@
                         @forelse ($cotizaciones as $cotizacion)
                             <tr>
                                 <td class="fuerte">{{ $cotizacion->proveedor }}
-                                    @if ($cotizacion->leida_con_ia)<span class="ins-chip-info ml-1" title="{{ __('Leída con IA') }}">IA</span>@endif
+                                    @if ($cotizacion->leida_con_ia)<span class="ins-chip-info ml-1"><span aria-hidden="true">IA</span><span class="sr-only">{{ __('Leída con IA') }}</span></span>@endif
                                 </td>
                                 <td>{{ $cotizacion->folio }}</td>
                                 <td class="whitespace-nowrap">{{ $cotizacion->fecha?->format('d/m/Y') ?? '—' }}</td>

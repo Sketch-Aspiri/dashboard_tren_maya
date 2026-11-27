@@ -35,12 +35,21 @@
                     @else
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200 text-xs">
+                                <caption class="sr-only">{{ __('Primeras filas de la hoja :h', ['h' => $mapeo->hoja]) }}</caption>
+                                <thead class="bg-brand-mist">
+                                    <tr>
+                                        <th scope="col" class="px-2 py-1 text-left text-brand-green">{{ __('Fila') }}</th>
+                                        @for ($c = 1; $c <= max([0, ...array_map('count', $filas)]); $c++)
+                                            <th scope="col" class="px-2 py-1 text-left text-brand-green">{{ __('Columna :n', ['n' => $c]) }}</th>
+                                        @endfor
+                                    </tr>
+                                </thead>
                                 <tbody class="divide-y divide-gray-100">
                                     @foreach ($filas as $numero => $fila)
                                         <tr @class(['bg-brand-mist font-semibold' => $numero === $mapeo->fila_encabezado])>
-                                            <th scope="row" class="px-2 py-1 text-left text-gray-500">{{ $numero + 1 }}</th>
+                                            <th scope="row" class="px-2 py-1 text-left text-gray-600">{{ $numero + 1 }}@if ($numero === $mapeo->fila_encabezado)<span class="block whitespace-nowrap">{{ __('(títulos)') }}</span>@endif</th>
                                             @foreach ($fila as $celda)
-                                                <td class="max-w-[12rem] truncate px-2 py-1">{{ is_scalar($celda) ? $celda : '' }}</td>
+                                                <td class="max-w-[12rem] break-words px-2 py-1">{{ is_scalar($celda) ? $celda : '' }}</td>
                                             @endforeach
                                         </tr>
                                     @endforeach

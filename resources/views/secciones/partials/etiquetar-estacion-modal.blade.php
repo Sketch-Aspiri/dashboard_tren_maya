@@ -80,7 +80,7 @@
                             <p class="font-medium text-amber-800">{{ __('Valores sin coincidencia (quedan sin estación):') }}</p>
                             <ul class="mt-1 space-y-0.5 text-gray-700">
                                 <template x-for="(cuantas, valor) in previa.sin_coincidencia" :key="valor">
-                                    <li class="flex justify-between"><span class="truncate" x-text="valor"></span><span x-text="cuantas"></span></li>
+                                    <li class="flex justify-between"><span class="break-words" x-text="valor"></span><span x-text="cuantas"></span></li>
                                 </template>
                             </ul>
                         </div>

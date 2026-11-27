@@ -48,16 +48,17 @@
             @endif
 
             {{-- Barra de trabajo: qué estación y día, cuánto falta y guardar. --}}
-            <div class="rounded-xl border border-brand-green/10 bg-white p-4 shadow-sm shadow-brand-green/5">
+            <div x-data="{ sinVer: false }" class="rounded-xl border border-brand-green/10 bg-white p-4 shadow-sm shadow-brand-green/5">
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div class="flex flex-wrap items-end gap-3">
+                    <div class="flex min-w-0 flex-wrap items-end gap-3">
                         @if ($esAdministrador)
                             {{-- GET aparte: cambiar de estación o día recarga los datos de ese día antes de editar. --}}
-                            <form method="GET" action="{{ route('asistencia.captura.index') }}" class="flex flex-wrap items-end gap-3">
-                                <div>
+                            <form method="GET" action="{{ route('asistencia.captura.index') }}" class="flex min-w-0 max-w-full flex-wrap items-end gap-3"
+                                  @change="sinVer = $el.elements.estacion.value !== '{{ $estacion->id }}' || $el.elements.fecha.value !== '{{ $fecha->toDateString() }}'">
+                                <div class="max-w-full">
                                     <x-input-label for="nav-estacion" :value="__('Estación')" />
-                                    <select id="nav-estacion" name="estacion" onchange="this.form.submit()"
-                                            class="mt-1 block min-h-[44px] rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal">
+                                    <select id="nav-estacion" name="estacion"
+                                            class="mt-1 block min-h-[44px] max-w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal">
                                         @foreach ($estaciones as $opcion)
                                             <option value="{{ $opcion->id }}" @selected($opcion->id === $estacion->id)>{{ $opcion->nombre }}</option>
                                         @endforeach
@@ -66,8 +67,9 @@
                                 <div>
                                     <x-input-label for="nav-fecha" :value="__('Fecha')" />
                                     <x-text-input id="nav-fecha" name="fecha" type="date" class="mt-1 block min-h-[44px] text-sm"
-                                                  value="{{ $fecha->toDateString() }}" onchange="this.form.submit()" />
+                                                  value="{{ $fecha->toDateString() }}" />
                                 </div>
+                                <x-secondary-button type="submit" class="min-h-[44px]">{{ __('Ver') }}</x-secondary-button>
                             </form>
                         @else
                             <p class="text-sm text-gray-600">
@@ -76,21 +78,28 @@
                         @endif
                     </div>
 
-                    <div class="flex flex-1 items-center gap-4 lg:max-w-xl">
-                        <div class="min-w-0 flex-1">
+                    <div class="flex flex-1 flex-wrap items-center gap-4 lg:max-w-xl">
+                        <div class="min-w-[min(12rem,100%)] flex-1">
                             <div class="flex justify-between text-xs text-gray-600">
                                 <span x-text="`${capturados} de ${personas.length} con estatus`"></span>
-                                <span x-show="sucio" x-cloak class="font-medium text-amber-700">{{ __('Cambios sin guardar') }}</span>
-                                <span x-show="!sucio && pendientes === 0" x-cloak class="font-medium text-brand-green">{{ __('Todo guardado') }}</span>
+                                {{-- Región viva siempre presente: así el lector anuncia el cambio. --}}
+                                <span role="status" class="font-medium" :class="sucio ? 'text-amber-700' : 'text-brand-green'"
+                                      x-text="sucio ? '{{ __('Cambios sin guardar') }}' : (pendientes === 0 ? '{{ __('Todo guardado') }}' : '')"></span>
                             </div>
                             <div class="mt-1 h-2 overflow-hidden rounded-full bg-gray-100" role="progressbar" aria-label="{{ __('Avance de la captura') }}" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="avance">
                                 <div class="h-full rounded-full bg-brand-green transition-all" :style="`width: ${avance}%`"></div>
                             </div>
                         </div>
-                        <x-primary-button form="form-asistencia" x-bind:disabled="enviandoAsistencia" class="shrink-0 disabled:opacity-60">
+                        <x-primary-button form="form-asistencia" x-bind:disabled="enviandoAsistencia || sinVer" class="max-w-full text-center disabled:opacity-60">
                             {{ __('Guardar asistencia') }}
                         </x-primary-button>
                     </div>
+                </div>
+
+                <div role="status">
+                    <p x-show="sinVer" x-cloak class="mt-3 rounded-md bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+                        {{ __('Cambiaste la estación o la fecha: pulsa «Ver» para cargarla antes de guardar.') }}
+                    </p>
                 </div>
 
                 <nav class="mt-4 flex gap-1 overflow-x-auto border-t border-brand-green/10 pt-3" aria-label="{{ __('Pasos de la captura') }}">

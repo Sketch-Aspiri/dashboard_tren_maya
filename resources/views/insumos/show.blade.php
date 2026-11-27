@@ -115,7 +115,8 @@
                                 <span class="text-gray-500">({{ __('límite con IVA') }})</span>
                             </p>
                         </div>
-                        <div class="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                        <p x-show="restante() >= 0 && estimado() > limite * 0.85" x-cloak class="mt-1 text-xs font-medium text-amber-700">{{ __('Estás cerca del límite.') }}</p>
+                        <div class="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100" aria-hidden="true">
                             <div class="h-2 rounded-full transition-all" :class="restante() < 0 ? 'bg-red-500' : (estimado() > limite * 0.85 ? 'bg-amber-500' : 'bg-brand-teal')"
                                  :style="`width: ${Math.min(100, estimado() / limite * 100)}%`"></div>
                         </div>
@@ -176,23 +177,23 @@
 
                                 <div class="mt-2 grid grid-cols-2 gap-3 lg:grid-cols-12">
                                     <div class="col-span-2 lg:col-span-6">
-                                        <label :for="`p-${i}-descripcion`" class="ins-etiqueta">{{ __('Descripción') }}</label>
+                                        <label :for="`p-${i}-descripcion`" class="ins-etiqueta">{{ __('Descripción') }}<span class="sr-only" x-text="', {{ __('partida') }} ' + (i + 1)"></span></label>
                                         <input :id="`p-${i}-descripcion`" type="text" required maxlength="255" list="catalogo-insumos" class="ins-campo mt-1"
                                                :name="`partidas[${i}][descripcion]`" x-model="fila.descripcion" @change="elegir(i); revisar(i)">
                                         <input type="hidden" :name="`partidas[${i}][catalogo_insumo_id]`" :value="fila.catalogo_insumo_id ?? ''">
                                     </div>
                                     <div class="lg:col-span-2">
-                                        <label :for="`p-${i}-cantidad`" class="ins-etiqueta">{{ __('Cant.') }}</label>
+                                        <label :for="`p-${i}-cantidad`" class="ins-etiqueta">{{ __('Cant.') }}<span class="sr-only" x-text="', {{ __('partida') }} ' + (i + 1)"></span></label>
                                         <input :id="`p-${i}-cantidad`" type="number" inputmode="decimal" step="0.01" min="0.01" required class="ins-campo mt-1"
                                                :name="`partidas[${i}][cantidad]`" x-model="fila.cantidad">
                                     </div>
                                     <div class="lg:col-span-4">
-                                        <label :for="`p-${i}-unidad`" class="ins-etiqueta">{{ __('Unidad') }}</label>
+                                        <label :for="`p-${i}-unidad`" class="ins-etiqueta">{{ __('Unidad') }}<span class="sr-only" x-text="', {{ __('partida') }} ' + (i + 1)"></span></label>
                                         <input :id="`p-${i}-unidad`" type="text" required maxlength="30" class="ins-campo mt-1"
                                                :name="`partidas[${i}][unidad]`" x-model="fila.unidad">
                                     </div>
                                     <div class="col-span-2 lg:col-span-12">
-                                        <label :for="`p-${i}-justificacion`" class="ins-etiqueta">{{ __('Justificación específica detallada') }} *</label>
+                                        <label :for="`p-${i}-justificacion`" class="ins-etiqueta">{{ __('Justificación específica detallada') }} *<span class="sr-only" x-text="', {{ __('partida') }} ' + (i + 1)"></span></label>
                                         <textarea :id="`p-${i}-justificacion`" rows="2" maxlength="2000" required class="ins-campo mt-1"
                                                :class="avisosDe(fila).length && ! (fila.justificacion || '').trim() ? '!border-amber-400' : ''"
                                                placeholder="{{ __('Detalla para qué se necesita y por qué esa cantidad') }}"
@@ -208,7 +209,7 @@
                                                 {{ __('Ficha actual') }}:
                                                 <a :href="`{{ url('insumos/'.$solicitud->id.'/partidas') }}/${fila.partida_id}/ficha`" target="_blank" rel="noopener" class="font-semibold underline" x-text="fila.ficha_nombre"></a>
                                                 · {{ __('al subir otra se reemplaza.') }}
-                                                <label class="ml-2 inline-flex items-center gap-1"><input type="checkbox" value="1" :name="`partidas[${i}][quitar_ficha]`"> {{ __('Quitar ficha') }}</label>
+                                                <label class="ml-2 inline-flex items-center gap-1"><input type="checkbox" value="1" :name="`partidas[${i}][quitar_ficha]`"> {{ __('Quitar ficha') }}<span class="sr-only" x-text="', {{ __('partida') }} ' + (i + 1)"></span></label>
                                             </p>
                                         </template>
                                     </div>
@@ -227,13 +228,13 @@
                     </section>
 
                     <div class="ins-barra-acciones">
-                        <p class="text-sm" :class="sucio ? 'text-amber-700' : 'text-gray-500'" role="status"
+                        <p id="estado-captura" class="text-sm" :class="sucio ? 'text-amber-700' : 'text-gray-500'" role="status"
                            x-text="sucio ? '{{ __('Tienes cambios sin guardar. Guarda antes de enviar.') }}' : '{{ __('Todo guardado. Cuando termines, envía la solicitud a la Zona.') }}'"></p>
                         <div class="flex flex-col-reverse gap-2 sm:flex-row">
                             <button type="submit" class="ins-btn-secundario">{{ __('Guardar borrador') }}</button>
                             @if ($solicitud->partidas->isNotEmpty())
                                 <button type="submit" form="form-enviar" class="ins-btn-primario" :disabled="sucio || restante() < 0"
-                                        :title="sucio ? '{{ __('Guarda primero los cambios') }}' : ''">{{ __('Enviar a la Zona') }}</button>
+                                        aria-describedby="estado-captura">{{ __('Enviar a la Zona') }}</button>
                             @endif
                         </div>
                     </div>
@@ -363,7 +364,7 @@
                                 @foreach ($solicitud->partidas as $partida)
                                     @php $n = $partida->numero; @endphp
                                     <tr class="{{ in_array($partida->id, $atipicas, true) ? '!bg-amber-50' : '' }} {{ $partida->excluida() ? 'opacity-60' : '' }}">
-                                        <td>{{ $n }}</td>
+                                        <th scope="row" class="px-3 py-2.5 text-left font-normal sm:px-4">{{ $n }}@if (in_array($partida->id, $atipicas, true))<span class="ins-chip-alerta mt-1 block w-max">{{ __('Precio atípico') }}</span>@endif</th>
                                         @if ($puedeRevisar)
                                             <td><input type="number" inputmode="decimal" step="0.01" min="0.01" class="ins-campo w-20 text-right" aria-label="{{ __('Cantidad de la partida :n', ['n' => $n]) }}" name="partidas[{{ $partida->id }}][cantidad]" value="{{ old('partidas.'.$partida->id.'.cantidad', $partida->cantidad + 0) }}"></td>
                                             <td><input type="text" maxlength="30" class="ins-campo w-24" aria-label="{{ __('Unidad de la partida :n', ['n' => $n]) }}" name="partidas[{{ $partida->id }}][unidad]" value="{{ old('partidas.'.$partida->id.'.unidad', $partida->unidad) }}"></td>
@@ -418,7 +419,7 @@
                     </div>
 
                     @if (! empty($atipicas))
-                        <p class="text-sm text-amber-800">{{ __('Las filas resaltadas tienen un precio que se desvía más de 30 % de la mediana de los últimos 3 meses.') }}</p>
+                        <p class="text-sm text-amber-800">{{ __('Las filas resaltadas y marcadas «Precio atípico» tienen un precio que se desvía más de 30 % de la mediana de los últimos 3 meses.') }}</p>
                     @endif
 
                     <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">

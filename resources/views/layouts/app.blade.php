@@ -7,7 +7,7 @@
 
 @php
     // Título propio de cada pantalla: la ranura "title" o el primer <h1> de la cabecera o del contenido.
-    $tituloPagina = trim((string) ($title ?? ''));
+    $tituloPagina = trim(html_entity_decode((string) ($title ?? ''), ENT_QUOTES | ENT_HTML5));
     if ($tituloPagina === '' && preg_match('~<h1\b[^>]*>(.*?)</h1>~s', (string) ($header ?? '').(string) ($slot ?? ''), $coincidencia)) {
         $tituloPagina = trim(preg_replace('/\s+/', ' ', html_entity_decode(strip_tags($coincidencia[1]), ENT_QUOTES | ENT_HTML5)));
     }

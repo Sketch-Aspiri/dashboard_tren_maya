@@ -79,6 +79,7 @@
                         <h3 id="est-{{ $loop->index }}" class="ins-titulo">{{ $estacion }}</h3>
                         <div class="ins-tabla-marco">
                             <table class="ins-tabla">
+                                <caption class="sr-only">{{ __('Rol de vacaciones de :estacion', ['estacion' => $estacion]) }}</caption>
                                 <thead>
                                     <tr>
                                         <th scope="col">{{ __('Persona') }}</th>
@@ -92,7 +93,7 @@
                                     @foreach ($personas as $persona)
                                         @php $solicitados = $persona->diasSolicitados(); @endphp
                                         <tr>
-                                            <td class="fuerte">{{ $persona->nombre }}<span class="block text-xs font-normal text-gray-500">{{ $persona->no_empleado }}@if ($persona->puesto) · {{ $persona->puesto }}@endif</span></td>
+                                            <th scope="row" class="px-3 py-2.5 text-left align-top font-medium text-gray-900 sm:px-4">{{ $persona->nombre }}<span class="block text-xs font-normal text-gray-500">{{ $persona->no_empleado }}@if ($persona->puesto) · {{ $persona->puesto }}@endif</span></th>
                                             <td class="num">{{ $persona->dias_otorgados }}</td>
                                             @foreach ($persona->tramos as $tramo)
                                                 <td class="align-top">
@@ -110,12 +111,13 @@
                                                     @if (isset($pendientes[$tramo->id]))
                                                         <span class="ins-chip-info">{{ __('Cambio pendiente') }}</span>
                                                     @elseif ($tramo->origen === 'ajustado')
-                                                        <span class="ins-chip-neutro" title="{{ __('Oficial: :r', ['r' => $tramo->inicio_oficial ? $fmt($tramo->inicio_oficial).' al '.$fmt($tramo->fin_oficial) : __('sin fechas')]) }}">{{ __('Ajustado') }}</span>
+                                                        <span class="ins-chip-neutro">{{ __('Ajustado') }}</span>
+                                                        <span class="block text-xs text-gray-600">{{ __('Oficial: :r', ['r' => $tramo->inicio_oficial ? $fmt($tramo->inicio_oficial).' al '.$fmt($tramo->fin_oficial) : __('sin fechas')]) }}</span>
                                                     @endif
                                                 </td>
                                             @endforeach
                                             <td class="num">{{ $solicitados }}</td>
-                                            <td class="num {{ $solicitados > $persona->dias_otorgados ? 'text-red-700 font-semibold' : '' }}">{{ $persona->dias_otorgados - $solicitados }}</td>
+                                            <td class="num {{ $solicitados > $persona->dias_otorgados ? 'text-red-700 font-semibold' : '' }}">{{ $persona->dias_otorgados - $solicitados }}@if ($solicitados > $persona->dias_otorgados)<span class="block text-xs">{{ __('excedido') }}</span>@endif</td>
                                         </tr>
                                     @endforeach
                                 </tbody>

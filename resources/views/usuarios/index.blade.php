@@ -25,7 +25,8 @@
             @php
                 $base = request()->except('page');
                 $orden = fn (string $col) => array_merge($base, ['orden' => $col, 'dir' => ($filtros['orden'] === $col && $filtros['dir'] === 'asc') ? 'desc' : 'asc']);
-                $flecha = fn (string $col) => $filtros['orden'] === $col ? ($filtros['dir'] === 'asc' ? ' ▲' : ' ▼') : '';
+                $flecha = fn (string $col) => $filtros['orden'] === $col ? ($filtros['dir'] === 'asc' ? '▲' : '▼') : '';
+                $sentido = fn (string $col) => $filtros['orden'] === $col ? ($filtros['dir'] === 'asc' ? 'ascending' : 'descending') : null;
                 $hayFiltros = $filtros['rol'] !== '' || $filtros['estacion'] !== '' || $filtros['area'] !== '' || $filtros['q'] !== '';
             @endphp
 
@@ -78,20 +79,21 @@
                 <!-- Desktop / tablet table (>= sm) -->
                 <div class="hidden overflow-x-auto sm:block">
                     <table class="min-w-full divide-y divide-gray-200">
+                        <caption class="sr-only">{{ __('Cuentas') }}</caption>
                         <thead class="bg-brand-mist">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium uppercase text-brand-green"><a href="{{ route('usuarios.index', $orden('nombre')) }}" class="hover:underline">{{ __('Nombre') }}{{ $flecha('nombre') }}</a></th>
-                                <th class="px-6 py-3 text-left text-xs font-medium uppercase text-brand-green">{{ __('Correo') }}</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium uppercase text-brand-green"><a href="{{ route('usuarios.index', $orden('rol')) }}" class="hover:underline">{{ __('Rol') }}{{ $flecha('rol') }}</a></th>
-                                <th class="px-6 py-3 text-left text-xs font-medium uppercase text-brand-green"><a href="{{ route('usuarios.index', $orden('estacion')) }}" class="hover:underline">{{ __('Estación') }}{{ $flecha('estacion') }}</a></th>
-                                <th class="px-6 py-3 text-left text-xs font-medium uppercase text-brand-green"><a href="{{ route('usuarios.index', $orden('area')) }}" class="hover:underline">{{ __('Área') }}{{ $flecha('area') }}</a></th>
-                                <th class="px-6 py-3"></th>
+                                <th scope="col" @if ($sentido('nombre')) aria-sort="{{ $sentido('nombre') }}" @endif class="px-6 py-3 text-left text-xs font-medium uppercase text-brand-green"><a href="{{ route('usuarios.index', $orden('nombre')) }}" class="hover:underline">{{ __('Nombre') }} <span aria-hidden="true">{{ $flecha('nombre') }}</span></a></th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase text-brand-green">{{ __('Correo') }}</th>
+                                <th scope="col" @if ($sentido('rol')) aria-sort="{{ $sentido('rol') }}" @endif class="px-6 py-3 text-left text-xs font-medium uppercase text-brand-green"><a href="{{ route('usuarios.index', $orden('rol')) }}" class="hover:underline">{{ __('Rol') }} <span aria-hidden="true">{{ $flecha('rol') }}</span></a></th>
+                                <th scope="col" @if ($sentido('estacion')) aria-sort="{{ $sentido('estacion') }}" @endif class="px-6 py-3 text-left text-xs font-medium uppercase text-brand-green"><a href="{{ route('usuarios.index', $orden('estacion')) }}" class="hover:underline">{{ __('Estación') }} <span aria-hidden="true">{{ $flecha('estacion') }}</span></a></th>
+                                <th scope="col" @if ($sentido('area')) aria-sort="{{ $sentido('area') }}" @endif class="px-6 py-3 text-left text-xs font-medium uppercase text-brand-green"><a href="{{ route('usuarios.index', $orden('area')) }}" class="hover:underline">{{ __('Área') }} <span aria-hidden="true">{{ $flecha('area') }}</span></a></th>
+                                <th scope="col" class="px-6 py-3"><span class="sr-only">{{ __('Acciones') }}</span></th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200 bg-white">
                             @forelse ($users as $u)
                                 <tr class="hover:bg-brand-mist/40">
-                                    <td class="px-6 py-4 text-sm text-gray-900">{{ $u->name }}</td>
+                                    <th scope="row" class="px-6 py-4 text-left text-sm font-normal text-gray-900">{{ $u->name }}</th>
                                     <td class="px-6 py-4 text-sm text-gray-500">{{ $u->email }}</td>
                                     <td class="px-6 py-4 text-sm">
                                         <span class="inline-flex rounded-full bg-brand-mist px-2 py-1 text-xs font-semibold text-brand-green">
@@ -103,14 +105,14 @@
                                     <td class="px-6 py-4 text-right text-sm">
                                         <div class="flex items-center justify-end gap-3">
                                             @can('update', $u)
-                                                <a href="{{ route('usuarios.edit', $u) }}" class="font-medium text-brand-teal hover:text-brand-green-dark">{{ __('Editar') }}</a>
+                                                <a href="{{ route('usuarios.edit', $u) }}" class="font-medium text-brand-teal hover:text-brand-green-dark">{{ __('Editar') }}<span class="sr-only"> {{ $u->name }}</span></a>
                                             @endcan
                                             @can('delete', $u)
                                                 <form method="POST" action="{{ route('usuarios.destroy', $u) }}"
                                                       onsubmit="return confirm('{{ __('¿Eliminar esta cuenta? Esta acción no se puede deshacer.') }}')">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="font-medium text-red-600 hover:text-red-800">{{ __('Eliminar') }}</button>
+                                                    <button type="submit" class="font-medium text-red-600 hover:text-red-800">{{ __('Eliminar') }}<span class="sr-only"> {{ $u->name }}</span></button>
                                                 </form>
                                             @endcan
                                         </div>
@@ -131,8 +133,8 @@
                         <div class="px-4 py-4">
                             <div class="flex items-start justify-between gap-3">
                                 <div class="min-w-0">
-                                    <p class="truncate text-sm font-semibold text-gray-900">{{ $u->name }}</p>
-                                    <p class="mt-0.5 truncate text-xs text-gray-500">{{ $u->email }}</p>
+                                    <p class="break-words text-sm font-semibold text-gray-900">{{ $u->name }}</p>
+                                    <p class="mt-0.5 break-all text-xs text-gray-500">{{ $u->email }}</p>
                                 </div>
                                 <span class="inline-flex shrink-0 rounded-full bg-brand-mist px-2 py-1 text-xs font-semibold text-brand-green">
                                     {{ $u->roles->pluck('name')->join(', ') ?: __('Sin rol') }}
@@ -150,14 +152,14 @@
                             </dl>
                             <div class="mt-3 flex items-center gap-4">
                                 @can('update', $u)
-                                    <a href="{{ route('usuarios.edit', $u) }}" class="text-sm font-medium text-brand-teal hover:text-brand-green-dark">{{ __('Editar') }}</a>
+                                    <a href="{{ route('usuarios.edit', $u) }}" class="text-sm font-medium text-brand-teal hover:text-brand-green-dark">{{ __('Editar') }}<span class="sr-only"> {{ $u->name }}</span></a>
                                 @endcan
                                 @can('delete', $u)
                                     <form method="POST" action="{{ route('usuarios.destroy', $u) }}"
                                           onsubmit="return confirm('{{ __('¿Eliminar esta cuenta? Esta acción no se puede deshacer.') }}')">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-800">{{ __('Eliminar') }}</button>
+                                        <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-800">{{ __('Eliminar') }}<span class="sr-only"> {{ $u->name }}</span></button>
                                     </form>
                                 @endcan
                             </div>

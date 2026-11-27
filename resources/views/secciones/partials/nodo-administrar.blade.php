@@ -50,18 +50,18 @@
                 </form>
             @endforeach
             @if ($puedeAnidar)
-                <button type="button" @click="agregando = true" class="min-h-[36px] rounded-md px-2 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('+ Subsección') }}</button>
+                <button type="button" @click="agregando = true" class="min-h-[36px] rounded-md px-2 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('+ Subsección') }}<span class="sr-only"> {{ $seccion->nombre }}</span></button>
             @endif
             <form method="POST" action="{{ route('secciones.update', $seccion) }}">
                 @csrf
                 @method('PUT')
                 <input type="hidden" name="is_visible" value="{{ $seccion->is_visible ? 0 : 1 }}">
                 <button type="submit" class="min-h-[36px] rounded-md px-2 text-sm font-medium text-gray-700 hover:bg-gray-100">
-                    {{ $seccion->is_visible ? __('Ocultar') : __('Mostrar') }}
+                    {{ $seccion->is_visible ? __('Ocultar') : __('Mostrar') }}<span class="sr-only"> {{ $seccion->nombre }}</span>
                 </button>
             </form>
-            <button type="button" @click="editando = true" class="min-h-[36px] rounded-md px-2 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Editar') }}</button>
-            <x-confirmar-eliminar :action="route('secciones.destroy', $seccion)" :etiqueta="__('Quitar del menú')" :confirmar="__('Sí, quitar')"
+            <button type="button" @click="editando = true" class="min-h-[36px] rounded-md px-2 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Editar') }}<span class="sr-only"> {{ $seccion->nombre }}</span></button>
+            <x-confirmar-eliminar :action="route('secciones.destroy', $seccion)" :etiqueta="__('Quitar del menú')" :confirmar="__('Sí, quitar')" :aria-label="__('Quitar del menú :nombre', ['nombre' => $seccion->nombre])"
                                   :pregunta="$hijas->isEmpty() ? __('¿Quitar «:nombre» del menú?', ['nombre' => $seccion->nombre]) : __('¿Quitar «:nombre» y sus :n subsecciones del menú?', ['nombre' => $seccion->nombre, 'n' => count(\App\Support\ArbolSecciones::aplanar($hijas))])" />
         </div>
     </div>
@@ -83,7 +83,7 @@
         </form>
     @endif
 
-    <form method="POST" action="{{ route('secciones.update', $seccion) }}" x-show="editando" x-cloak class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <form method="POST" action="{{ route('secciones.update', $seccion) }}" x-show="editando" x-cloak class="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="{{ __('Editar :nombre', ['nombre' => $seccion->nombre]) }}">
         @csrf
         @method('PUT')
         <div>

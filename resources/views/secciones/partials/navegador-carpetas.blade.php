@@ -38,7 +38,7 @@
                     <li>
                         <a href="{{ route('secciones.show', $parametrosCarpeta($subcarpeta['ruta'])) }}"
                            class="flex min-h-[44px] items-center justify-between gap-2 rounded-lg border border-brand-green/15 bg-white px-3 py-2 text-sm hover:bg-brand-mist focus:outline-none focus:ring-2 focus:ring-brand-teal">
-                            <span class="truncate font-medium text-gray-900">{{ $subcarpeta['nombre'] }}</span>
+                            <span class="break-words font-medium text-gray-900">{{ $subcarpeta['nombre'] }}</span>
                             <span class="shrink-0 text-xs text-gray-500">{{ trans_choice('{1} :count documento|[0,*] :count documentos', $subcarpeta['total']) }}</span>
                         </a>
                     </li>

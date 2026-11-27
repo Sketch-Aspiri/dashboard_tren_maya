@@ -42,11 +42,12 @@
 
                     <div class="ins-tabla-marco">
                         <table class="ins-tabla">
+                            <caption class="sr-only">{{ __('Cambios de :estacion', ['estacion' => $primera->estacion?->nombre]) }}</caption>
                             <thead><tr><th scope="col">{{ __('Persona') }}</th><th scope="col">{{ __('Trimestre') }}</th><th scope="col">{{ __('Antes') }}</th><th scope="col">{{ __('Propuesto') }}</th></tr></thead>
                             <tbody>
                                 @foreach ($items as $s)
                                     <tr>
-                                        <td class="fuerte">{{ $s->nombre }}<span class="block text-xs font-normal text-gray-500">{{ $s->no_empleado }}</span></td>
+                                        <th scope="row" class="px-3 py-2.5 text-left align-top font-medium text-gray-900 sm:px-4">{{ $s->nombre }}<span class="block text-xs font-normal text-gray-500">{{ $s->no_empleado }}</span></th>
                                         <td>{{ $s->trimestre }}º</td>
                                         <td>{{ $rango($s->inicio_origen, $s->fin_origen) }} <span class="text-xs text-gray-500">({{ $s->dias_origen }})</span></td>
                                         <td>{{ $rango($s->nuevo_inicio, $s->nuevo_fin) }} <span class="text-xs text-gray-500">({{ $s->nuevos_dias }})</span></td>
@@ -65,20 +66,20 @@
                             <div class="flex flex-wrap items-start gap-2">
                                 <form method="POST" action="{{ route('vacaciones.lotes.autorizar', $fila->lote) }}" class="flex flex-wrap items-center gap-2">
                                     @csrf
-                                    <input type="text" name="comentario" maxlength="1000" class="ins-campo w-56" placeholder="{{ __('Comentario (opcional)') }}" aria-label="{{ __('Comentario al autorizar el envío') }}">
-                                    <button type="submit" class="ins-btn-primario">{{ __('Autorizar todo el envío') }}</button>
+                                    <input type="text" name="comentario" maxlength="1000" class="ins-campo w-56" placeholder="{{ __('Comentario (opcional)') }}" aria-label="{{ __('Comentario al autorizar el envío') }}: {{ $primera->estacion?->nombre }}, {{ $primera->created_at->setTimezone('America/Cancun')->format('d/m/Y H:i') }}">
+                                    <button type="submit" class="ins-btn-primario">{{ __('Autorizar todo el envío') }}<span class="sr-only">: {{ $primera->estacion?->nombre }}, {{ $primera->created_at->setTimezone('America/Cancun')->format('d/m/Y H:i') }}</span></button>
                                 </form>
-                                <button type="button" class="ins-btn-peligro" @click="rechazando = ! rechazando" :aria-expanded="rechazando">{{ __('Rechazar todo el envío') }}</button>
+                                <button type="button" class="ins-btn-peligro" @click="rechazando = ! rechazando" :aria-expanded="rechazando">{{ __('Rechazar todo el envío') }}<span class="sr-only">: {{ $primera->estacion?->nombre }}, {{ $primera->created_at->setTimezone('America/Cancun')->format('d/m/Y H:i') }}</span></button>
                                 <form method="POST" action="{{ route('vacaciones.lotes.rechazar', $fila->lote) }}" x-show="rechazando" x-cloak class="flex w-full flex-wrap items-center gap-2">
                                     @csrf
-                                    <input type="text" name="comentario" maxlength="1000" required class="ins-campo min-w-[16rem] flex-1" placeholder="{{ __('Explica por qué se rechaza') }}" aria-label="{{ __('Motivo del rechazo del envío') }}">
-                                    <button type="submit" class="ins-btn-peligro">{{ __('Confirmar rechazo') }}</button>
+                                    <input type="text" name="comentario" maxlength="1000" required class="ins-campo min-w-[16rem] flex-1" placeholder="{{ __('Explica por qué se rechaza') }}" aria-label="{{ __('Motivo del rechazo del envío') }}: {{ $primera->estacion?->nombre }}, {{ $primera->created_at->setTimezone('America/Cancun')->format('d/m/Y H:i') }}">
+                                    <button type="submit" class="ins-btn-peligro">{{ __('Confirmar rechazo') }}<span class="sr-only">: {{ $primera->estacion?->nombre }}, {{ $primera->created_at->setTimezone('America/Cancun')->format('d/m/Y H:i') }}</span></button>
                                 </form>
                             </div>
                         @else
                             <form method="POST" action="{{ route('vacaciones.lotes.cancelar', $fila->lote) }}">
                                 @csrf
-                                <button type="submit" class="ins-btn-neutro">{{ __('Cancelar envío') }}</button>
+                                <button type="submit" class="ins-btn-neutro">{{ __('Cancelar envío') }}<span class="sr-only">: {{ $primera->estacion?->nombre }}, {{ $primera->created_at->setTimezone('America/Cancun')->format('d/m/Y H:i') }}</span></button>
                             </form>
                         @endif
                     @endif

@@ -53,7 +53,7 @@
                         <input id="buscar-seccion" type="search" x-model="q" autocomplete="off" placeholder="{{ __('Escribe parte del nombre…') }}"
                                class="mt-1 block min-h-[44px] w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal">
                     </div>
-                    <div class="flex gap-2" x-show="! q.trim()">
+                    <div class="flex flex-wrap gap-2" x-show="! q.trim()">
                         <button type="button" @click="abrirTodas()" class="min-h-[44px] rounded-md px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Expandir todo') }}</button>
                         <button type="button" @click="cerrarTodas()" class="min-h-[44px] rounded-md px-3 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Compactar todo') }}</button>
                     </div>
@@ -100,8 +100,8 @@
                         <form method="POST" action="{{ route('secciones.grupos.update', $grupo) }}" x-show="renombrando" x-cloak class="flex flex-1 gap-2">
                             @csrf
                             @method('PUT')
-                            <label for="grupo-{{ $grupo->id }}" class="sr-only">{{ __('Nombre del grupo') }}</label>
-                            <input id="grupo-{{ $grupo->id }}" name="nombre" value="{{ $grupo->nombre }}" required maxlength="120"
+                            <label for="grupo-nombre-{{ $grupo->id }}" class="sr-only">{{ __('Nuevo nombre del grupo :g', ['g' => $grupo->nombre]) }}</label>
+                            <input id="grupo-nombre-{{ $grupo->id }}" name="nombre" value="{{ $grupo->nombre }}" required maxlength="120"
                                    class="min-h-[40px] w-full rounded-md border-gray-300 text-sm shadow-sm sm:max-w-xs">
                             <x-primary-button>{{ __('Guardar') }}</x-primary-button>
                             <button type="button" @click="renombrando = false" class="rounded-md px-3 text-sm text-gray-700 hover:bg-gray-100">{{ __('Cancelar') }}</button>
@@ -114,9 +114,9 @@
                                     <button type="submit" @disabled(($direccion === 'arriba' && $loop->parent->first) || ($direccion === 'abajo' && $loop->parent->last)) class="min-h-[44px] min-w-[44px] rounded-md text-gray-600 hover:bg-white disabled:opacity-30" aria-label="{{ __('Mover el grupo :nombre hacia :dir', ['nombre' => $grupo->nombre, 'dir' => $direccion]) }}"><span aria-hidden="true">{{ $flecha }}</span></button>
                                 </form>
                             @endforeach
-                            <button type="button" @click="renombrando = true" class="min-h-[36px] rounded-md px-2 text-sm font-medium text-brand-teal hover:bg-white">{{ __('Renombrar') }}</button>
+                            <button type="button" @click="renombrando = true" class="min-h-[36px] rounded-md px-2 text-sm font-medium text-brand-teal hover:bg-white">{{ __('Renombrar') }}<span class="sr-only"> {{ $grupo->nombre }}</span></button>
                             @if ($grupo->secciones->isEmpty())
-                                <x-confirmar-eliminar :action="route('secciones.grupos.destroy', $grupo)" />
+                                <x-confirmar-eliminar :action="route('secciones.grupos.destroy', $grupo)" :aria-label="__('Eliminar el grupo :g', ['g' => $grupo->nombre])" />
                             @endif
                         </div>
                     </div>

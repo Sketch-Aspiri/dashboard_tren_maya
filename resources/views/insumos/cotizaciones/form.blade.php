@@ -114,8 +114,8 @@
                             <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{{ __('Renglón') }} <span x-text="i + 1"></span></p>
                             <div class="grid grid-cols-1 gap-3 lg:grid-cols-12">
                                 <div class="lg:col-span-5">
-                                    <label class="ins-etiqueta">{{ __('Partida solicitada') }}</label>
-                                    <select :name="`renglones[${i}][partida_id]`" x-model="r.partida_id" class="{{ $campo }}">
+                                    <label class="ins-etiqueta" :for="`r-${i}-partida`">{{ __('Partida solicitada') }}<span class="sr-only" x-text="', {{ __('renglón') }} ' + (i + 1)"></span></label>
+                                    <select :id="`r-${i}-partida`" :name="`renglones[${i}][partida_id]`" x-model="r.partida_id" class="{{ $campo }}">
                                         <option value="">{{ __('— Sin partida (cotizado fuera del documento) —') }}</option>
                                         <template x-for="p in partidas" :key="p.id"><option :value="p.id" x-text="p.etiqueta"></option></template>
                                     </select>
@@ -123,35 +123,35 @@
                                        x-text="partida(r.partida_id) ? 'Solicitado: ' + partida(r.partida_id).cantidad + ' pzas · estimado ' + (partida(r.partida_id).precio === null ? 'sin precio' : '$' + partida(r.partida_id).precio) : ''"></p>
                                 </div>
                                 <div class="lg:col-span-4">
-                                    <label class="ins-etiqueta">{{ __('Descripción cotizada') }}</label>
-                                    <input type="text" required maxlength="255" :name="`renglones[${i}][descripcion]`" x-model="r.descripcion" class="{{ $campo }}">
+                                    <label class="ins-etiqueta" :for="`r-${i}-descripcion`">{{ __('Descripción cotizada') }}<span class="sr-only" x-text="', {{ __('renglón') }} ' + (i + 1)"></span></label>
+                                    <input :id="`r-${i}-descripcion`" type="text" required maxlength="255" :name="`renglones[${i}][descripcion]`" x-model="r.descripcion" class="{{ $campo }}">
                                 </div>
                                 <div class="lg:col-span-3">
-                                    <label class="ins-etiqueta">{{ __('Clave / SKU') }}</label>
-                                    <input type="text" maxlength="50" :name="`renglones[${i}][clave]`" x-model="r.clave" class="{{ $campo }}">
+                                    <label class="ins-etiqueta" :for="`r-${i}-clave`">{{ __('Clave / SKU') }}<span class="sr-only" x-text="', {{ __('renglón') }} ' + (i + 1)"></span></label>
+                                    <input :id="`r-${i}-clave`" type="text" maxlength="50" :name="`renglones[${i}][clave]`" x-model="r.clave" class="{{ $campo }}">
                                 </div>
                                 <div class="lg:col-span-2">
-                                    <label class="ins-etiqueta">{{ __('Cantidad') }}</label>
-                                    <input type="number" step="0.01" min="0.01" required :name="`renglones[${i}][cantidad]`" x-model="r.cantidad" class="{{ $campo }}">
+                                    <label class="ins-etiqueta" :for="`r-${i}-cantidad`">{{ __('Cantidad') }}<span class="sr-only" x-text="', {{ __('renglón') }} ' + (i + 1)"></span></label>
+                                    <input :id="`r-${i}-cantidad`" type="number" step="0.01" min="0.01" required :name="`renglones[${i}][cantidad]`" x-model="r.cantidad" class="{{ $campo }}">
                                 </div>
                                 <div class="lg:col-span-2">
-                                    <label class="ins-etiqueta">{{ __('Precio unitario') }}</label>
-                                    <input type="number" step="0.01" min="0" :name="`renglones[${i}][precio_unitario]`" x-model="r.precio_unitario" class="{{ $campo }}">
+                                    <label class="ins-etiqueta" :for="`r-${i}-precio`">{{ __('Precio unitario') }}<span class="sr-only" x-text="', {{ __('renglón') }} ' + (i + 1)"></span></label>
+                                    <input :id="`r-${i}-precio`" type="number" step="0.01" min="0" :name="`renglones[${i}][precio_unitario]`" x-model="r.precio_unitario" class="{{ $campo }}">
                                 </div>
                                 <div class="lg:col-span-2">
-                                    <label class="ins-etiqueta">{{ __('Importe') }}</label>
-                                    <input type="number" step="0.01" min="0" :name="`renglones[${i}][importe]`" x-model="r.importe" class="{{ $campo }}">
+                                    <label class="ins-etiqueta" :for="`r-${i}-importe`">{{ __('Importe') }}<span class="sr-only" x-text="', {{ __('renglón') }} ' + (i + 1)"></span></label>
+                                    <input :id="`r-${i}-importe`" type="number" step="0.01" min="0" :name="`renglones[${i}][importe]`" x-model="r.importe" class="{{ $campo }}">
                                 </div>
                                 <div class="lg:col-span-4">
-                                    <label class="ins-etiqueta">{{ __('¿Es lo mismo que se pidió?') }}</label>
-                                    <select :name="`renglones[${i}][coincidencia]`" x-model="r.coincidencia" class="{{ $campo }}">
+                                    <label class="ins-etiqueta" :for="`r-${i}-coincidencia`">{{ __('¿Es lo mismo que se pidió?') }}<span class="sr-only" x-text="', {{ __('renglón') }} ' + (i + 1)"></span></label>
+                                    <select :id="`r-${i}-coincidencia`" :name="`renglones[${i}][coincidencia]`" x-model="r.coincidencia" class="{{ $campo }}">
                                         <option value="mismo">{{ __('Sí, el mismo producto') }}</option>
                                         <option value="otra_marca">{{ __('Otra marca, modelo o presentación') }}</option>
                                         <option value="distinto">{{ __('Es un producto distinto') }}</option>
                                     </select>
                                 </div>
                                 <div class="flex items-end lg:col-span-2">
-                                    <button type="button" @click="quitar(i)" x-show="renglones.length > 1" class="ins-enlace-peligro">{{ __('Quitar renglón') }}</button>
+                                    <button type="button" @click="quitar(i)" x-show="renglones.length > 1" class="ins-enlace-peligro">{{ __('Quitar renglón') }}<span class="sr-only" x-text="' ' + (i + 1)"></span></button>
                                 </div>
                             </div>
                         </div>

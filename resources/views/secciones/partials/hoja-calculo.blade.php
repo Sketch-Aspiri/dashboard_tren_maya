@@ -143,14 +143,14 @@
         <div class="hoja-esquina" aria-hidden="true" @mousedown.prevent="seleccionarTodo()" title="{{ __('Seleccionar todo') }}"></div>
         <div class="hoja-panel-encabezados" @mousedown="alPresionarEncabezado($event)" @contextmenu="abrirMenu($event, 'columna')"
              @dblclick="permisos.estructura && renombrarColumna()">
-            <div x-ref="encabezados" class="relative h-10" role="row" aria-rowindex="1"></div>
+            <div x-ref="encabezados" class="relative" style="height: 40px" role="row" aria-rowindex="1"></div>
         </div>
         <div class="hoja-panel-numeros" aria-hidden="true" @mousedown="alPresionarNumero($event)" @contextmenu="abrirMenu($event, 'fila')">
-            <div x-ref="numeros" class="relative w-12"></div>
+            <div x-ref="numeros" class="relative" style="width: 48px"></div>
         </div>
         <div x-ref="cuerpo" class="hoja-cuerpo" role="rowgroup" tabindex="-1"
              @focusin="['gridcell', 'rowgroup'].includes($event.target.getAttribute('role')) && $refs.rejilla.focus({ preventScroll: true })">
-            <div x-ref="lienzo" class="relative" @mousedown="alPresionar($event)" @dblclick="abrirEditor(null, false)" @contextmenu="abrirMenu($event, 'celda')">
+            <div x-ref="lienzo" class="relative" @mousedown="alPresionar($event)" @dblclick="$event.target.closest('a') || abrirEditor(null, false)" @contextmenu="abrirMenu($event, 'celda')">
                 <div x-ref="celdas"></div>
                 <div x-ref="seleccion" class="hoja-seleccion" aria-hidden="true"></div>
                 <div x-ref="activa" class="hoja-activa" aria-hidden="true"></div>
@@ -179,7 +179,7 @@
                        'inline-flex h-8 max-w-[14rem] items-center truncate rounded-b-md border px-3 text-sm',
                        'border-brand-green border-t-4 border-t-brand-teal bg-white font-semibold text-brand-green' => $esActiva,
                        'border-gray-200 bg-gray-100 text-gray-700 hover:bg-white' => ! $esActiva,
-                   ])>{{ $hoja->nombre }}@if ($hoja->esEspejo()) <span class="ms-1 text-xs text-gray-400" title="{{ __('Sincronizada con la nube') }}">☁</span>@endif</a>
+                   ])>{{ $hoja->nombre }}@if ($hoja->esEspejo()) <span class="ms-1 text-xs text-gray-600"><span aria-hidden="true">☁</span><span class="sr-only">{{ __('Sincronizada con la nube') }}</span></span>@endif</a>
             @endforeach
 
             @if ($puedeEditarSeccion || auth()->user()->can('update', $seccion))

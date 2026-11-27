@@ -44,7 +44,7 @@
                             @csrf
                             @method('DELETE')
                             <input type="hidden" name="fecha" value="{{ $fecha->toDateString() }}">
-                            <button type="submit" class="text-xs font-semibold uppercase tracking-wide text-red-700 hover:underline">{{ __('Quitar') }}</button>
+                            <button type="submit" class="text-xs font-semibold uppercase tracking-wide text-red-700 hover:underline">{{ __('Quitar') }}<span class="sr-only"> {{ $item->nombre_original }}</span></button>
                         </form>
                     </li>
                 @endforeach

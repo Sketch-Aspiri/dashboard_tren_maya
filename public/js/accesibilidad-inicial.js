@@ -3,7 +3,7 @@
 // se carga de forma sincrona en el <head>. La preferencia vive en la cookie "a11y" del dominio comun (cambiarla en un
 // sistema la cambia en los tres) y en localStorage. El panel esta en resources/js/accesibilidad.js.
 // Valores, separados por punto: t112 | t125 | t150 (letra), c (contraste), m (sin movimiento), e (enlaces subrayados);
-// "n" = elegido sin nada activo. Sin preferencia guardada se sigue la del sistema (contraste).
+// "n" = elegido sin nada activo, "auto" = restablecido. Sin preferencia guardada se sigue la del sistema (contraste).
 (function () {
     var valor = null;
     var cookie = document.cookie.match(/(?:^|; )a11y=([a-z0-9.]{1,40})(?:;|$)/);
@@ -15,6 +15,11 @@
         } catch (e) {
             valor = null;
         }
+    }
+
+    // "auto": restablecido; no hay nada elegido y se sigue lo que pida el sistema.
+    if (valor === 'auto') {
+        valor = null;
     }
 
     var partes = typeof valor === 'string' ? valor.split('.') : [];

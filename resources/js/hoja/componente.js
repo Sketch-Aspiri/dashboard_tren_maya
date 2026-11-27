@@ -629,7 +629,9 @@ export function hojaCalculo(config) {
             const { fila, col } = ctx.activa;
             const columna = ctx.motor.columnas[col];
             if (columna?.tipo === 'foto' && !this.editable()) {
-                this.abrirFoto(fila, col);
+                if (inicial === null) {
+                    this.abrirFoto(fila, col);
+                }
                 return;
             }
             if (!this.editable() || !columna) {
@@ -639,8 +641,11 @@ export function hojaCalculo(config) {
                 return;
             }
             if (columna.tipo === 'foto') {
-                this.abrirFoto(fila, col);
-                this.avisar('Las fotos se cambian desde «Abrir registro», en el menú de la fila.');
+                // Solo se abre a propósito (F2 o doble clic), no por empezar a escribir.
+                if (inicial === null) {
+                    this.abrirFoto(fila, col);
+                }
+                this.avisar('Pulsa F2 para ver la foto. Se cambia desde «Abrir registro», en el menú de la fila.');
                 return;
             }
             const original = ctx.motor.textoEditable(fila, col);
@@ -844,21 +849,26 @@ export function hojaCalculo(config) {
         // ------------------------------------------------------------ portapapeles
 
         escucharPortapapeles() {
-            const activo = () => this.$refs.rejilla === document.activeElement && !ctx.editando;
+            // El menú contextual toma el foco: copiar y pegar siguen funcionando desde ahí.
+            const activo = () => (this.$refs.rejilla === document.activeElement || this.$refs.menu.contains(document.activeElement)) && !ctx.editando;
+            const cerrar = () => this.menu.abierto && this.cerrarMenu();
             document.addEventListener('copy', (e) => {
                 if (activo()) {
                     this.copiar(e, false);
+                    cerrar();
                 }
             });
             document.addEventListener('cut', (e) => {
                 if (activo()) {
                     this.copiar(e, this.editable());
+                    cerrar();
                 }
             });
             document.addEventListener('paste', (e) => {
                 if (activo()) {
                     e.preventDefault();
                     this.pegar(e.clipboardData?.getData('text/plain') ?? '');
+                    cerrar();
                 }
             });
         },

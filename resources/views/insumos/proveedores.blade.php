@@ -81,13 +81,14 @@
                                 <td>{{ $proveedor->giro ?: '—' }}</td>
                                 <td>{{ $proveedor->ubicacion ?: '—' }}</td>
                                 <td>
-                                    <select form="{{ $formId }}" name="iva" aria-label="{{ __('IVA de :p', ['p' => $proveedor->nombre]) }}"
+                                    <select form="{{ $formId }}" name="iva" aria-label="{{ __('IVA de :p', ['p' => $proveedor->nombre]) }}" @if ($proveedor->iva === null) aria-describedby="{{ $formId }}-falta" @endif
                                             class="ins-campo w-36 {{ $proveedor->iva === null ? '!border-amber-400 bg-amber-50' : '' }}">
                                         <option value="">{{ __('Sin definir') }}</option>
                                         @foreach ($tasas as $tasa)
                                             <option value="{{ $tasa }}" @selected($proveedor->iva === $tasa)>{{ $tasa }} %</option>
                                         @endforeach
                                     </select>
+                                    @if ($proveedor->iva === null)<span id="{{ $formId }}-falta" class="mt-1 block text-xs font-medium text-amber-700">{{ __('Falta IVA') }}</span>@endif
                                 </td>
                                 <td class="text-center">
                                     <input form="{{ $formId }}" type="checkbox" name="retiene_isr" value="1" @checked($proveedor->retiene_isr) aria-label="{{ __('Retiene ISR :p', ['p' => $proveedor->nombre]) }}"
@@ -98,7 +99,7 @@
                                         <form id="{{ $formId }}" method="POST" action="{{ route('insumos.proveedores.update', $proveedor) }}">
                                             @csrf
                                             @method('PUT')
-                                            <button type="submit" class="ins-btn !min-h-[36px] !px-3" :class="cambiado ? 'bg-brand-green text-white hover:bg-brand-green-dark' : 'text-brand-teal hover:bg-brand-mist'">{{ __('Guardar') }}</button>
+                                            <button type="submit" class="ins-btn !min-h-[36px] !px-3" :class="cambiado ? 'bg-brand-green text-white hover:bg-brand-green-dark' : 'text-brand-teal hover:bg-brand-mist'">{{ __('Guardar') }}<span class="sr-only"> {{ $proveedor->nombre }}</span></button>
                                         </form>
                                         <x-confirmar-eliminar :action="route('insumos.proveedores.destroy', $proveedor)" :pregunta="__('¿Eliminar?')" :aria-label="__('Eliminar :p', ['p' => $proveedor->nombre])" />
                                     </div>

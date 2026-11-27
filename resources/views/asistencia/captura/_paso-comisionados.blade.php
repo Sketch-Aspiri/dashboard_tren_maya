@@ -21,13 +21,13 @@
             <template x-for="c in fueraAnterioresDisponibles" :key="`f${c.id}`">
                 <li class="flex flex-wrap items-center justify-between gap-2">
                     <span x-text="`${persona(c.empleado_id)?.nombre ?? ''} → ${c.coordinacion_destino}`"></span>
-                    <button type="button" @click="traerFuera(c)" class="min-h-[36px] text-xs font-semibold text-brand-green underline">{{ __('Traer') }}</button>
+                    <button type="button" @click="traerFuera(c)" class="min-h-[36px] text-xs font-semibold text-brand-green underline">{{ __('Traer') }}<span class="sr-only" x-text="` ${persona(c.empleado_id)?.nombre ?? ''}`"></span></button>
                 </li>
             </template>
             <template x-for="v in visitantesAnterioresDisponibles" :key="`v${v.id}`">
                 <li class="flex flex-wrap items-center justify-between gap-2">
                     <span x-text="`${v.nombre} (de ${v.direccion_origen})`"></span>
-                    <button type="button" @click="traerVisitante(v)" class="min-h-[36px] text-xs font-semibold text-brand-green underline">{{ __('Traer') }}</button>
+                    <button type="button" @click="traerVisitante(v)" class="min-h-[36px] text-xs font-semibold text-brand-green underline">{{ __('Traer') }}<span class="sr-only" x-text="` ${v.nombre}`"></span></button>
                 </li>
             </template>
         </ul>
@@ -57,9 +57,9 @@
                         <p class="text-xs text-gray-500" x-text="c.ubicacion_destino"></p>
                     </div>
                     <div class="flex shrink-0 items-center gap-3 text-sm" x-show="puedeGestionar">
-                        <button type="button" @click="abrirFuera(c)" class="min-h-[40px] font-medium text-brand-green underline">{{ __('Editar') }}</button>
-                        <button type="button" x-show="confirmando !== `f${c.id}`" @click="confirmando = `f${c.id}`" class="min-h-[40px] font-medium text-red-700 underline">{{ __('Quitar') }}</button>
-                        <button type="button" x-show="confirmando === `f${c.id}`" @click="quitarFuera(c)" class="min-h-[40px] rounded-md bg-red-700 px-3 font-medium text-white">{{ __('¿Seguro? Quitar') }}</button>
+                        <button type="button" @click="abrirFuera(c)" class="min-h-[40px] font-medium text-brand-green underline">{{ __('Editar') }}<span class="sr-only" x-text="` ${persona(c.empleado_id)?.nombre ?? ''}`"></span></button>
+                        <button type="button" x-show="confirmando !== `f${c.id}`" @click="confirmando = `f${c.id}`" class="min-h-[40px] font-medium text-red-700 underline">{{ __('Quitar') }}<span class="sr-only" x-text="` ${persona(c.empleado_id)?.nombre ?? ''}`"></span></button>
+                        <button type="button" x-show="confirmando === `f${c.id}`" @click="quitarFuera(c)" class="min-h-[40px] rounded-md bg-red-700 px-3 font-medium text-white">{{ __('¿Seguro? Quitar') }}<span class="sr-only" x-text="` ${persona(c.empleado_id)?.nombre ?? ''}`"></span></button>
                     </div>
                 </li>
             </template>
@@ -143,9 +143,9 @@
                         <p class="text-xs text-gray-600" x-text="lineasDeVisitante(v).join(' · ')"></p>
                     </div>
                     <div class="flex shrink-0 items-center gap-3 text-sm" x-show="puedeGestionar">
-                        <button type="button" @click="abrirVisitante(v)" class="min-h-[40px] font-medium text-brand-green underline">{{ __('Editar') }}</button>
-                        <button type="button" x-show="confirmando !== `v${v.id}`" @click="confirmando = `v${v.id}`" class="min-h-[40px] font-medium text-red-700 underline">{{ __('Quitar') }}</button>
-                        <button type="button" x-show="confirmando === `v${v.id}`" @click="quitarVisitante(v)" class="min-h-[40px] rounded-md bg-red-700 px-3 font-medium text-white">{{ __('¿Seguro? Quitar') }}</button>
+                        <button type="button" @click="abrirVisitante(v)" class="min-h-[40px] font-medium text-brand-green underline">{{ __('Editar') }}<span class="sr-only" x-text="` ${v.nombre}`"></span></button>
+                        <button type="button" x-show="confirmando !== `v${v.id}`" @click="confirmando = `v${v.id}`" class="min-h-[40px] font-medium text-red-700 underline">{{ __('Quitar') }}<span class="sr-only" x-text="` ${v.nombre}`"></span></button>
+                        <button type="button" x-show="confirmando === `v${v.id}`" @click="quitarVisitante(v)" class="min-h-[40px] rounded-md bg-red-700 px-3 font-medium text-white">{{ __('¿Seguro? Quitar') }}<span class="sr-only" x-text="` ${v.nombre}`"></span></button>
                     </div>
                 </li>
             </template>

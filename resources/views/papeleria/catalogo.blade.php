@@ -55,15 +55,15 @@
                                     <form method="POST" action="{{ route('papeleria.catalogo.update', $articulo) }}" class="flex flex-wrap items-center gap-3 px-3 py-2 sm:px-4">
                                         @csrf
                                         @method('PUT')
-                                        <label class="sr-only" for="art-{{ $articulo->id }}">{{ __('Descripción') }}</label>
+                                        <label class="sr-only" for="art-{{ $articulo->id }}">{{ __('Descripción de :d', ['d' => $articulo->descripcion]) }}</label>
                                         <input id="art-{{ $articulo->id }}" name="descripcion" type="text" required maxlength="255" class="ins-campo min-w-0 flex-1" value="{{ $articulo->descripcion }}">
                                         <label class="flex min-h-[44px] items-center gap-2 text-sm text-gray-700">
                                             <input type="checkbox" name="activo" value="1" @checked($articulo->activo) class="rounded border-gray-300 text-brand-teal focus:ring-brand-teal">
-                                            {{ __('Activo') }}
+                                            {{ __('Activo') }}<span class="sr-only">: {{ $articulo->descripcion }}</span>
                                         </label>
-                                        <button type="submit" class="ins-btn-secundario !min-h-[36px] !px-3">{{ __('Guardar') }}</button>
+                                        <button type="submit" class="ins-btn-secundario !min-h-[36px] !px-3">{{ __('Guardar') }}<span class="sr-only"> {{ $articulo->descripcion }}</span></button>
                                         <button type="submit" form="borrar-{{ $articulo->id }}" class="ins-enlace-peligro !min-h-[36px]"
-                                                onclick="return confirm('{{ __('¿Eliminar este artículo del catálogo?') }}')">{{ __('Eliminar') }}</button>
+                                                onclick="return confirm('{{ __('¿Eliminar este artículo del catálogo?') }}')">{{ __('Eliminar') }}<span class="sr-only"> {{ $articulo->descripcion }}</span></button>
                                     </form>
                                     <form id="borrar-{{ $articulo->id }}" method="POST" action="{{ route('papeleria.catalogo.destroy', $articulo) }}" class="hidden">@csrf @method('DELETE')</form>
                                 </td>

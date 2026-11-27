@@ -26,7 +26,7 @@
             <form method="GET" action="{{ route('ptar.hallazgos.index') }}" class="flex flex-wrap items-end gap-3">
                 <div>
                     <label for="f-estado" class="ins-etiqueta">{{ __('Estado') }}</label>
-                    <select id="f-estado" name="estado" class="ins-campo mt-1" onchange="this.form.submit()">
+                    <select id="f-estado" name="estado" class="ins-campo mt-1">
                         @foreach (['activos' => __('Sin cerrar'), 'todos' => __('Todos'), 'abierto' => __('Abiertos'), 'en_proceso' => __('En proceso'), 'cerrado' => __('Cerrados')] as $v => $t)
                             <option value="{{ $v }}" @selected(($filtros['estado'] ?? 'activos') === $v)>{{ $t }}</option>
                         @endforeach
@@ -34,7 +34,7 @@
                 </div>
                 <div>
                     <label for="f-planta" class="ins-etiqueta">{{ __('Planta') }}</label>
-                    <select id="f-planta" name="planta" class="ins-campo mt-1" onchange="this.form.submit()">
+                    <select id="f-planta" name="planta" class="ins-campo mt-1">
                         <option value="">{{ __('Todas') }}</option>
                         @foreach ($plantas as $planta)
                             <option value="{{ $planta->id }}" @selected((int) ($filtros['planta'] ?? 0) === $planta->id)>{{ $planta->estacion->nombre }}</option>
@@ -43,12 +43,13 @@
                 </div>
                 <div>
                     <label for="f-tipo" class="ins-etiqueta">{{ __('Tipo') }}</label>
-                    <select id="f-tipo" name="tipo" class="ins-campo mt-1" onchange="this.form.submit()">
+                    <select id="f-tipo" name="tipo" class="ins-campo mt-1">
                         <option value="">{{ __('Todos') }}</option>
                         <option value="problematica" @selected(($filtros['tipo'] ?? '') === 'problematica')>{{ __('Problemáticas') }}</option>
                         <option value="propuesta" @selected(($filtros['tipo'] ?? '') === 'propuesta')>{{ __('Propuestas') }}</option>
                     </select>
                 </div>
+                <button type="submit" class="ins-btn-neutro">{{ __('Aplicar filtros') }}</button>
                 @if ($puedeGestionar)
                     <a href="{{ route('ptar.oficio.create') }}" class="ins-btn-secundario ml-auto">{{ __('Oficio mensual (Word)') }}</a>
                 @endif
@@ -99,12 +100,12 @@
 
                     @if ($puedeGestionar)
                         <details>
-                            <summary class="ins-enlace cursor-pointer">{{ __('Editar') }}</summary>
+                            <summary class="ins-enlace cursor-pointer">{{ __('Editar') }}<span class="sr-only">: {{ __('hallazgo :n de :e', ['n' => $loop->iteration, 'e' => $h->planta->estacion->nombre]) }}</span></summary>
                             <form method="POST" action="{{ route('ptar.hallazgos.update', $h) }}" class="mt-3 space-y-3">
                                 @csrf
                                 @method('PUT')
                                 @include('ptar.partials.hallazgo-campos', ['h' => $h, 'id' => 'e'.$h->id, 'equipos' => $equipos])
-                                <button type="submit" class="ins-btn-secundario">{{ __('Guardar cambios') }}</button>
+                                <button type="submit" class="ins-btn-secundario">{{ __('Guardar cambios') }}<span class="sr-only">: {{ __('hallazgo :n de :e', ['n' => $loop->iteration, 'e' => $h->planta->estacion->nombre]) }}</span></button>
                             </form>
                         </details>
 
@@ -114,7 +115,7 @@
                             @elseif ($ticketsDisponible)
                                 <form method="POST" action="{{ route('ptar.hallazgos.tickets', $h) }}">
                                     @csrf
-                                    <button type="submit" class="ins-btn-secundario">{{ $h->tickets_enviado_at ? __('Reintentar envío a Tickets (sin folio)') : __('Crear actividad en Tickets') }}</button>
+                                    <button type="submit" class="ins-btn-secundario">{{ $h->tickets_enviado_at ? __('Reintentar envío a Tickets (sin folio)') : __('Crear actividad en Tickets') }}<span class="sr-only">: {{ __('hallazgo :n de :e', ['n' => $loop->iteration, 'e' => $h->planta->estacion->nombre]) }}</span></button>
                                 </form>
                             @endif
                         @endif

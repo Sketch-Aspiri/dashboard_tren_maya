@@ -1,17 +1,18 @@
 {{-- $filas: expresión Alpine con los renglones; $conDireccion: si lleva la columna DIRECCIÓN. Sin renglones queda una fila baja, como en el Excel. --}}
 <table class="of-tabla of-lista">
+    <caption class="sr-only">{{ $titulo }}</caption>
     <thead>
         <tr>
-            <th style="width: 4%">NO.</th>
+            <th scope="col" style="width: 4%">NO.</th>
             @if ($conDireccion)
-                <th style="width: 14%">DIRECCIÓN</th>
-                <th style="width: 7%">NO. TRAB.</th>
+                <th scope="col" style="width: 14%">DIRECCIÓN</th>
+                <th scope="col" style="width: 7%">NO. TRAB.</th>
             @else
-                <th style="width: 10.5%">NO. TRAB.</th>
+                <th scope="col" style="width: 10.5%">NO. TRAB.</th>
             @endif
-            <th>NOMBRE</th>
-            <th style="width: 23%">ESTATUS</th>
-            <th style="width: 23%">UBICACIÓN ACTUAL</th>
+            <th scope="col">NOMBRE</th>
+            <th scope="col" style="width: 23%">ESTATUS</th>
+            <th scope="col" style="width: 23%">UBICACIÓN ACTUAL</th>
         </tr>
     </thead>
     <tbody>
@@ -22,7 +23,7 @@
                     <td class="of-c of-dir" x-text="fila.dir"></td>
                 @endif
                 <td class="of-c" x-text="fila.trab"></td>
-                <td :class="fila.negrita && 'of-negrita'" x-text="fila.nombre"></td>
+                <td :class="fila.negrita && 'of-negrita'"><button type="button" class="of-editar"><span class="sr-only">Editar </span><span x-text="fila.nombre"></span></button></td>
                 <td class="of-c" :class="[fila.estatusNegrita && 'of-negrita', fila.pendiente && 'of-pendiente']">
                     <template x-for="linea in fila.lineas" :key="linea"><div x-text="linea"></div></template>
                 </td>

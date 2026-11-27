@@ -86,7 +86,7 @@
 
             {{-- Barra: búsqueda + acciones --}}
             <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <form method="GET" action="{{ route('secciones.show', $seccion) }}" class="flex w-full gap-2 lg:max-w-md" role="search">
+                <form method="GET" action="{{ route('secciones.show', $seccion) }}" class="flex w-full flex-wrap gap-2 lg:max-w-md lg:flex-nowrap" role="search">
                     <input type="hidden" name="tab" :value="tab">
                     @isset($parametroTabla['tabla'])
                         <input type="hidden" name="tabla" value="{{ $parametroTabla['tabla'] }}">
@@ -94,11 +94,11 @@
                     <label for="buscar-seccion" class="sr-only">{{ __('Buscar en esta sección') }}</label>
                     <input id="buscar-seccion" type="search" name="q" value="{{ $filtros['q'] }}"
                            placeholder="{{ $soloDocumentos ? __('Buscar en los documentos…') : __('Buscar en la tabla y en los documentos…') }}"
-                           class="min-h-[44px] w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal">
+                           class="min-h-[44px] w-full min-w-0 flex-1 rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal">
                     @if ($puedeEtiquetar && ! $soloDocumentos)
                         <label for="filtro-estacion" class="sr-only">{{ __('Filtrar por estación') }}</label>
-                        <select id="filtro-estacion" name="estacion" onchange="this.form.submit()"
-                                class="min-h-[44px] rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal">
+                        <select id="filtro-estacion" name="estacion"
+                                class="min-h-[44px] max-w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal">
                             <option value="">{{ __('Todas las estaciones') }}</option>
                             <option value="sin" @selected(($filtros['estacion'] ?? null) === 'sin')>{{ __('Sin estación') }}</option>
                             @foreach ($estaciones as $estacion)
@@ -230,12 +230,12 @@
                 @include('secciones.partials.documentos')
             </div>
 
-            <div x-show="tab === 'enlaces'" x-cloak role="tabpanel" id="panel-enlaces" aria-labelledby="pestana-enlaces">
+            <div x-show="tab === 'enlaces'" x-cloak @if ($puedeGestionar) role="tabpanel" aria-labelledby="pestana-enlaces" @endif id="panel-enlaces">
                 @include('secciones.partials.enlaces')
             </div>
 
             @unless ($soloDocumentos)
-            <div x-show="tab === 'cargas'" x-cloak role="tabpanel" id="panel-cargas" aria-labelledby="pestana-cargas">
+            <div x-show="tab === 'cargas'" x-cloak @if ($puedeGestionar) role="tabpanel" aria-labelledby="pestana-cargas" @endif id="panel-cargas">
                 @include('secciones.partials.cargas')
             </div>
             @endunless

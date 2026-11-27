@@ -45,7 +45,7 @@
                     <input type="hidden" name="anio" value="{{ $anio }}">
                     <input type="hidden" name="mes" value="{{ $mes }}">
                     <div class="flex items-center gap-3">
-                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-mist font-bold text-brand-green">1</span>
+                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-mist font-bold text-brand-green" aria-hidden="true">1</span>
                         <h3 class="ins-titulo">{{ __('Registrar envío del ANEXO') }}</h3>
                     </div>
                     <p class="ins-ayuda mt-2">
@@ -70,7 +70,7 @@
                     <input type="hidden" name="anio" value="{{ $anio }}">
                     <input type="hidden" name="mes" value="{{ $mes }}">
                     <div class="flex items-center gap-3">
-                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-mist font-bold text-brand-green">2</span>
+                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-mist font-bold text-brand-green" aria-hidden="true">2</span>
                         <h3 class="ins-titulo">{{ __('Cargar la respuesta de la Coordinación') }}</h3>
                     </div>
                     <p class="ins-ayuda mt-2">
@@ -125,7 +125,7 @@
                     <tbody>
                         @forelse ($solicitudes as $solicitud)
                             <tr>
-                                <td class="fuerte"><a href="{{ route('insumos.show', $solicitud) }}" class="hover:text-brand-teal hover:underline">{{ $solicitud->estacion->nombre }}</a></td>
+                                <th scope="row" class="px-3 py-2.5 text-left font-medium text-gray-900 sm:px-4"><a href="{{ route('insumos.show', $solicitud) }}" class="underline hover:text-brand-teal">{{ $solicitud->estacion->nombre }}</a></th>
                                 <td><x-insumos.estado :valor="$solicitud->estado" :texto="__($solicitud->etiquetaEstado())" /></td>
                                 <td>{{ $solicitud->oficio_numero ?? '—' }}</td>
                                 <td class="whitespace-nowrap">{{ $solicitud->enviada_coordinacion_at?->format('d/m/Y H:i') ?? '—' }}</td>

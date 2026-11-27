@@ -21,13 +21,24 @@
             }
         },
         cerrar() { this.abierto = false; this.datos = null; },
+        // Pestañas de hojas: flechas, Inicio y Fin mueven el foco y abren la hoja.
+        moverHoja(evento) {
+            const total = this.datos?.hojas.length ?? 0;
+            const destino = { ArrowRight: this.datos.hoja + 1, ArrowLeft: this.datos.hoja - 1, Home: 0, End: total - 1 }[evento.key];
+            if (destino === undefined || total === 0) { return; }
+            evento.preventDefault();
+            const hoja = (destino + total) % total;
+            const lista = evento.currentTarget;
+            lista.children[hoja + 1]?.focus();
+            this.abrir(this.url, this.nombre, hoja);
+        },
     }"
      @vista-previa.window="abrir($event.detail.url, $event.detail.nombre)"
      @keydown.escape.window="cerrar()">
     <div x-show="abierto" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-6" role="dialog" aria-modal="true" :aria-label="nombre">
         <div class="flex max-h-full w-full max-w-6xl flex-col overflow-hidden rounded-xl bg-white shadow-xl" @click.outside="cerrar()">
             <div class="flex items-center justify-between gap-3 border-b border-gray-200 px-4 py-3">
-                <p class="truncate text-sm font-semibold text-brand-green" x-text="nombre"></p>
+                <p class="break-words text-sm font-semibold text-brand-green" x-text="nombre"></p>
                 <div class="flex shrink-0 items-center gap-2">
                     <a x-show="datos" :href="datos ? datos.url_descarga : '#'"
                        class="min-h-[36px] rounded-md px-2 py-1.5 text-sm font-medium text-brand-teal hover:bg-brand-mist">{{ __('Descargar') }}</a>
@@ -49,20 +60,34 @@
 
                 <template x-if="datos && datos.tipo === 'tabla'">
                     <div class="space-y-3">
-                        <div x-show="datos.hojas.length > 1" class="flex flex-wrap gap-1" role="tablist">
+                        <div x-show="datos.hojas.length > 1" class="flex flex-wrap gap-1" role="tablist" aria-label="{{ __('Hojas del documento') }}" @keydown="moverHoja($event)">
                             <template x-for="(hoja, indice) in datos.hojas" :key="indice">
-                                <button type="button" role="tab" @click="abrir(url, nombre, indice)" :aria-selected="(indice === datos.hoja).toString()"
+                                <button type="button" role="tab" :id="`hoja-previa-${indice}`" aria-controls="panel-hoja-previa" :tabindex="indice === datos.hoja ? 0 : -1" @click="abrir(url, nombre, indice)" :aria-selected="(indice === datos.hoja).toString()"
                                         :class="indice === datos.hoja ? 'bg-brand-green text-white' : 'bg-brand-mist text-brand-green'"
                                         class="min-h-[36px] rounded-md px-3 text-xs font-semibold" x-text="hoja"></button>
                             </template>
                         </div>
                         <p x-show="datos.truncado" class="text-xs text-amber-800">{{ __('Se muestran solo las primeras filas y columnas. Descarga el archivo para verlo completo.') }}</p>
                         <p x-show="datos.filas.length === 0" class="text-sm text-gray-600">{{ __('La hoja no tiene datos.') }}</p>
-                        <div class="overflow-auto rounded border border-gray-200">
+                        <div class="overflow-auto rounded border border-gray-200" id="panel-hoja-previa"
+                             :role="datos.hojas.length > 1 ? 'tabpanel' : 'region'" tabindex="0"
+                             :aria-labelledby="datos.hojas.length > 1 ? `hoja-previa-${datos.hoja}` : null"
+                             :aria-label="datos.hojas.length > 1 ? null : '{{ __('Contenido del documento') }}'">
                             <table class="min-w-full divide-y divide-gray-200 text-xs">
+                                <caption class="sr-only" x-text="nombre + (datos.hojas[datos.hoja] ? ', ' + datos.hojas[datos.hoja] : '')"></caption>
+                                {{-- La primera fila hace de encabezado. --}}
+                                <thead class="bg-brand-mist">
+                                    <template x-for="(fila, i) in datos.filas.slice(0, 1)" :key="i">
+                                        <tr>
+                                            <template x-for="(celda, j) in fila" :key="j">
+                                                <th scope="col" class="whitespace-nowrap px-2 py-1 text-left font-semibold" x-text="celda"></th>
+                                            </template>
+                                        </tr>
+                                    </template>
+                                </thead>
                                 <tbody class="divide-y divide-gray-100">
-                                    <template x-for="(fila, i) in datos.filas" :key="i">
-                                        <tr :class="i === 0 ? 'bg-brand-mist font-semibold' : ''">
+                                    <template x-for="(fila, i) in datos.filas.slice(1)" :key="i">
+                                        <tr>
                                             <template x-for="(celda, j) in fila" :key="j">
                                                 <td class="whitespace-nowrap px-2 py-1" x-text="celda"></td>
                                             </template>
@@ -81,10 +106,20 @@
                         <template x-for="(tabla, t) in (datos.tablas || [])" :key="t">
                             <div>
                                 <p class="mb-1 text-xs font-semibold text-gray-600" x-text="tabla.nombre"></p>
-                                <div class="overflow-auto rounded border border-gray-200">
+                                <div class="overflow-auto rounded border border-gray-200" tabindex="0" role="region" :aria-label="tabla.nombre">
                                     <table class="min-w-full divide-y divide-gray-200 text-xs">
+                                        <caption class="sr-only" x-text="tabla.nombre"></caption>
+                                        <thead>
+                                            <template x-for="(fila, i) in tabla.filas.slice(0, 1)" :key="i">
+                                                <tr>
+                                                    <template x-for="(celda, j) in fila" :key="j">
+                                                        <th scope="col" class="px-2 py-1 text-left font-semibold" x-text="celda"></th>
+                                                    </template>
+                                                </tr>
+                                            </template>
+                                        </thead>
                                         <tbody class="divide-y divide-gray-100">
-                                            <template x-for="(fila, i) in tabla.filas" :key="i">
+                                            <template x-for="(fila, i) in tabla.filas.slice(1)" :key="i">
                                                 <tr>
                                                     <template x-for="(celda, j) in fila" :key="j">
                                                         <td class="px-2 py-1" x-text="celda"></td>

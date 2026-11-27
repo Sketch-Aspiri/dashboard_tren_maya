@@ -1,4 +1,5 @@
 import { durante } from '../pantalla-carga.js';
+import { desplazamiento } from '../movimiento.js';
 import { armarOficio, lineasFuera, lineasVisitante } from './oficio';
 
 /** Estatus que no llevan periodo en el oficio. */
@@ -473,7 +474,7 @@ export function capturaAsistencia(inicial) {
             const renglon = fila.getBoundingClientRect();
 
             if (renglon.top < marco.top || renglon.bottom > marco.bottom) {
-                panel.scrollBy({ top: renglon.top - marco.top - marco.height / 2, behavior: 'smooth' });
+                panel.scrollBy({ top: renglon.top - marco.top - marco.height / 2, behavior: desplazamiento() });
             }
         },
 
@@ -483,7 +484,12 @@ export function capturaAsistencia(inicial) {
                 this.paso = 'asistencia';
                 this.busqueda = '';
                 this.soloPendientes = false;
-                this.$nextTick(() => document.getElementById(`persona-${fila.personaId}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }));
+                this.$nextTick(() => {
+                    const renglon = document.getElementById(`persona-${fila.personaId}`);
+                    renglon?.scrollIntoView({ block: 'center', behavior: desplazamiento() });
+                    // El foco acompaña: con teclado o lector se sigue desde esa persona.
+                    renglon?.querySelector('select')?.focus({ preventScroll: true });
+                });
             } else if (fila.comisionId) {
                 this.abrirFuera(this.fuera.find((comision) => comision.id === fila.comisionId));
             } else if (fila.visitanteId) {

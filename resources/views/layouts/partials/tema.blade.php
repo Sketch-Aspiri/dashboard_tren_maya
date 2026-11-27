@@ -14,4 +14,4 @@
         document.documentElement.classList.toggle('dark', oscuro);
     })();
 </script>
-<script src="{{ asset('js/accesibilidad-inicial.js') }}?v=1"></script>
+<script src="{{ asset('js/accesibilidad-inicial.js') }}?v=2"></script>

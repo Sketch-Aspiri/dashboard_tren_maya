@@ -62,7 +62,7 @@
                         @forelse ($tablero as $fila)
                             <tr>
                                 <td>{{ $fila['planta']->numero }}</td>
-                                <th scope="row">{{ $fila['estacion']->nombre }}</th>
+                                <th scope="row" class="px-3 py-2.5 text-left font-medium text-gray-900 sm:px-4">{{ $fila['estacion']->nombre }}</th>
                                 <td>{{ $fila['planta']->tramo ?? '—' }}</td>
                                 <td>{{ $fila['registro']?->etiquetaModo() ?? '—' }}</td>
                                 @php
@@ -74,9 +74,9 @@
                                 <td class="!text-right">{{ $fila['hallazgos_abiertos'] }}</td>
                                 <td class="!text-right">
                                     @if ($fila['registro'])
-                                        <a href="{{ route('ptar.show', $fila['registro']) }}" class="ins-enlace">{{ __('Abrir') }}</a>
+                                        <a href="{{ route('ptar.show', $fila['registro']) }}" class="ins-enlace">{{ __('Abrir') }}<span class="sr-only"> {{ $fila['estacion']->nombre }}</span></a>
                                     @elseif (in_array($fila['estacion']->id, $capturables, true))
-                                        <a href="{{ route('ptar.estacion', ['estacion' => $fila['estacion']->id, 'anio' => $anio, 'mes' => $mes]) }}" class="ins-enlace">{{ __('Capturar') }}</a>
+                                        <a href="{{ route('ptar.estacion', ['estacion' => $fila['estacion']->id, 'anio' => $anio, 'mes' => $mes]) }}" class="ins-enlace">{{ __('Capturar') }}<span class="sr-only"> {{ $fila['estacion']->nombre }}</span></a>
                                     @else
                                         <span class="text-gray-400">—</span>
                                     @endif

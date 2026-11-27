@@ -14,12 +14,12 @@
     .hoja-panel-encabezados { @apply absolute right-0 top-0 z-20 overflow-hidden border-b border-gray-300 bg-gray-100; left: 48px; height: 40px; }
     .hoja-panel-numeros { @apply absolute bottom-0 left-0 z-20 overflow-hidden border-r border-gray-300 bg-gray-100; top: 40px; width: 48px; }
     .hoja-cuerpo { @apply absolute bottom-0 right-0 overflow-auto; left: 48px; top: 40px; }
-    .hoja-encabezado { @apply absolute top-0 flex h-10 select-none flex-col items-center justify-center border-r border-gray-300 px-1 text-xs text-gray-600; }
+    .hoja-encabezado { height: 40px; @apply absolute top-0 flex select-none flex-col items-center justify-center border-r border-gray-300 px-1 text-xs text-gray-600; }
     .hoja-encabezado-marcado { @apply bg-brand-mist text-brand-green; }
     .hoja-encabezado-letra { @apply text-[10px] leading-none text-gray-600; }
     .hoja-encabezado-nombre { @apply mt-0.5 w-full truncate text-center font-semibold leading-tight text-gray-700; }
     .hoja-asa { @apply absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-brand-teal/50; }
-    .hoja-numero { @apply absolute left-0 flex w-12 select-none items-center justify-center border-b border-gray-200 text-xs text-gray-500; height: 26px; }
+    .hoja-numero { width: 48px; @apply absolute left-0 flex select-none items-center justify-center border-b border-gray-200 text-xs text-gray-500; height: 26px; }
     .hoja-numero-marcado { @apply bg-brand-mist font-semibold text-brand-green; }
     .hoja-numero-vacia { @apply text-gray-600; }
     .hoja-celda { @apply absolute flex items-center overflow-hidden whitespace-pre border-b border-r border-gray-200 px-1.5 text-[13px] leading-tight text-gray-900; }
@@ -57,6 +57,9 @@
 .of-tabla .of-dir { font-size: 5.5pt; font-weight: 700; }
 .of-renglon { cursor: pointer; transition: background-color 0.3s; }
 .of-renglon:hover { background: #eef6f4; }
+/* El nombre es un botón para llegar al renglón con teclado; se ve como texto. */
+.of-editar { display: block; width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: inherit; cursor: pointer; }
+.of-editar:focus-visible { outline: 2px solid #0f766e; outline-offset: 1px; }
 .of-renglon td { height: 26px; }
 .of-resaltado { background: #fff3c4; }
 .of-tabla .of-pendiente { color: #b45309; font-style: italic; }
@@ -111,6 +114,12 @@
     .ins-aviso-info { @apply ins-aviso border-blue-200 bg-blue-50 text-blue-900; }
 
     .ins-barra-acciones { @apply sticky bottom-0 z-20 -mx-4 flex flex-col gap-3 border-t border-brand-green/10 bg-white/95 px-4 py-3 backdrop-blur sm:mx-0 sm:flex-row sm:items-center sm:justify-between sm:rounded-xl sm:border sm:shadow-lg sm:shadow-brand-green/10; }
+}
+
+/* Los textos solo para lector de pantalla (posición absoluta) no deben ensanchar la página desde una zona con
+ * desplazamiento: la zona es su referencia y los recorta. */
+@layer components {
+    .overflow-x-auto, .ins-tabla-marco { position: relative; }
 }
 
 /* Dashboard principal */

@@ -62,6 +62,7 @@
 
                         <div x-show="incluir" class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200 text-sm">
+                                <caption class="sr-only">{{ __('Columnas de la hoja :h y destino', ['h' => $hoja['nombre']]) }}</caption>
                                 <thead class="bg-brand-mist">
                                     <tr>
                                         <th scope="col" class="px-4 py-2 text-left text-xs font-semibold uppercase text-brand-green">{{ __('En el documento') }}</th>
@@ -73,9 +74,9 @@
                                 <tbody class="divide-y divide-gray-100">
                                     @foreach ($hoja['encabezados'] as $columna => $encabezado)
                                         <tr x-data="{ destino: @js($hoja['mapeo'][$columna] ?? 'nueva') }">
-                                            <td class="px-4 py-2 font-medium text-gray-900">{{ $encabezado }}</td>
+                                            <th scope="row" class="px-4 py-2 text-left font-medium text-gray-900">{{ $encabezado }}</th>
                                             <td class="px-4 py-2">
-                                                <label class="sr-only" for="mapeo-{{ $indice }}-{{ $columna }}">{{ __('Destino de :col', ['col' => $encabezado]) }}</label>
+                                                <label class="sr-only" for="mapeo-{{ $indice }}-{{ $columna }}">{{ __('Destino de :col, hoja :h', ['col' => $encabezado, 'h' => $hoja['nombre']]) }}</label>
                                                 <select id="mapeo-{{ $indice }}-{{ $columna }}" name="hojas[{{ $indice }}][mapeo][{{ $columna }}]" x-model="destino"
                                                         class="min-h-[44px] w-full min-w-[12rem] rounded-md border-gray-300 text-sm shadow-sm">
                                                     <option value="nueva">{{ __('+ Columna nueva') }}</option>
@@ -87,7 +88,7 @@
                                             </td>
                                             <td class="px-4 py-2">
                                                 <span x-show="destino !== 'nueva'" class="text-xs text-gray-500">{{ __('— (usa el de la columna)') }}</span>
-                                                <label class="sr-only" for="tipo-{{ $indice }}-{{ $columna }}">{{ __('Tipo de :col', ['col' => $encabezado]) }}</label>
+                                                <label class="sr-only" for="tipo-{{ $indice }}-{{ $columna }}">{{ __('Tipo de :col, hoja :h', ['col' => $encabezado, 'h' => $hoja['nombre']]) }}</label>
                                                 <select id="tipo-{{ $indice }}-{{ $columna }}" name="hojas[{{ $indice }}][tipos][{{ $columna }}]"
                                                         x-show="destino === 'nueva'" :disabled="destino !== 'nueva'"
                                                         class="min-h-[44px] rounded-md border-gray-300 text-sm shadow-sm">
@@ -106,7 +107,7 @@
                             </table>
 
                             <div x-show="modo === 'actualizar'" x-cloak class="border-t border-gray-100 px-5 py-3">
-                                <label for="llave-{{ $indice }}" class="block text-sm font-medium text-gray-700">{{ __('Columna llave de esta hoja (identifica cada registro)') }}</label>
+                                <label for="llave-{{ $indice }}" class="block text-sm font-medium text-gray-700">{{ __('Columna llave de esta hoja (identifica cada registro)') }}<span class="sr-only">: {{ $hoja['nombre'] }}</span></label>
                                 <select id="llave-{{ $indice }}" name="hojas[{{ $indice }}][llave]" class="mt-1 block min-h-[44px] w-full max-w-md rounded-md border-gray-300 text-sm shadow-sm">
                                     <option value="">{{ __('— Elige una columna —') }}</option>
                                     @foreach ($hoja['encabezados'] as $columna => $encabezado)

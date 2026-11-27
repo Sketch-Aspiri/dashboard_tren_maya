@@ -29,15 +29,16 @@
                 @if ($loop->first)
                     <div class="ins-tabla-marco">
                         <table class="ins-tabla">
+                            <caption class="sr-only">{{ __('Consolidados generados') }}</caption>
                             <thead><tr><th scope="col">{{ __('Semana') }}</th><th scope="col" class="!text-right">{{ __('Turnos') }}</th><th scope="col" class="!text-right">{{ __('Cambios') }}</th><th scope="col">{{ __('Generado') }}</th><th scope="col"><span class="sr-only">{{ __('Descargar') }}</span></th></tr></thead>
                             <tbody>
                 @endif
                                 <tr>
-                                    <td class="fuerte">{{ $c->semana_inicio->format('d/m/Y') }} – {{ $c->semana_inicio->addDays(6)->format('d/m/Y') }}</td>
+                                    <th scope="row" class="px-3 py-2.5 text-left font-medium text-gray-900 sm:px-4">{{ $c->semana_inicio->format('d/m/Y') }} – {{ $c->semana_inicio->addDays(6)->format('d/m/Y') }}</th>
                                     <td class="num">{{ number_format($c->turnos) }}</td>
                                     <td class="num">{{ $c->cambios }}</td>
                                     <td>{{ $c->updated_at->setTimezone('America/Cancun')->format('d/m/Y H:i') }} · {{ $c->generadoPor?->name ?? __('Automático') }}</td>
-                                    <td class="num"><a href="{{ route('horarios.consolidados.descargar', $c) }}" class="ins-btn-secundario !min-h-[36px] !px-3">{{ __('Descargar Excel') }}</a></td>
+                                    <td class="num"><a href="{{ route('horarios.consolidados.descargar', $c) }}" class="ins-btn-secundario !min-h-[36px] !px-3">{{ __('Descargar Excel') }}<span class="sr-only">, {{ __('semana del :f', ['f' => $c->semana_inicio->format('d/m/Y')]) }}</span></a></td>
                                 </tr>
                 @if ($loop->last)
                             </tbody>

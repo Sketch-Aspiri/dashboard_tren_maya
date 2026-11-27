@@ -30,7 +30,7 @@
                             <form method="POST" action="{{ route('vacaciones.seleccion.catalogo.inhabil.destroy', $i) }}">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="ins-btn-neutro">{{ __('Quitar') }}</button>
+                                <button type="submit" class="ins-btn-neutro">{{ __('Quitar') }}<span class="sr-only"> {{ $i->fecha->format('d/m/Y') }} {{ $i->nombre }}</span></button>
                             </form>
                         </li>
                     @empty
@@ -68,18 +68,19 @@
                     <h3 class="font-heading text-base font-semibold text-gray-900">{{ $trimestre }}º {{ __('trimestre') }}</h3>
                     <div class="ins-tabla-marco">
                         <table class="ins-tabla">
+                            <caption class="sr-only">{{ __('Periodos del :t trimestre', ['t' => $trimestre.'º']) }}</caption>
                             <thead><tr><th scope="col">{{ __('Periodo') }}</th><th scope="col">{{ __('Días') }}</th><th scope="col">{{ __('Estado') }}</th><th scope="col"><span class="sr-only">{{ __('Acción') }}</span></th></tr></thead>
                             <tbody>
                                 @foreach ($items as $p)
                                     <tr>
-                                        <td class="fuerte">{{ $p->etiqueta() }}</td>
+                                        <th scope="row" class="px-3 py-2.5 text-left font-medium text-gray-900 sm:px-4">{{ $p->etiqueta() }}</th>
                                         <td>{{ $p->dias }}</td>
                                         <td><span class="{{ $p->autorizado ? 'ins-chip-ok' : 'ins-chip-neutro' }}">{{ $p->autorizado ? __('Autorizado') : ($p->nota ?? __('No autorizado')) }}</span></td>
                                         <td>
                                             <form method="POST" action="{{ route('vacaciones.seleccion.catalogo.periodo', $p) }}">
                                                 @csrf
                                                 @method('PATCH')
-                                                <button type="submit" class="ins-btn-neutro">{{ $p->autorizado ? __('Desautorizar') : __('Autorizar') }}</button>
+                                                <button type="submit" class="ins-btn-neutro">{{ $p->autorizado ? __('Desautorizar') : __('Autorizar') }}<span class="sr-only"> {{ $p->etiqueta() }}</span></button>
                                             </form>
                                         </td>
                                     </tr>

@@ -36,14 +36,15 @@
                 @else
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200 text-sm">
+                            <caption class="sr-only">{{ __('Asistencia del personal de :e', ['e' => $estacion->nombre]) }}</caption>
                             <thead>
                                 <tr class="text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                    <th class="py-2 pr-4">{{ __('Nombre') }}</th>
-                                    <th class="py-2 pr-4">{{ __('Puesto') }}</th>
-                                    <th class="py-2 pr-4">{{ __('Estatus') }}</th>
-                                    <th class="py-2 pr-4">{{ __('Fecha inicio') }}</th>
-                                    <th class="py-2 pr-4">{{ __('Fecha fin') }}</th>
-                                    <th class="py-2 pr-4">{{ __('Notas') }}</th>
+                                    <th scope="col" class="py-2 pr-4">{{ __('Nombre') }}</th>
+                                    <th scope="col" class="py-2 pr-4">{{ __('Puesto') }}</th>
+                                    <th scope="col" class="py-2 pr-4">{{ __('Estatus') }}</th>
+                                    <th scope="col" class="py-2 pr-4">{{ __('Fecha inicio') }}</th>
+                                    <th scope="col" class="py-2 pr-4">{{ __('Fecha fin') }}</th>
+                                    <th scope="col" class="py-2 pr-4">{{ __('Notas') }}</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
@@ -53,7 +54,7 @@
                                         $estatus = $registroHoy?->estatus;
                                     @endphp
                                     <tr class="align-top">
-                                        <td class="py-2 pr-4 font-medium text-gray-800">{{ $empleado->nombre_completo }}</td>
+                                        <th scope="row" class="py-2 pr-4 text-left font-medium text-gray-800">{{ $empleado->nombre_completo }}</th>
                                         <td class="py-2 pr-4 text-gray-600">{{ $empleado->puesto }}</td>
                                         <td class="py-2 pr-4">
                                             @if ($estatus === null)

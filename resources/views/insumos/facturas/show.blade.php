@@ -85,7 +85,7 @@
                             <li class="flex flex-wrap items-start gap-x-3 gap-y-1 py-2">
                                 <x-insumos.estado :valor="$h->tipo" />
                                 <span class="text-gray-800">{{ $h->detalle }}</span>
-                                <span class="font-mono text-xs text-gray-400 sm:ml-auto">{{ $h->codigo }}</span>
+                                <span class="font-mono text-xs text-gray-600 sm:ml-auto">{{ $h->codigo }}</span>
                             </li>
                         @endforeach
                     </ul>
@@ -96,6 +96,7 @@
                 <h3 id="conceptos-titulo" class="ins-titulo">{{ __('Conceptos facturados') }}</h3>
                 <div class="ins-tabla-marco">
                     <table class="ins-tabla">
+                        <caption class="sr-only">{{ __('Conceptos facturados') }}</caption>
                         <thead>
                             <tr>
                                 <th scope="col">{{ __('N°') }}</th>
@@ -112,29 +113,29 @@
                             @foreach ($factura->conceptos as $concepto)
                                 @php $hallazgos = $hallazgosPorConcepto->get($concepto->id, collect()); @endphp
                                 <tr class="{{ $hallazgos->contains(fn ($h) => $h->tipo === 'ERROR') ? '!bg-red-50/60' : '' }}">
-                                    <td>{{ $concepto->numero }}</td>
+                                    <th scope="row" class="px-3 py-2.5 text-left font-normal sm:px-4">{{ $concepto->numero }}</th>
                                     <td class="min-w-[14rem]"><span class="fuerte">{{ $concepto->descripcion }}</span>@if ($concepto->no_identificacion)<span class="block font-mono text-xs text-gray-500">{{ $concepto->no_identificacion }}</span>@endif</td>
                                     <td class="num">{{ (float) $concepto->cantidad }}</td>
                                     <td class="num">{{ $dinero((float) $concepto->valor_unitario) }}</td>
                                     <td class="num fuerte">{{ $dinero((float) $concepto->importe) }}</td>
                                     <td class="num">{{ $concepto->iva_tasa === null ? '—' : (float) $concepto->iva_tasa.' %' }}</td>
                                     <td class="min-w-[16rem]">
-                                        <form method="POST" action="{{ route('insumos.facturas.concepto', $concepto) }}">
+                                        <form method="POST" action="{{ route('insumos.facturas.concepto', $concepto) }}" data-aviso-cambios="">
                                             @csrf
                                             @method('PUT')
-                                            <select name="partida_id" class="ins-campo" onchange="this.form.submit()" aria-label="{{ __('Partida solicitada del concepto :n', ['n' => $concepto->numero]) }}">
+                                            <select name="partida_id" class="ins-campo" aria-label="{{ __('Partida solicitada del concepto :n', ['n' => $concepto->numero]) }}">
                                                 <option value="">{{ __('— Automático —') }}</option>
                                                 @foreach ($partidas as $partida)
                                                     <option value="{{ $partida['id'] }}" @selected($concepto->solicitud_insumo_partida_id === $partida['id'])>{{ $partida['etiqueta'] }}</option>
                                                 @endforeach
                                             </select>
-                                            <noscript><button type="submit" class="ins-enlace">{{ __('Guardar') }}</button></noscript>
+                                            <button type="submit" class="ins-enlace">{{ __('Guardar') }}<span class="sr-only"> {{ __('la partida del concepto :n', ['n' => $concepto->numero]) }}</span></button>
                                         </form>
                                         @if ($concepto->vinculo)<p class="mt-1 text-xs text-gray-500">{{ __('Vinculado por :v', ['v' => $concepto->vinculo]) }}</p>@endif
                                     </td>
                                     <td class="min-w-[14rem]">
                                         @forelse ($hallazgos as $h)
-                                            <p class="mb-1.5 flex flex-wrap items-start gap-1.5" title="{{ $h->codigo }}"><x-insumos.estado :valor="$h->tipo" /> <span class="text-xs text-gray-700">{{ $h->detalle }}</span></p>
+                                            <p class="mb-1.5 flex flex-wrap items-start gap-1.5"><x-insumos.estado :valor="$h->tipo" /> <span class="text-xs text-gray-700">{{ $h->detalle }}</span> <span class="font-mono text-xs text-gray-600">{{ $h->codigo }}</span></p>
                                         @empty
                                             <span class="text-xs text-gray-400">—</span>
                                         @endforelse

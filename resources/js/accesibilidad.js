@@ -17,15 +17,10 @@ function dominioCookie(host) {
 
 function guardar(valor) {
     const seguro = window.location.protocol === 'https:' ? '; Secure' : '';
-    const vida = valor === null ? 0 : 31536000;
-    document.cookie = `a11y=${valor ?? ''}; max-age=${vida}; path=/; SameSite=Lax${dominioCookie(window.location.hostname)}${seguro}`;
+    document.cookie = `a11y=${valor}; max-age=31536000; path=/; SameSite=Lax${dominioCookie(window.location.hostname)}${seguro}`;
 
     try {
-        if (valor === null) {
-            window.localStorage.removeItem('a11y');
-        } else {
-            window.localStorage.setItem('a11y', valor);
-        }
+        window.localStorage.setItem('a11y', valor);
     } catch {
         // Sin almacenamiento (ventana privada): queda la cookie.
     }
@@ -109,7 +104,8 @@ export function registrarAccesibilidad(Alpine) {
         },
 
         restablecer() {
-            guardar(null);
+            // "auto" también anula lo que otro sistema tuviera guardado en su almacenamiento local.
+            guardar('auto');
             aplicar({
                 texto: '100',
                 contraste: window.matchMedia('(prefers-contrast: more)').matches,

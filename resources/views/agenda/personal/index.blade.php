@@ -22,7 +22,9 @@
 
             <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between" x-data>
                 <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                    <label for="buscar-personal" class="sr-only">{{ __('Buscar personal') }}</label>
                     <input
+                        id="buscar-personal"
                         type="search"
                         x-ref="search"
                         @input.debounce.400ms="$dispatch('agenda-personal-search', { q: $event.target.value })"
@@ -30,7 +32,9 @@
                         class="min-h-[44px] w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal sm:w-72"
                     >
 
+                    <label for="filtro-estatus" class="sr-only">{{ __('Filtrar por estatus') }}</label>
                     <select
+                        id="filtro-estatus"
                         @change="$dispatch('agenda-personal-filter-estatus', { estatus: $event.target.value })"
                         class="min-h-[44px] w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-brand-teal focus:ring-brand-teal sm:w-auto"
                     >
@@ -59,22 +63,23 @@
                 <!-- Desktop / tablet table (>= sm) -->
                 <div class="hidden overflow-x-auto sm:block">
                     <table class="min-w-full divide-y divide-gray-200">
+                        <caption class="sr-only">{{ __('Personal') }}</caption>
                         <thead class="bg-brand-mist">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium uppercase text-brand-green">{{ __('No. Empleado') }}</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium uppercase text-brand-green">{{ __('Nombre') }}</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium uppercase text-brand-green">{{ __('Puesto') }}</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium uppercase text-brand-green">{{ __('Estación / Plaza') }}</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium uppercase text-brand-green">{{ __('Teléfono') }}</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium uppercase text-brand-green">{{ __('Estatus') }}</th>
-                                <th class="px-6 py-3"></th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase text-brand-green">{{ __('No. Empleado') }}</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase text-brand-green">{{ __('Nombre') }}</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase text-brand-green">{{ __('Puesto') }}</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase text-brand-green">{{ __('Estación / Plaza') }}</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase text-brand-green">{{ __('Teléfono') }}</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase text-brand-green">{{ __('Estatus') }}</th>
+                                <th scope="col" class="px-6 py-3"><span class="sr-only">{{ __('Acciones') }}</span></th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200 bg-white">
                             <template x-for="row in rows" :key="row.id">
                                 <tr class="hover:bg-brand-mist/40">
                                     <td class="px-6 py-4 text-sm text-gray-900" x-text="row.no_empleado ?? '—'"></td>
-                                    <td class="px-6 py-4 text-sm text-gray-900" x-text="row.nombre_completo ?? '—'"></td>
+                                    <th scope="row" class="px-6 py-4 text-left text-sm font-normal text-gray-900" x-text="row.nombre_completo ?? '—'"></th>
                                     <td class="px-6 py-4 text-sm text-gray-500" x-text="row.puesto ?? '—'"></td>
                                     <td class="px-6 py-4 text-sm text-gray-500" x-text="(row.estacion_codigo ?? '—') + ' / ' + (row.plaza_actual ?? '—')"></td>
                                     <td class="px-6 py-4 text-sm text-gray-500" x-text="row.telefono ?? '—'"></td>
@@ -86,7 +91,7 @@
                                         ></span>
                                     </td>
                                     <td class="px-6 py-4 text-right text-sm">
-                                        <a :href="`/agenda/personal/${row.id}`" class="font-medium text-brand-teal hover:text-brand-green-dark">{{ __('Ver') }}</a>
+                                        <a :href="`/agenda/personal/${row.id}`" class="font-medium text-brand-teal hover:text-brand-green-dark">{{ __('Ver') }}<span class="sr-only" x-text="` ${row.nombre_completo ?? row.no_empleado ?? ''}`"></span></a>
                                     </td>
                                 </tr>
                             </template>
@@ -103,7 +108,7 @@
                         <a :href="`/agenda/personal/${row.id}`" class="block px-4 py-4 active:bg-brand-mist/40">
                             <div class="flex items-start justify-between gap-3">
                                 <div class="min-w-0">
-                                    <p class="truncate text-sm font-semibold text-gray-900" x-text="row.nombre_completo ?? '—'"></p>
+                                    <p class="break-words text-sm font-semibold text-gray-900" x-text="row.nombre_completo ?? '—'"></p>
                                     <p class="mt-0.5 text-xs text-gray-500" x-text="row.puesto ?? '—'"></p>
                                 </div>
                                 <span
@@ -132,9 +137,9 @@
                 </div>
 
                 <div class="flex flex-col gap-3 border-t border-gray-200 bg-brand-mist/50 px-4 py-3 text-sm text-gray-600 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-6">
-                    <span x-text="meta.total > 0
+                    <span role="status" x-text="meta.total > 0
                         ? `{{ __('Mostrando') }} ${(meta.page - 1) * meta.per_page + 1}–${Math.min(meta.page * meta.per_page, meta.total)} {{ __('de') }} ${meta.total}`
-                        : ''">
+                        : '{{ __('Sin resultados.') }}'">
                     </span>
 
                     <div class="flex items-center justify-between gap-2 sm:justify-start" x-show="meta.last_page > 1">

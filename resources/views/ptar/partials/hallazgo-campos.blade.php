@@ -7,7 +7,7 @@
     $fecha = fn (string $campo) => old($campo, $h?->{$campo}?->toDateString());
 @endphp
 
-<div class="grid grid-cols-2 gap-3 lg:grid-cols-12">
+<div class="grid grid-cols-2 gap-3 lg:grid-cols-12" role="group" aria-label="{{ $h ? __('Datos del hallazgo de :e, detectado el :f', ['e' => $h->planta->estacion->nombre, 'f' => $h->fecha_detectado?->format('d/m/Y') ?? '—']) : __('Datos del hallazgo nuevo') }}">
     <div class="lg:col-span-3">
         <label for="{{ $id }}-tipo" class="ins-etiqueta">{{ __('Tipo') }}</label>
         <select id="{{ $id }}-tipo" name="tipo" class="ins-campo mt-1">

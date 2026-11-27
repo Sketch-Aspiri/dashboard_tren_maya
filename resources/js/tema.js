@@ -69,6 +69,17 @@ export function selectorTema() {
             guardarCookie(tema);
             aplicar(tema);
         },
+        /** Grupo de opciones: las flechas eligen y mueven el foco (patrón radiogroup). */
+        mover(evento) {
+            const pasos = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+            if (!(evento.key in pasos)) {
+                return;
+            }
+            evento.preventDefault();
+            const destino = OPCIONES[(OPCIONES.indexOf(this.tema) + pasos[evento.key] + OPCIONES.length) % OPCIONES.length];
+            this.elegir(destino);
+            evento.currentTarget.querySelector(`[data-tema="${destino}"]`)?.focus();
+        },
         siguiente() {
             this.elegir(OPCIONES[(OPCIONES.indexOf(this.tema) + 1) % OPCIONES.length]);
         },

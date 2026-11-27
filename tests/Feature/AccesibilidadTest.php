@@ -40,7 +40,9 @@ class AccesibilidadTest extends TestCase
         $this->get(route('sesion.viva'))->assertRedirect(route('login'));
 
         $this->actingAsTwoFactorVerified();
-        $this->get(route('sesion.viva'))->assertNoContent();
+        // Con el token de la página abierta la sesión continúa; si se rehízo (otro token), se avisa.
+        $this->withSession(['_token' => 'vigente'])->get(route('sesion.viva'), ['X-CSRF-TOKEN' => 'vigente'])->assertNoContent();
+        $this->withSession(['_token' => 'nuevo'])->get(route('sesion.viva'), ['X-CSRF-TOKEN' => 'vigente'])->assertStatus(409);
     }
 
     public function test_las_pantallas_con_sesion_ofrecen_el_panel(): void

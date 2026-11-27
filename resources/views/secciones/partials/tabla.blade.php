@@ -37,6 +37,7 @@
         {{-- Escritorio / tableta: lista de resultados --}}
         <div class="hidden overflow-x-auto sm:block">
             <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <caption class="sr-only">{{ __('Registros de :seccion, hoja :hoja', ['seccion' => $seccion->nombre, 'hoja' => $tablaActiva->nombre]) }}</caption>
                 <thead class="bg-brand-mist">
                     <tr>
                         @foreach ($columnas as $columna)
@@ -54,6 +55,7 @@
                                             :action="route('secciones.columnas.destroy', [$seccion, $columna])"
                                             :etiqueta="__('Eliminar')"
                                             :pregunta="__('¿Eliminar la columna y sus valores?')"
+                                            :aria-label="__('Eliminar la columna :c', ['c' => $columna->nombre])"
                                             class="normal-case"
                                         >
                                             <input type="hidden" name="volver" value="tabla">
@@ -70,6 +72,7 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     @forelse ($filas as $fila)
+                        @php $columnaNombre = $columnas->first(fn ($c) => $c->tipo !== \App\Enums\TipoColumna::Foto)?->clave; @endphp
                         <tr class="align-top hover:bg-brand-mist/40">
                             @foreach ($columnas as $columna)
                                 @php $texto = $normalizador->paraMostrar($fila->datos[$columna->clave] ?? null, $columna->tipo); @endphp
@@ -78,8 +81,13 @@
                                         @include('secciones.partials.celda-foto', ['valor' => $fila->datos[$columna->clave] ?? null, 'nombre' => $columna->nombre])
                                     </td>
                                 @else
-                                    <td class="max-w-xs px-4 py-3 text-gray-800" title="{{ \Illuminate\Support\Str::length($texto) > 60 ? $texto : '' }}">
-                                        {{ \Illuminate\Support\Str::limit($texto, 60) ?: '—' }}
+                                    <td @if ($columna->clave === $columnaNombre) id="fila-{{ $fila->id }}-dato" @endif class="max-w-xs break-words px-4 py-3 text-gray-800">
+                                        @if (\Illuminate\Support\Str::length($texto) > 60)
+                                            {{-- El texto completo se abre con teclado o puntero (antes solo estaba en title). --}}
+                                            <details><summary class="cursor-pointer">{{ \Illuminate\Support\Str::limit($texto, 60) }}</summary><span class="mt-1 block">{{ $texto }}</span></details>
+                                        @else
+                                            {{ $texto !== null && $texto !== '' ? $texto : '—' }}
+                                        @endif
                                     </td>
                                 @endif
                             @endforeach
@@ -89,7 +97,7 @@
                                 </td>
                             @endif
                             <td class="whitespace-nowrap px-4 py-2 text-right">
-                                @include('secciones.partials.acciones-fila')
+                                @include('secciones.partials.acciones-fila', ['numeroFila' => $filas->firstItem() + $loop->index, 'idDato' => $columnaNombre ? "fila-{$fila->id}-dato" : null])
                             </td>
                         </tr>
                     @empty
@@ -111,11 +119,12 @@
                 <ul class="space-y-1">
                     @foreach ($columnas as $columna)
                         <li class="flex items-center justify-between gap-2 text-sm">
-                            <span class="min-w-0 truncate text-gray-800">{{ $columna->nombre }}</span>
+                            <span class="min-w-0 break-words text-gray-800">{{ $columna->nombre }}</span>
                             <x-confirmar-eliminar
                                 :action="route('secciones.columnas.destroy', [$seccion, $columna])"
                                 :etiqueta="__('Eliminar')"
                                 :pregunta="__('¿Eliminar la columna y sus valores?')"
+                                :aria-label="__('Eliminar la columna :c', ['c' => $columna->nombre])"
                             >
                                 <input type="hidden" name="volver" value="tabla">
                             </x-confirmar-eliminar>
@@ -130,10 +139,11 @@
             @forelse ($filas as $fila)
                 <div class="px-4 py-4">
                     <dl class="grid grid-cols-1 gap-1 text-sm">
+                        @php $columnaNombre = $columnas->first(fn ($c) => $c->tipo !== \App\Enums\TipoColumna::Foto)?->clave; @endphp
                         @foreach ($columnas->take(6) as $columna)
                             <div class="flex gap-2">
                                 <dt class="w-1/3 shrink-0 text-xs text-gray-500">{{ $columna->nombre }}</dt>
-                                <dd class="min-w-0 break-words text-gray-800">
+                                <dd @if ($columna->clave === $columnaNombre) id="fila-{{ $fila->id }}-dato-m" @endif class="min-w-0 break-words text-gray-800">
                                     @if ($columna->tipo === \App\Enums\TipoColumna::Foto)
                                         @include('secciones.partials.celda-foto', ['valor' => $fila->datos[$columna->clave] ?? null, 'nombre' => $columna->nombre])
                                     @else
@@ -150,7 +160,7 @@
                         @endif
                     </dl>
                     <div class="mt-2 flex flex-wrap justify-end gap-1">
-                        @include('secciones.partials.acciones-fila')
+                        @include('secciones.partials.acciones-fila', ['numeroFila' => $filas->firstItem() + $loop->index, 'idDato' => $columnas->take(6)->contains('clave', $columnaNombre) ? "fila-{$fila->id}-dato-m" : null])
                     </div>
                 </div>
             @empty
@@ -167,11 +177,12 @@
                 <input type="hidden" name="sort" value="{{ $filtros['sort'] }}">
                 <input type="hidden" name="direction" value="{{ $filtros['direction'] }}">
                 <label for="por-pagina">{{ __('Mostrar') }}</label>
-                <select id="por-pagina" name="per_page" onchange="this.form.submit()" class="min-h-[36px] rounded-md border-gray-300 py-1 text-sm">
+                <select id="por-pagina" name="per_page" class="min-h-[36px] rounded-md border-gray-300 py-1 text-sm">
                     @foreach (config('secciones.filas_por_pagina') as $opcion)
                         <option value="{{ $opcion }}" @selected($filtros['per_page'] === $opcion)>{{ $opcion }}</option>
                     @endforeach
                 </select>
+                <button type="submit" class="min-h-[36px] rounded-md border border-brand-green/20 bg-white px-3 text-sm font-medium text-brand-green hover:bg-brand-mist">{{ __('Aplicar') }}</button>
             </form>
             {{ $filas->onEachSide(1)->links() }}
         </div>
