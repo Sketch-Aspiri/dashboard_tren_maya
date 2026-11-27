@@ -30,7 +30,7 @@
      class="rounded-xl border border-brand-green/10 bg-white shadow-sm shadow-brand-green/5">
 
     {{-- Barra de herramientas (mousedown.prevent: el foco se queda en la cuadrícula) --}}
-    <div class="flex flex-wrap items-center gap-0.5 border-b border-gray-200 bg-gray-50 px-2 py-1.5" role="toolbar" aria-label="{{ __('Herramientas de la hoja') }}" @mousedown.prevent>
+    <div class="flex flex-wrap items-center gap-0.5 border-b border-gray-200 bg-gray-50 px-2 py-1.5" role="group" aria-label="{{ __('Herramientas de la hoja') }}" @mousedown.prevent>
         <template x-if="editable()">
             <div class="flex flex-wrap items-center gap-0.5">
                 <button type="button" class="hoja-boton" :disabled="!puedeDeshacer" @click="deshacerCambio()" title="{{ __('Deshacer (Ctrl+Z)') }}" aria-label="{{ __('Deshacer') }}">↶</button>
@@ -43,20 +43,20 @@
                     <option value="">11</option>
                     <template x-for="t in tamanos" :key="t"><option :value="t" x-text="t"></option></template>
                 </select>
-                <button type="button" class="hoja-boton font-bold" :class="estiloActivo.n && 'hoja-boton-activo'" @click="alternarEstilo('n')" title="{{ __('Negrita (Ctrl+B)') }}" aria-label="{{ __('Negrita') }}">N</button>
-                <button type="button" class="hoja-boton italic" :class="estiloActivo.k && 'hoja-boton-activo'" @click="alternarEstilo('k')" title="{{ __('Cursiva (Ctrl+I)') }}" aria-label="{{ __('Cursiva') }}">K</button>
-                <button type="button" class="hoja-boton underline" :class="estiloActivo.s && 'hoja-boton-activo'" @click="alternarEstilo('s')" title="{{ __('Subrayado (Ctrl+U)') }}" aria-label="{{ __('Subrayado') }}">S</button>
-                <button type="button" class="hoja-boton line-through" :class="estiloActivo.t && 'hoja-boton-activo'" @click="alternarEstilo('t')" title="{{ __('Tachado') }}" aria-label="{{ __('Tachado') }}">T</button>
+                <button type="button" class="hoja-boton font-bold" :class="estiloActivo.n && 'hoja-boton-activo'" :aria-pressed="(!!estiloActivo.n).toString()" @click="alternarEstilo('n')" title="{{ __('Negrita (Ctrl+B)') }}" aria-label="{{ __('Negrita') }}">N</button>
+                <button type="button" class="hoja-boton italic" :class="estiloActivo.k && 'hoja-boton-activo'" :aria-pressed="(!!estiloActivo.k).toString()" @click="alternarEstilo('k')" title="{{ __('Cursiva (Ctrl+I)') }}" aria-label="{{ __('Cursiva') }}">K</button>
+                <button type="button" class="hoja-boton underline" :class="estiloActivo.s && 'hoja-boton-activo'" :aria-pressed="(!!estiloActivo.s).toString()" @click="alternarEstilo('s')" title="{{ __('Subrayado (Ctrl+U)') }}" aria-label="{{ __('Subrayado') }}">S</button>
+                <button type="button" class="hoja-boton line-through" :class="estiloActivo.t && 'hoja-boton-activo'" :aria-pressed="(!!estiloActivo.t).toString()" @click="alternarEstilo('t')" title="{{ __('Tachado') }}" aria-label="{{ __('Tachado') }}">T</button>
 
                 @foreach (['color' => ['A', __('Color de texto')], 'fondo' => ['▧', __('Color de relleno')]] as $propiedad => [$icono, $etiqueta])
-                    <div class="relative" x-data="{ abierto: false }" @click.outside="abierto = false">
+                    <div class="relative" x-data="{ abierto: false }" @click.outside="abierto = false" @keydown.escape.stop="abierto = false; $el.querySelector('button').focus()">
                         <button type="button" class="hoja-boton" @click="abierto = !abierto" title="{{ $etiqueta }}" aria-label="{{ $etiqueta }}" :aria-expanded="abierto.toString()">
                             <span class="border-b-4 px-0.5 leading-none" :style="{ borderColor: estiloActivo['{{ $propiedad }}'] || '{{ $propiedad === 'color' ? '#000000' : '#ffffff' }}' }">{{ $icono }}</span>
                         </button>
                         <div x-show="abierto" x-cloak class="absolute left-0 top-9 z-50 w-48 rounded-md border border-gray-200 bg-white p-2 shadow-lg">
                             <div class="grid grid-cols-6 gap-1">
                                 <template x-for="color in paleta" :key="color">
-                                    <button type="button" class="h-6 w-6 rounded border border-gray-300" :style="{ backgroundColor: color }" :aria-label="color"
+                                    <button type="button" class="h-6 w-6 rounded border border-gray-300" :style="{ backgroundColor: color }" :aria-label="nombreColor(color)" :title="nombreColor(color)"
                                             @click="ponerEstilo('{{ $propiedad }}', color); abierto = false"></button>
                                 </template>
                             </div>
@@ -66,15 +66,15 @@
                 @endforeach
                 <span class="hoja-separador" aria-hidden="true"></span>
 
-                <button type="button" class="hoja-boton" :class="estiloActivo.alin === 'izq' && 'hoja-boton-activo'" @click="ponerEstilo('alin', estiloActivo.alin === 'izq' ? null : 'izq')" title="{{ __('Alinear a la izquierda') }}" aria-label="{{ __('Alinear a la izquierda') }}">⫷</button>
-                <button type="button" class="hoja-boton" :class="estiloActivo.alin === 'centro' && 'hoja-boton-activo'" @click="ponerEstilo('alin', estiloActivo.alin === 'centro' ? null : 'centro')" title="{{ __('Centrar') }}" aria-label="{{ __('Centrar') }}">≡</button>
-                <button type="button" class="hoja-boton" :class="estiloActivo.alin === 'der' && 'hoja-boton-activo'" @click="ponerEstilo('alin', estiloActivo.alin === 'der' ? null : 'der')" title="{{ __('Alinear a la derecha') }}" aria-label="{{ __('Alinear a la derecha') }}">⫸</button>
-                <button type="button" class="hoja-boton text-xs" :class="estiloActivo.a && 'hoja-boton-activo'" @click="alternarEstilo('a')" title="{{ __('Ajustar texto') }}">↵ {{ __('Ajustar') }}</button>
+                <button type="button" class="hoja-boton" :class="estiloActivo.alin === 'izq' && 'hoja-boton-activo'" :aria-pressed="(estiloActivo.alin === 'izq').toString()" @click="ponerEstilo('alin', estiloActivo.alin === 'izq' ? null : 'izq')" title="{{ __('Alinear a la izquierda') }}" aria-label="{{ __('Alinear a la izquierda') }}">⫷</button>
+                <button type="button" class="hoja-boton" :class="estiloActivo.alin === 'centro' && 'hoja-boton-activo'" :aria-pressed="(estiloActivo.alin === 'centro').toString()" @click="ponerEstilo('alin', estiloActivo.alin === 'centro' ? null : 'centro')" title="{{ __('Centrar') }}" aria-label="{{ __('Centrar') }}">≡</button>
+                <button type="button" class="hoja-boton" :class="estiloActivo.alin === 'der' && 'hoja-boton-activo'" :aria-pressed="(estiloActivo.alin === 'der').toString()" @click="ponerEstilo('alin', estiloActivo.alin === 'der' ? null : 'der')" title="{{ __('Alinear a la derecha') }}" aria-label="{{ __('Alinear a la derecha') }}">⫸</button>
+                <button type="button" class="hoja-boton text-xs" :class="estiloActivo.a && 'hoja-boton-activo'" :aria-pressed="(!!estiloActivo.a).toString()" @click="alternarEstilo('a')" title="{{ __('Ajustar texto') }}">↵ {{ __('Ajustar') }}</button>
                 <span class="hoja-separador" aria-hidden="true"></span>
 
                 <button type="button" class="hoja-boton text-xs" @click="combinar()" title="{{ __('Combinar celdas') }}">⊞ {{ __('Combinar') }}</button>
                 <button type="button" class="hoja-boton text-xs" @click="separar()" title="{{ __('Separar celdas') }}">{{ __('Separar') }}</button>
-                <div class="relative" x-data="{ abierto: false }" @click.outside="abierto = false">
+                <div class="relative" x-data="{ abierto: false }" @click.outside="abierto = false" @keydown.escape.stop="abierto = false; $el.querySelector('button').focus()">
                     <button type="button" class="hoja-boton text-xs" @click="abierto = !abierto" :aria-expanded="abierto.toString()">▦ {{ __('Formato de tabla') }} ▾</button>
                     <div x-show="abierto" x-cloak class="absolute left-0 top-9 z-50 w-48 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
                         <template x-for="estilo in estilosTabla" :key="estilo.clave">
@@ -92,14 +92,15 @@
                 <button type="button" class="hoja-boton" @click="autosuma()" title="{{ __('Autosuma: suma la columna de arriba') }}" aria-label="{{ __('Autosuma') }}">Σ</button>
                 <button type="button" class="hoja-boton text-xs" @click="ordenar('asc')" title="{{ __('Ordenar la hoja por esta columna, de A a Z') }}">A→Z</button>
                 <button type="button" class="hoja-boton text-xs" @click="ordenar('desc')" title="{{ __('Ordenar la hoja por esta columna, de Z a A') }}">Z→A</button>
+                <span class="hoja-separador" aria-hidden="true"></span>
+                <button type="button" class="hoja-boton text-xs" aria-haspopup="menu" @click.stop="abrirMenuTeclado()" title="{{ __('Filas, columnas y más (Mayús+F10)') }}">{{ __('Acciones') }} ▾</button>
             </div>
         </template>
         <template x-if="!editable() && !cargando">
             <span class="px-2 text-xs text-gray-500" x-text="truncada ? @js(__('La hoja es muy grande para editarse aquí: se muestra en solo lectura.')) : @js(__('Solo lectura'))"></span>
         </template>
         <span class="ms-auto flex items-center gap-2 text-xs text-gray-500">
-            <span x-show="pendientes > 0" x-cloak>{{ __('Guardando…') }}</span>
-            <span x-show="pendientes === 0 && !cargando && editable()" x-cloak>{{ __('Guardado') }}</span>
+            <span role="status" x-text="pendientes > 0 ? @js(__('Guardando…')) : (!cargando && editable() ? @js(__('Guardado')) : '')"></span>
             <button type="button" class="hoja-boton" @click="alternarPantallaCompleta()" :title="pantallaCompleta ? @js(__('Salir de pantalla completa')) : @js(__('Pantalla completa'))" :aria-label="pantallaCompleta ? @js(__('Salir de pantalla completa')) : @js(__('Pantalla completa'))">⛶</button>
         </span>
     </div>
@@ -118,9 +119,15 @@
                class="h-8 min-w-0 flex-1 rounded border-gray-300 px-2 font-mono text-sm" autocomplete="off" spellcheck="false">
     </div>
 
-    <div x-show="aviso" x-cloak role="status" aria-live="polite"
-         :class="avisoEsError ? 'bg-red-50 text-red-800 border-red-200' : 'bg-brand-mist text-brand-green border-brand-green/10'"
-         class="border-b px-3 py-1.5 text-sm" x-text="aviso"></div>
+    {{-- La región existe siempre: así el lector de pantalla anuncia lo que aparezca dentro. --}}
+    <div role="status">
+        <div x-show="aviso" x-cloak
+             :class="avisoEsError ? 'bg-red-50 text-red-800 border-red-200' : 'bg-brand-mist text-brand-green border-brand-green/10'"
+             class="flex items-center justify-between gap-3 border-b px-3 py-1.5 text-sm">
+            <span x-text="aviso"></span>
+            <button type="button" x-show="avisoEsError" @click="cerrarAviso()" class="shrink-0 font-semibold underline">{{ __('Cerrar aviso') }}</button>
+        </div>
+    </div>
 
     <template x-if="errorCarga">
         <div class="p-6 text-center text-sm text-red-700" role="alert">
@@ -131,21 +138,22 @@
 
     {{-- Cuadrícula --}}
     <div x-ref="rejilla" class="hoja-rejilla" tabindex="0" role="grid" aria-label="{{ __('Hoja :nombre', ['nombre' => $tablaActiva->nombre]) }}"
-         :aria-busy="cargando.toString()" aria-describedby="hoja-ayuda-teclado"
+         :aria-busy="cargando.toString()" :aria-readonly="(!editable()).toString()" aria-multiselectable="true" aria-describedby="hoja-ayuda-teclado"
          @keydown="teclado($event)">
-        <div class="hoja-esquina" @mousedown.prevent="seleccionarTodo()" title="{{ __('Seleccionar todo') }}"></div>
+        <div class="hoja-esquina" aria-hidden="true" @mousedown.prevent="seleccionarTodo()" title="{{ __('Seleccionar todo') }}"></div>
         <div class="hoja-panel-encabezados" @mousedown="alPresionarEncabezado($event)" @contextmenu="abrirMenu($event, 'columna')"
              @dblclick="permisos.estructura && renombrarColumna()">
-            <div x-ref="encabezados" class="relative h-10"></div>
+            <div x-ref="encabezados" class="relative h-10" role="row" aria-rowindex="1"></div>
         </div>
-        <div class="hoja-panel-numeros" @mousedown="alPresionarNumero($event)" @contextmenu="abrirMenu($event, 'fila')">
+        <div class="hoja-panel-numeros" aria-hidden="true" @mousedown="alPresionarNumero($event)" @contextmenu="abrirMenu($event, 'fila')">
             <div x-ref="numeros" class="relative w-12"></div>
         </div>
-        <div x-ref="cuerpo" class="hoja-cuerpo">
+        <div x-ref="cuerpo" class="hoja-cuerpo" role="rowgroup" tabindex="-1"
+             @focusin="['gridcell', 'rowgroup'].includes($event.target.getAttribute('role')) && $refs.rejilla.focus({ preventScroll: true })">
             <div x-ref="lienzo" class="relative" @mousedown="alPresionar($event)" @dblclick="abrirEditor(null, false)" @contextmenu="abrirMenu($event, 'celda')">
                 <div x-ref="celdas"></div>
-                <div x-ref="seleccion" class="hoja-seleccion"></div>
-                <div x-ref="activa" class="hoja-activa"></div>
+                <div x-ref="seleccion" class="hoja-seleccion" aria-hidden="true"></div>
+                <div x-ref="activa" class="hoja-activa" aria-hidden="true"></div>
                 <textarea x-ref="editor" x-show="editorVisible && editorTipo === 'texto'" class="hoja-editor" rows="1"
                           aria-label="{{ __('Editar celda') }}" @mousedown.stop @blur="editorVisible && editorTipo === 'texto' && confirmarEdicion(0, 0)"></textarea>
                 <select x-ref="selector" x-show="editorVisible && editorTipo === 'opciones'" class="hoja-editor py-0"
@@ -158,7 +166,7 @@
         <div x-show="cargando" class="absolute inset-0 z-40 flex items-center justify-center bg-white/70 text-sm text-gray-600">{{ __('Cargando la hoja…') }}</div>
         <div x-show="!cargando && sinColumnas" x-cloak class="absolute inset-0 z-30 flex items-center justify-center text-sm text-gray-500">{{ __('Esta hoja no tiene columnas.') }}</div>
     </div>
-    <p id="hoja-ayuda-teclado" class="sr-only">{{ __('Usa las flechas para moverte, Enter o F2 para editar, Ctrl+C y Ctrl+V para copiar y pegar, Ctrl+Z para deshacer.') }}</p>
+    <p id="hoja-ayuda-teclado" class="border-t border-gray-200 px-2 py-1 text-xs text-gray-600">{{ __('Teclado: flechas para moverte, F2 para editar, Escape y luego Tab para salir de la hoja, Mayús+F10 para las acciones, Alt+Mayús+flechas para el ancho de columna, Ctrl+C y Ctrl+V para copiar y pegar, Ctrl+Z para deshacer.') }}</p>
 
     {{-- Barra de estado + pestañas de hojas --}}
     <div class="flex flex-col gap-2 border-t border-gray-200 bg-gray-50 px-2 py-1.5 sm:flex-row sm:items-center sm:justify-between">
@@ -227,34 +235,37 @@
     </div>
 
     {{-- Menú contextual --}}
-    <div x-show="menu.abierto" x-cloak @click.outside="menu.abierto = false" @keydown.escape.window="menu.abierto = false" @mousedown.prevent
-         class="absolute z-50 w-56 rounded-md border border-gray-200 bg-white py-1 shadow-xl" :style="{ left: menu.x + 'px', top: menu.y + 'px' }" role="menu">
+    <div x-ref="menu" x-show="menu.abierto" x-cloak @click.outside="menu.abierto = false" @keydown.escape.window="menu.abierto = false" @mousedown.prevent
+         @keydown="tecladoMenu($event)" @click="despuesDeElegir()"
+         class="absolute z-50 w-56 rounded-md border border-gray-200 bg-white py-1 shadow-xl" :style="{ left: menu.x + 'px', top: menu.y + 'px' }">
         <template x-if="editable()">
-            <div>
+            <div role="menu" aria-label="{{ __('Acciones de la hoja') }}">
                 <template x-if="menu.tipo !== 'columna'">
                     <div>
-                        <button type="button" role="menuitem" class="hoja-menu-item" @click="insertarFilas(false)">{{ __('Insertar filas arriba') }}</button>
-                        <button type="button" role="menuitem" class="hoja-menu-item" @click="insertarFilas(true)">{{ __('Insertar filas abajo') }}</button>
-                        <button type="button" role="menuitem" class="hoja-menu-item text-red-700" @click="eliminarFilas()">{{ __('Eliminar filas') }}</button>
+                        <button type="button" role="menuitem" tabindex="-1" class="hoja-menu-item" @click="insertarFilas(false)">{{ __('Insertar filas arriba') }}</button>
+                        <button type="button" role="menuitem" tabindex="-1" class="hoja-menu-item" @click="insertarFilas(true)">{{ __('Insertar filas abajo') }}</button>
+                        <button type="button" role="menuitem" tabindex="-1" class="hoja-menu-item text-red-700" @click="eliminarFilas()">{{ __('Eliminar filas') }}</button>
                         @if ($puedeCrearFila)
-                            <button type="button" role="menuitem" class="hoja-menu-item border-t border-gray-100" @click="abrirRegistro()">{{ __('Abrir registro (fotos y estación)') }}</button>
+                            <button type="button" role="menuitem" tabindex="-1" class="hoja-menu-item border-t border-gray-100" @click="abrirRegistro()">{{ __('Abrir registro (fotos y estación)') }}</button>
                         @endif
                     </div>
                 </template>
                 <template x-if="permisos.estructura && menu.tipo !== 'fila'">
                     <div class="border-t border-gray-100">
-                        <button type="button" role="menuitem" class="hoja-menu-item" @click="insertarColumna(false)">{{ __('Insertar columna a la izquierda') }}</button>
-                        <button type="button" role="menuitem" class="hoja-menu-item" @click="insertarColumna(true)">{{ __('Insertar columna a la derecha') }}</button>
-                        <button type="button" role="menuitem" class="hoja-menu-item" @click="menu.abierto = false; renombrarColumna()">{{ __('Renombrar columna') }}</button>
-                        <a role="menuitem" class="hoja-menu-item" href="{{ route('secciones.columnas.index', [$seccion, 'tabla' => $tablaActiva->id]) }}">{{ __('Tipo de dato y opciones…') }}</a>
-                        <button type="button" role="menuitem" class="hoja-menu-item text-red-700" @click="eliminarColumna()">{{ __('Eliminar columna') }}</button>
+                        <button type="button" role="menuitem" tabindex="-1" class="hoja-menu-item" @click="insertarColumna(false)">{{ __('Insertar columna a la izquierda') }}</button>
+                        <button type="button" role="menuitem" tabindex="-1" class="hoja-menu-item" @click="insertarColumna(true)">{{ __('Insertar columna a la derecha') }}</button>
+                        <button type="button" role="menuitem" tabindex="-1" class="hoja-menu-item" @click="menu.abierto = false; renombrarColumna()">{{ __('Renombrar columna') }}</button>
+                        <button type="button" role="menuitem" tabindex="-1" class="hoja-menu-item" @click="ajustarAncho(40)">{{ __('Ensanchar columna') }}</button>
+                        <button type="button" role="menuitem" tabindex="-1" class="hoja-menu-item" @click="ajustarAncho(-40)">{{ __('Angostar columna') }}</button>
+                        <a role="menuitem" tabindex="-1" class="hoja-menu-item" href="{{ route('secciones.columnas.index', [$seccion, 'tabla' => $tablaActiva->id]) }}">{{ __('Tipo de dato y opciones…') }}</a>
+                        <button type="button" role="menuitem" tabindex="-1" class="hoja-menu-item text-red-700" @click="eliminarColumna()">{{ __('Eliminar columna') }}</button>
                     </div>
                 </template>
                 <div class="border-t border-gray-100">
-                    <button type="button" role="menuitem" class="hoja-menu-item" @click="menu.abierto = false; vaciarSeleccion()">{{ __('Borrar contenido') }}</button>
-                    <button type="button" role="menuitem" class="hoja-menu-item" @click="borrarFormato()">{{ __('Borrar formato') }}</button>
-                    <button type="button" role="menuitem" class="hoja-menu-item" @click="ordenar('asc')">{{ __('Ordenar hoja A → Z') }}</button>
-                    <button type="button" role="menuitem" class="hoja-menu-item" @click="ordenar('desc')">{{ __('Ordenar hoja Z → A') }}</button>
+                    <button type="button" role="menuitem" tabindex="-1" class="hoja-menu-item" @click="menu.abierto = false; vaciarSeleccion()">{{ __('Borrar contenido') }}</button>
+                    <button type="button" role="menuitem" tabindex="-1" class="hoja-menu-item" @click="borrarFormato()">{{ __('Borrar formato') }}</button>
+                    <button type="button" role="menuitem" tabindex="-1" class="hoja-menu-item" @click="ordenar('asc')">{{ __('Ordenar hoja A → Z') }}</button>
+                    <button type="button" role="menuitem" tabindex="-1" class="hoja-menu-item" @click="ordenar('desc')">{{ __('Ordenar hoja Z → A') }}</button>
                 </div>
             </div>
         </template>

@@ -18,11 +18,20 @@ export const PALETA = [
     '#fecaca', '#fed7aa', '#e9d5ff', '#f3f4f6',
 ];
 
+/** Nombre de cada color de la paleta (lo que anuncia el lector de pantalla). */
+export const NOMBRES_COLOR = {
+    '#000000': 'Negro', '#434343': 'Gris muy oscuro', '#666666': 'Gris oscuro', '#999999': 'Gris', '#d9d9d9': 'Gris claro', '#ffffff': 'Blanco',
+    '#0f5132': 'Verde oscuro', '#198754': 'Verde', '#1e3a8a': 'Azul oscuro', '#2563eb': 'Azul', '#0e7490': 'Turquesa', '#7c3aed': 'Morado',
+    '#b91c1c': 'Rojo', '#ea580c': 'Naranja', '#ca8a04': 'Mostaza', '#fde68a': 'Amarillo claro', '#bbf7d0': 'Verde claro', '#bfdbfe': 'Azul claro',
+    '#fecaca': 'Rosa claro', '#fed7aa': 'Naranja claro', '#e9d5ff': 'Lila', '#f3f4f6': 'Gris muy claro',
+};
+
 export const TAMANOS = [9, 10, 11, 12, 14, 16, 18, 20, 24];
 
 export function crearAcciones(ctx) {
     return {
         paleta: PALETA,
+        nombreColor: (color) => NOMBRES_COLOR[color] ?? color,
         tamanos: TAMANOS,
         estilosTabla: Object.entries(ESTILOS_TABLA).map(([clave, e]) => ({ clave, ...e })),
 
@@ -235,6 +244,21 @@ export function crearAcciones(ctx) {
                 return;
             }
             await this.estructura(() => ctx.api.ordenar(columna.clave, direccion), 'No se ordenó la hoja');
+        },
+
+        /** Ensancha o angosta la columna activa sin arrastrar. */
+        ajustarAncho(delta) {
+            const col = ctx.activa.col;
+            const columna = ctx.motor.columnas[col];
+            this.menu.abierto = false;
+            if (!columna) {
+                return;
+            }
+            columna.ancho = Math.max(40, Math.min(800, ctx.rejilla.anchoColumna(col) + delta));
+            ctx.rejilla.recalcularGeometria();
+            this.refrescarSeleccion();
+            this.avisar(`Columna «${columna.nombre}»: ${columna.ancho} píxeles de ancho.`);
+            this.guardarAncho(col);
         },
 
         async guardarAncho(col) {

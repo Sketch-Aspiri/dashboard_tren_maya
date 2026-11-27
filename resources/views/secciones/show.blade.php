@@ -14,7 +14,7 @@
     $parametroTabla = $tablas->count() > 1 ? ['tabla' => $tablaActiva->id] : [];
     // En escritorio la tabla se ve como hoja de cálculo; con búsqueda, orden o filtro de estación, como lista de resultados.
     $hayFiltros = ($filtros['q'] ?? null) !== null || ($filtros['sort'] ?? null) !== null || ($filtros['estacion'] ?? null) !== null;
-    $modoHoja = ! $soloDocumentos && $columnas->isNotEmpty() && ! $hayFiltros;
+    $modoHoja = ! $soloDocumentos && $columnas->isNotEmpty() && ! $hayFiltros && ! $prefiereTabla;
     $enlaceOrden = function (string $clave) use ($filtros): string {
         $direccion = ($filtros['sort'] === $clave && $filtros['direction'] === 'asc') ? 'desc' : 'asc';
 

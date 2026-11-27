@@ -18,6 +18,7 @@ import { Rejilla } from './rejilla';
 const FILAS_EXTRA_EDITABLE = 30;
 const MAX_CELDAS_RESUMEN = 50000;
 const DURACION_AVISO_MS = 6000;
+const PASO_ANCHO = 20;
 
 /**
  * ¿Cabe el valor en el tipo de la columna? (aviso previo; el servidor
@@ -56,6 +57,8 @@ export function hojaCalculo(config) {
         extremo: { fila: 0, col: 0 },
         arrastrando: null,
         editando: null,
+        // Tras Escape, el siguiente Tab sale de la hoja en lugar de cambiar de celda.
+        salirConTab: false,
         portapapeles: null,
         deshacer: [],
         rehacer: [],
@@ -90,6 +93,7 @@ export function hojaCalculo(config) {
 
         async init() {
             ctx.rejilla = new Rejilla({
+                rejilla: this.$refs.rejilla,
                 cuerpo: this.$refs.cuerpo,
                 lienzo: this.$refs.lienzo,
                 celdas: this.$refs.celdas,
@@ -180,7 +184,15 @@ export function hojaCalculo(config) {
             this.aviso = texto;
             this.avisoEsError = esError;
             clearTimeout(this.temporizadorAviso);
-            this.temporizadorAviso = setTimeout(() => { this.aviso = ''; }, DURACION_AVISO_MS);
+            // Los errores se quedan hasta que se cierren: no dependen de leer a tiempo.
+            if (!esError) {
+                this.temporizadorAviso = setTimeout(() => { this.aviso = ''; }, DURACION_AVISO_MS);
+            }
+        },
+
+        cerrarAviso() {
+            this.aviso = '';
+            this.$refs.rejilla.focus({ preventScroll: true });
         },
 
         // ------------------------------------------------------------ selección
@@ -295,6 +307,21 @@ export function hojaCalculo(config) {
             const ctrl = evento.ctrlKey || evento.metaKey;
             const tecla = evento.key;
             const flechas = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+            const salir = ctx.salirConTab;
+            if (tecla !== 'Shift') {
+                ctx.salirConTab = false;
+            }
+
+            if (tecla === 'ContextMenu' || (tecla === 'F10' && evento.shiftKey)) {
+                evento.preventDefault();
+                this.abrirMenuTeclado();
+                return;
+            }
+            if (evento.altKey && evento.shiftKey && (tecla === 'ArrowLeft' || tecla === 'ArrowRight')) {
+                evento.preventDefault();
+                this.ajustarAncho(tecla === 'ArrowRight' ? PASO_ANCHO : -PASO_ANCHO);
+                return;
+            }
 
             if (flechas[tecla]) {
                 evento.preventDefault();
@@ -311,10 +338,16 @@ export function hojaCalculo(config) {
                 return;
             }
             switch (tecla) {
-                case 'Tab':
+                case 'Tab': {
+                    // En el borde, o después de Escape, Tab sigue su camino y sale de la hoja.
+                    const borde = evento.shiftKey ? ctx.activa.col === 0 : ctx.activa.col >= ctx.motor.columnas.length - 1;
+                    if (salir || borde) {
+                        return;
+                    }
                     evento.preventDefault();
                     this.mover(0, evento.shiftKey ? -1 : 1);
                     return;
+                }
                 case 'Enter':
                     evento.preventDefault();
                     this.mover(evento.shiftKey ? -1 : 1, 0);
@@ -342,6 +375,8 @@ export function hojaCalculo(config) {
                 case 'Escape':
                     this.menu.abierto = false;
                     ctx.portapapeles = null;
+                    ctx.salirConTab = true;
+                    this.avisar('Pulsa Tab para salir de la hoja.');
                     return;
                 default:
                     break;
@@ -530,8 +565,58 @@ export function hojaCalculo(config) {
                     this.seleccionarFila(fila);
                 }
             }
+            this.mostrarMenu(evento.clientX, evento.clientY, tipo);
+        },
+
+        /** El mismo menú, junto a la celda activa (Mayús+F10, tecla de menú o botón «Acciones»). */
+        abrirMenuTeclado() {
+            const caja = this.$refs.activa.getBoundingClientRect();
+            this.mostrarMenu(caja.left, caja.bottom, 'celda');
+        },
+
+        mostrarMenu(x, y, tipo) {
             const caja = this.$root.getBoundingClientRect();
-            this.menu = { abierto: true, x: evento.clientX - caja.left, y: evento.clientY - caja.top, tipo };
+            this.menu = { abierto: true, x: x - caja.left, y: y - caja.top, tipo };
+            this.$nextTick(() => requestAnimationFrame(() => this.opcionesDeMenu()[0]?.focus()));
+        },
+
+        opcionesDeMenu() {
+            return [...this.$refs.menu.querySelectorAll('[role="menuitem"]')].filter((el) => el.getClientRects().length > 0);
+        },
+
+        tecladoMenu(evento) {
+            if (evento.key === 'Escape' || evento.key === 'Tab') {
+                evento.preventDefault();
+                evento.stopPropagation();
+                this.cerrarMenu();
+                return;
+            }
+            const opciones = this.opcionesDeMenu();
+            const actual = opciones.indexOf(document.activeElement);
+            const destino = {
+                ArrowDown: (actual + 1) % opciones.length,
+                ArrowUp: (actual - 1 + opciones.length) % opciones.length,
+                Home: 0,
+                End: opciones.length - 1,
+            }[evento.key];
+            if (destino !== undefined) {
+                evento.preventDefault();
+                opciones[destino]?.focus();
+            }
+        },
+
+        cerrarMenu() {
+            this.menu.abierto = false;
+            this.$refs.rejilla.focus({ preventScroll: true });
+        },
+
+        /** Tras elegir una opción el foco vuelve a la cuadrícula (salvo que se haya abierto un diálogo). */
+        despuesDeElegir() {
+            this.$nextTick(() => {
+                if (!this.menu.abierto && !this.dialogo.abierto) {
+                    this.$refs.rejilla.focus({ preventScroll: true });
+                }
+            });
         },
 
         // ------------------------------------------------------------ edición
@@ -543,6 +628,10 @@ export function hojaCalculo(config) {
         abrirEditor(inicial, ingresando) {
             const { fila, col } = ctx.activa;
             const columna = ctx.motor.columnas[col];
+            if (columna?.tipo === 'foto' && !this.editable()) {
+                this.abrirFoto(fila, col);
+                return;
+            }
             if (!this.editable() || !columna) {
                 if (!this.permisos.editar) {
                     this.avisar('Solo lectura: no puedes modificar esta hoja.');
@@ -550,7 +639,8 @@ export function hojaCalculo(config) {
                 return;
             }
             if (columna.tipo === 'foto') {
-                this.avisar('Las fotos se cambian desde «Abrir registro» (clic derecho en la fila).');
+                this.abrirFoto(fila, col);
+                this.avisar('Las fotos se cambian desde «Abrir registro», en el menú de la fila.');
                 return;
             }
             const original = ctx.motor.textoEditable(fila, col);
@@ -567,11 +657,19 @@ export function hojaCalculo(config) {
                     left: `${caja.left}px`, top: `${caja.top}px`, minWidth: `${caja.width}px`, minHeight: `${caja.height}px`,
                 });
                 editor.value = inicial ?? original;
+                editor.setAttribute('aria-label', `Editar ${nombreCelda(fila, col)}, ${columna.nombre}`);
                 editor.focus();
                 if (this.editorTipo === 'texto') {
                     editor.setSelectionRange(editor.value.length, editor.value.length);
                 }
             });
+        },
+
+        abrirFoto(fila, col) {
+            const foto = ctx.motor.mostrar(fila, col).foto;
+            if (foto) {
+                window.open(config.urlFoto.replace('__FOTO__', encodeURIComponent(foto)), '_blank', 'noopener');
+            }
         },
 
         tecladoEditor(evento) {

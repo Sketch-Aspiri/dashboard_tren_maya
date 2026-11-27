@@ -16,12 +16,12 @@
     .hoja-cuerpo { @apply absolute bottom-0 right-0 overflow-auto; left: 48px; top: 40px; }
     .hoja-encabezado { @apply absolute top-0 flex h-10 select-none flex-col items-center justify-center border-r border-gray-300 px-1 text-xs text-gray-600; }
     .hoja-encabezado-marcado { @apply bg-brand-mist text-brand-green; }
-    .hoja-encabezado-letra { @apply text-[10px] leading-none text-gray-400; }
+    .hoja-encabezado-letra { @apply text-[10px] leading-none text-gray-600; }
     .hoja-encabezado-nombre { @apply mt-0.5 w-full truncate text-center font-semibold leading-tight text-gray-700; }
     .hoja-asa { @apply absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-brand-teal/50; }
     .hoja-numero { @apply absolute left-0 flex w-12 select-none items-center justify-center border-b border-gray-200 text-xs text-gray-500; height: 26px; }
     .hoja-numero-marcado { @apply bg-brand-mist font-semibold text-brand-green; }
-    .hoja-numero-vacia { @apply text-gray-300; }
+    .hoja-numero-vacia { @apply text-gray-600; }
     .hoja-celda { @apply absolute flex items-center overflow-hidden whitespace-pre border-b border-r border-gray-200 px-1.5 text-[13px] leading-tight text-gray-900; }
     .hoja-celda-combinada { @apply z-[1] bg-white; }
     .hoja-celda-ajustada { @apply whitespace-pre-wrap break-words; }

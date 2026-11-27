@@ -40,6 +40,8 @@ class ListarSeccionRequest extends FormRequest
             'per_page' => ['nullable', 'integer', Rule::in(config('secciones.filas_por_pagina'))],
             'page' => ['nullable', 'integer', 'min:1'],
             'tab' => ['nullable', Rule::in(['tabla', 'documentos', 'enlaces', 'cargas'])],
+            // Cómo ver la tabla en escritorio; se recuerda en una cookie (accesibilidad).
+            'vista' => ['nullable', Rule::in(['tabla', 'hoja'])],
             'doc_orden' => ['nullable', Rule::in(self::ORDENES_DOCUMENTO)],
             'doc_tipo' => ['nullable', 'string', 'max:10', 'alpha_num'],
             // Carpeta del navegador de documentos (ruta relativa a la raíz del origen): sin "..", sin barra inicial.

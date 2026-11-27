@@ -4,6 +4,10 @@
  * encabezados de columna y los números de fila son paneles aparte que
  * siguen el scroll del cuerpo con transform.
  *
+ * Accesibilidad: la cuadrícula (refs.rejilla, role="grid") tiene filas y celdas
+ * con su posición; la celda activa se anuncia con aria-activedescendant y un
+ * nombre completo ("B3, Cantidad: 5").
+ *
  * Seguridad: todo texto entra con textContent y todo estilo con
  * element.style (colores ya validados con colorSeguro): nunca innerHTML.
  */
@@ -11,13 +15,16 @@ import { letrasColumna } from './formulas';
 import { colorSeguro } from './motor';
 
 export const ALTO_FILA = 26;
+
+/** Id del nodo de una celda (hay una sola hoja por pantalla). */
+export const idCelda = (fila, col) => `hoja-celda-${fila}-${col}`;
 export const ANCHO_COLUMNA = 140;
 const MARGEN_FILAS = 6;
 const MARGEN_COLUMNAS = 2;
 
 export class Rejilla {
     /**
-     * @param {{cuerpo: HTMLElement, lienzo: HTMLElement, celdas: HTMLElement, encabezados: HTMLElement, numeros: HTMLElement, seleccion: HTMLElement, activa: HTMLElement}} refs
+     * @param {{rejilla: HTMLElement, cuerpo: HTMLElement, lienzo: HTMLElement, celdas: HTMLElement, encabezados: HTMLElement, numeros: HTMLElement, seleccion: HTMLElement, activa: HTMLElement}} refs
      * @param {import('./motor').MotorHoja} motor
      * @param {{filasExtra: number, urlFoto: string}} opciones
      */
@@ -27,6 +34,7 @@ export class Rejilla {
         this.opciones = opciones;
         this.cuadro = null;
         this.marcado = { f1: 0, c1: 0, f2: 0, c2: 0 };
+        this.activa = { fila: 0, col: 0 };
         this.recalcularGeometria();
         refs.cuerpo.addEventListener('scroll', () => this.programar(), { passive: true });
     }
@@ -120,6 +128,7 @@ export class Rejilla {
         const totalColumnas = this.motor.columnas.length;
         if (totalColumnas === 0) {
             this.refs.celdas.replaceChildren();
+            this.refs.rejilla.removeAttribute('aria-activedescendant');
             return;
         }
         const f0 = Math.max(0, this.filaEn(cuerpo.scrollTop) - MARGEN_FILAS);
@@ -131,24 +140,55 @@ export class Rejilla {
         const pintadas = new Set();
 
         for (let f = f0; f <= f1; f++) {
+            // Contenedor sin caja propia: las celdas se posicionan respecto al lienzo.
+            const renglon = document.createElement('div');
+            renglon.setAttribute('role', 'row');
+            renglon.setAttribute('aria-rowindex', String(f + 2));
             for (let c = c0; c <= c1; c++) {
                 const combinada = this.motor.combinacionEn(f, c);
                 if (combinada) {
                     const clave = this.motor.clave(combinada.f1, combinada.c1);
                     if (!pintadas.has(clave)) {
                         pintadas.add(clave);
-                        fragmento.append(this.celda(combinada.f1, combinada.c1, combinada));
+                        renglon.append(this.celda(combinada.f1, combinada.c1, combinada));
                     }
                     continue;
                 }
-                fragmento.append(this.celda(f, c, null));
+                renglon.append(this.celda(f, c, null));
+            }
+            if (renglon.childElementCount > 0) {
+                fragmento.append(renglon);
             }
         }
         this.refs.celdas.replaceChildren(fragmento);
+        this.refs.rejilla.setAttribute('aria-rowcount', String(this.totalFilas + 1));
+        this.refs.rejilla.setAttribute('aria-colcount', String(totalColumnas));
+        this.anunciarActiva();
         this.pintarEncabezados(c0, c1);
         this.pintarNumeros(f0, f1);
         this.refs.encabezados.style.transform = `translateX(${-cuerpo.scrollLeft}px)`;
         this.refs.numeros.style.transform = `translateY(${-cuerpo.scrollTop}px)`;
+    }
+
+    /** La celda activa es la que el lector de pantalla lee mientras el foco está en la cuadrícula. */
+    anunciarActiva() {
+        const combinada = this.motor.combinacionEn(this.activa.fila, this.activa.col);
+        const id = idCelda(combinada?.f1 ?? this.activa.fila, combinada?.c1 ?? this.activa.col);
+        if (this.refs.celdas.querySelector(`#${id}`)) {
+            this.refs.rejilla.setAttribute('aria-activedescendant', id);
+        } else {
+            this.refs.rejilla.removeAttribute('aria-activedescendant');
+        }
+    }
+
+    /** Nombre completo de una celda: posición, columna y contenido. */
+    nombreDeCelda(fila, col, mostrado) {
+        const columna = this.motor.columnas[col]?.nombre ?? '';
+        let contenido = mostrado.foto ? 'foto' : mostrado.texto || 'vacía';
+        if (mostrado.esError) {
+            contenido = `error en la fórmula, ${contenido}`;
+        }
+        return `${letrasColumna(col)}${fila + 1}, ${columna}: ${contenido}`;
     }
 
     celda(fila, col, combinada) {
@@ -167,11 +207,26 @@ export class Rejilla {
         const propio = this.motor.estilo(fila, col);
         const estilo = { ...(tabla ?? {}), ...(propio ?? {}) };
 
+        nodo.id = idCelda(fila, col);
+        nodo.setAttribute('role', 'gridcell');
+        // Enfocable solo por programa: el foco lo conserva la cuadrícula.
+        nodo.tabIndex = -1;
+        nodo.setAttribute('aria-colindex', String(col + 1));
+        nodo.setAttribute('aria-label', this.nombreDeCelda(fila, col, mostrado));
+        const m = this.marcado;
+        nodo.setAttribute('aria-selected', String(fila >= m.f1 && fila <= m.f2 && col >= m.c1 && col <= m.c2));
+        if (combinada) {
+            nodo.setAttribute('aria-colspan', String(combinada.c2 - combinada.c1 + 1));
+            nodo.setAttribute('aria-rowspan', String(combinada.f2 - combinada.f1 + 1));
+        }
+
         if (mostrado.foto) {
             const enlace = document.createElement('a');
             enlace.href = this.opciones.urlFoto.replace('__FOTO__', encodeURIComponent(mostrado.foto));
             enlace.target = '_blank';
             enlace.rel = 'noopener';
+            // Con teclado se abre con F2 sobre la celda.
+            enlace.tabIndex = -1;
             enlace.textContent = '📷 Ver foto';
             enlace.className = 'hoja-foto';
             nodo.append(enlace);
@@ -230,6 +285,9 @@ export class Rejilla {
             const nodo = document.createElement('div');
             nodo.className = 'hoja-encabezado';
             nodo.dataset.col = String(c);
+            nodo.setAttribute('role', 'columnheader');
+            nodo.setAttribute('aria-colindex', String(c + 1));
+            nodo.setAttribute('aria-label', `Columna ${letrasColumna(c)}: ${columna.nombre}`);
             if (c >= this.marcado.c1 && c <= this.marcado.c2) {
                 nodo.classList.add('hoja-encabezado-marcado');
             }
@@ -282,6 +340,7 @@ export class Rejilla {
      */
     pintarSeleccion(rango, activa) {
         this.marcado = rango;
+        this.activa = { ...activa };
         Object.assign(this.refs.seleccion.style, this.px(this.caja(rango)));
         const combinada = this.motor.combinacionEn(activa.fila, activa.col);
         Object.assign(this.refs.activa.style, this.px(this.caja(combinada ?? { f1: activa.fila, c1: activa.col, f2: activa.fila, c2: activa.col })));

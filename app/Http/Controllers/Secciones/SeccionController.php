@@ -24,6 +24,7 @@ use App\Services\Secciones\VisibilidadSecciones;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
 
 /**
  * Pantalla de una sección (tabla + documentos + cargas) y su alta/edición
@@ -65,7 +66,14 @@ class SeccionController extends Controller
         $tabsPermitidas = $puedeGestionar ? ['tabla', 'documentos', 'enlaces', 'cargas'] : ['tabla', 'documentos'];
         $tabPedida = $request->validated('tab') ?? 'tabla';
 
+        // En escritorio la tabla se ve como hoja de cálculo, salvo que la persona haya elegido verla como tabla.
+        $vista = $request->validated('vista');
+        if ($vista !== null) {
+            Cookie::queue('hoja_vista', $vista, 60 * 24 * 365);
+        }
+
         return view('secciones.show', [
+            'prefiereTabla' => ($vista ?? $request->cookie('hoja_vista')) === 'tabla',
             'seccion' => $seccion,
             // Todos los ancestros: los que la estación no puede abrir se muestran como texto (sin enlace), para saber de qué sección viene.
             'ancestros' => $seccion->ancestros(),

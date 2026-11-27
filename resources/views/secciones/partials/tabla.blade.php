@@ -15,12 +15,21 @@
     @if ($modoHoja)
         {{-- Escritorio / tableta: hoja de cálculo. Fuera del contenedor con overflow-hidden (menús y paletas no se recortan). --}}
         <div class="hidden sm:block">
+            <p class="mb-2 text-sm">
+                <a href="{{ route('secciones.show', array_merge([$seccion, 'tab' => 'tabla', 'vista' => 'tabla'], $parametroTabla)) }}"
+                   class="inline-flex min-h-[44px] items-center font-semibold text-brand-teal underline">{{ __('Ver como tabla (más fácil con lector de pantalla y letra grande)') }}</a>
+            </p>
             @include('secciones.partials.hoja-calculo')
         </div>
     @elseif ($hayFiltros)
         <p class="mb-3 hidden flex-wrap items-center gap-x-2 rounded-md bg-brand-mist px-3 py-2 text-sm text-brand-green sm:flex" role="status">
             <span>{{ __('Mostrando la tabla como lista de resultados (búsqueda, orden o filtro aplicado).') }}</span>
-            <a href="{{ route('secciones.show', array_merge([$seccion, 'tab' => 'tabla'], $parametroTabla)) }}" class="font-semibold underline">{{ __('Volver a la hoja de cálculo') }}</a>
+            <a href="{{ route('secciones.show', array_merge([$seccion, 'tab' => 'tabla'], $parametroTabla)) }}" class="font-semibold underline">{{ $prefiereTabla ? __('Quitar la búsqueda y los filtros') : __('Volver a la hoja de cálculo') }}</a>
+        </p>
+    @elseif ($prefiereTabla)
+        <p class="mb-2 hidden text-sm sm:block">
+            <a href="{{ route('secciones.show', array_merge([$seccion, 'tab' => 'tabla', 'vista' => 'hoja'], $parametroTabla)) }}"
+               class="inline-flex min-h-[44px] items-center font-semibold text-brand-teal underline">{{ __('Ver como hoja de cálculo') }}</a>
         </p>
     @endif
     <div @class(['overflow-hidden rounded-xl border border-brand-green/10 bg-white shadow-sm shadow-brand-green/5', 'sm:hidden' => $modoHoja])>
